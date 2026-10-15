@@ -6,7 +6,7 @@ test_same_information_contract_recorded (test_confirmatory.ConfirmatoryTests.tes
 test_three_demand_regimes_prepositioned (test_confirmatory.ConfirmatoryTests.test_three_demand_regimes_prepositioned) ... ok
 
 ----------------------------------------------------------------------
-Ran 6 tests in 0.006s
+Ran 6 tests in 0.007s
 
 OK
 exit=0

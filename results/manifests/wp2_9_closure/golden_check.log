@@ -4,4 +4,4 @@ batch_allocation_log.csv: OK
 vehicle_records.csv: OK
 edge_event_records.csv: OK
 metric_spec.json: OK
-golden exit=0
+exit=0

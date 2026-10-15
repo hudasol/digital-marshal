@@ -1,3 +1,5 @@
+SUPERSEDED by results/manifests/wp2_9_closure (85 tests, 18 mutants; an intermediate state of the audit fix). Kept as history.
+
 # Audit completeness (B-01) execution evidence
 
 Produced by an AI assistant in a cloud sandbox on 2026-10-15; not independently reproduced by a human. `<workdir>` and `<repo>` replace sandbox paths.

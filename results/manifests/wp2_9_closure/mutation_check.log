@@ -26,6 +26,10 @@ KILLED   audit B-01: batch row split not checked                 FAILED (failure
 KILLED   audit B-01: batch total not checked against the scenario FAILED (failures=1)  e.g. ['test_batch_log_total_mismatch_fails']
 KILLED   audit B-01: unexpected exceptions no longer reported as failures FAILED (failures=1)  e.g. ['test_an_internal_error_is_reported_as_a_failure_with_a_diagnostic_never_a_pass']
 KILLED   FIFO headway wrong in model (cap*1.1)                   FAILED (failures=21, errors=1)  e.g. ['setUpClass', 'test_all_fifteen_frozen_runs_pass_from_csv', 'test_all_policy_runs_have_zero_fifo_violations']
+KILLED   audit review: vehicle route label not tied to paths     FAILED (failures=2)  e.g. ['test_every_documented_corruption_is_caught_and_the_fixture_is_untouched', 'test_wrong_route_label_in_vehicle_records_fails']
+KILLED   audit review: decision route not tied to paths          FAILED (failures=2)  e.g. ['test_every_documented_corruption_is_caught_and_the_fixture_is_untouched', 'test_wrong_chosen_route_in_decision_log_fails']
+KILLED   audit review: metrics route counts not tied to paths    FAILED (failures=2)  e.g. ['test_every_documented_corruption_is_caught_and_the_fixture_is_untouched', 'test_swapped_route_counts_in_metrics_fail']
+KILLED   audit review: batch route totals not tied to paths      FAILED (failures=2)  e.g. ['test_batch_log_route_totals_must_match_paths', 'test_every_documented_corruption_is_caught_and_the_fixture_is_untouched']
 
-28/28 mutants killed
+32/32 mutants killed
 exit=0

@@ -30,6 +30,11 @@ test_missing_decision_rows_fail (test_audit_completeness.MissingRuns.test_missin
 test_missing_group_in_each_other_file_fails_closed_and_names_the_file (test_audit_completeness.MissingRuns.test_missing_group_in_each_other_file_fails_closed_and_names_the_file) ... ok
 test_partially_missing_vehicle_rows_fail (test_audit_completeness.MissingRuns.test_partially_missing_vehicle_rows_fail) ... ok
 test_reviewer_probe_one_metrics_row_removed_for_every_run (test_audit_completeness.MissingRuns.test_reviewer_probe_one_metrics_row_removed_for_every_run) ... ok
+test_batch_log_route_totals_must_match_paths (test_audit_completeness.RouteLabelsAndCountsMatchTheDrivenPaths.test_batch_log_route_totals_must_match_paths) ... ok
+test_spec_route_labels_match_the_model (test_audit_completeness.RouteLabelsAndCountsMatchTheDrivenPaths.test_spec_route_labels_match_the_model) ... ok
+test_swapped_route_counts_in_metrics_fail (test_audit_completeness.RouteLabelsAndCountsMatchTheDrivenPaths.test_swapped_route_counts_in_metrics_fail) ... ok
+test_wrong_chosen_route_in_decision_log_fails (test_audit_completeness.RouteLabelsAndCountsMatchTheDrivenPaths.test_wrong_chosen_route_in_decision_log_fails) ... ok
+test_wrong_route_label_in_vehicle_records_fails (test_audit_completeness.RouteLabelsAndCountsMatchTheDrivenPaths.test_wrong_route_label_in_vehicle_records_fails) ... ok
 test_extra_exploratory_policy_in_a_frozen_package_fails (test_audit_completeness.UnexpectedOrRenamed.test_extra_exploratory_policy_in_a_frozen_package_fails) ... ok
 test_extra_unknown_scenario_fails (test_audit_completeness.UnexpectedOrRenamed.test_extra_unknown_scenario_fails) ... ok
 test_renamed_policy_in_metrics_only_fails (test_audit_completeness.UnexpectedOrRenamed.test_renamed_policy_in_metrics_only_fails) ... ok
@@ -102,7 +107,7 @@ test_p95_guardrail_values_in_primary_scenario (test_values.PinnedResults.test_p9
 test_totals_and_splits (test_values.PinnedResults.test_totals_and_splits) ... ok
 
 ----------------------------------------------------------------------
-Ran 102 tests in 8.350s
+Ran 107 tests in 9.749s
 
 OK
 exit=0
