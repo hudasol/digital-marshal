@@ -1,0 +1,2 @@
+Superseded. This is the first closure evidence round, produced for code commit 0b5c589 (before the route consistency fix in e3c35d5). It is kept as history and its SHA256SUMS.txt still verifies. The current evidence is one directory up, for commit 9ae528d2238d0d4dedcd07ba7083349f111d422a.
+This file is not covered by SHA256SUMS.txt.

@@ -1,0 +1,5 @@
+baseline WP2.7         exit=0 OK
+WP2.9 development      exit=0 OK
+SUMO smoke audit       exit=0 OK
+repository             exit=0 OK
+exit=0

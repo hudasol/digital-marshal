@@ -13,7 +13,7 @@ Independence contract
 Library use:  audit_run(spec, edge_events, vehicle_rows, scale=..., expected_vehicles=..., ...)
 CLI:          python src/raw_audit.py --results results [--spec config/graph_spec.json]   (exit 0 pass, 1 fail)
 """
-import argparse, csv, json, math, sys
+import argparse, csv, hashlib, json, math, sys
 from collections import defaultdict
 from pathlib import Path
 
@@ -142,33 +142,189 @@ def audit_run(spec, edge_events, vehicle_rows, *, scale, expected_vehicles, spac
             'vehicles_checked': len(set(ids)), 'recomputed': recomputed}
 
 
+RESULT_FILES = ('confirmatory_metrics.csv', 'vehicle_records.csv', 'edge_event_records.csv', 'decision_log.csv',
+                'batch_allocation_log.csv')
+
+
+REQUIRED = {   # file -> (numeric columns, count columns (non negative integers), text columns that must be non empty)
+    'confirmatory_metrics.csv': (['total_fleet_travel_time_vehicle_min', 'mean_travel_time_min', 'median_travel_time_min',
+                                  'p95_nearest_rank_min'], ['vehicles', 'completed', 'incomplete', 'route_A_count', 'route_B_count'], []),
+    'vehicle_records.csv': (['depart_s', 'p_time_s', 'arrival_s', 'travel_time_s'], [], ['vehicle', 'route']),
+    'edge_event_records.csv': (['arrival_s', 'exit_s', 'queue_wait_s'], [], ['edge', 'vehicle']),
+    'decision_log.csv': (['decision_epoch_s', 'p_arrival_s', 'seconds_after_incident'], [], ['vehicle', 'chosen_route']),
+    'batch_allocation_log.csv': (['epoch_s'], ['batch_size', 'A_count', 'B_count'], []),
+}
+
+
+def _finite(x):
+    try: return math.isfinite(float(x))
+    except (TypeError, ValueError): return False
+
+
+def _read(d, name, pkg, bad):
+    """Read one result file. File level problems go to pkg; row level malformed values go to bad as (key, detail)."""
+    path = d / name
+    if not path.exists():
+        pkg.append({'check': 'results_file_missing', 'file': name}); return []
+    try:
+        with path.open(newline='', encoding='utf-8') as f: rows = list(csv.DictReader(f))
+    except (UnicodeDecodeError, csv.Error, OSError) as e:
+        pkg.append({'check': 'results_file_unreadable', 'file': name, 'error': str(e)[:120]}); return []
+    if not rows:
+        pkg.append({'check': 'results_file_empty', 'file': name}); return []
+    nums, counts, texts = REQUIRED[name]
+    need = {'scenario', 'policy'} | set(nums) | set(counts) | set(texts) | ({'complete'} if name == 'vehicle_records.csv' else set())
+    miss = sorted(need - set(rows[0]))
+    if miss:
+        pkg.append({'check': 'missing_required_columns', 'file': name, 'columns': miss}); return []
+    for i, r in enumerate(rows, start=2):
+        key = (r['scenario'], r['policy'])
+        def b(col, why): bad.append((key, {'check': 'malformed_value', 'file': name, 'line': i, 'column': col, 'value': str(r[col])[:40], 'why': why}))
+        if None in r or any(v is None for v in r.values()): bad.append((key, {'check': 'malformed_record', 'file': name, 'line': i, 'why': 'wrong number of fields'})); continue
+        for c in nums:
+            if not _finite(r[c]): b(c, 'not a finite number')
+        for c in counts:
+            if not _finite(r[c]) or float(r[c]) < 0 or float(r[c]) != int(float(r[c])): b(c, 'not a non negative integer')
+        for c in texts:
+            if not r[c].strip(): b(c, 'empty')
+        if name == 'vehicle_records.csv' and r['complete'] not in ('True', 'False'): b('complete', 'not True or False')
+    return rows
+
+
 def audit_results_dir(results_dir, spec_path=DEFAULT_SPEC):
-    """Audit every (scenario, policy) in a results directory written by confirmatory.py."""
+    """Audit a results directory written by confirmatory.py. FAILS CLOSED on an incomplete package.
+
+    The expected matrix is every scenario in the spec crossed with every policy in the spec (15 runs for the frozen
+    experiment). Each of the five result files must contain every expected (scenario, policy) group, the metrics file
+    exactly once, and nothing else. A missing, duplicated or unexpected group, or a missing file, makes the returned
+    list contain a failing entry that names the file, scenario and policy. One entry per expected run is always returned,
+    plus one per unexpected group and one '(package)' entry for file level problems."""
     spec = load_spec(spec_path); d = Path(results_dir)
-    def rd(name):
-        with (d / name).open(newline='') as f: return list(csv.DictReader(f))
-    veh, evt, met = rd('vehicle_records.csv'), rd('edge_event_records.csv'), rd('confirmatory_metrics.csv')
-    gv, ge = defaultdict(list), defaultdict(list)
-    for r in veh: gv[(r['scenario'], r['policy'])].append(r)
-    for r in evt: ge[(r['scenario'], r['policy'])].append(r)
+    expected = [(s, p) for s in spec['scenarios'] for p in spec['policies']]
+    pkg = []; bad = []
+    data = {name: _read(d, name, pkg, bad) for name in RESULT_FILES}
+    groups = {}
+    for name, rows in data.items():
+        g = defaultdict(list)
+        for r in rows: g[(r['scenario'], r['policy'])].append(r)
+        groups[name] = g
+    per_key = defaultdict(list)
+    def flag(key, check, **kw): per_key[key].append({'check': check, **kw})
+    for name in RESULT_FILES:
+        for key in expected:
+            if key not in groups[name]: flag(key, 'missing_run', file=name)
+        for key in groups[name]:
+            if key not in expected: flag(key, 'unexpected_run', file=name)
+    for key, rows in groups['confirmatory_metrics.csv'].items():
+        if len(rows) > 1: flag(key, 'duplicate_metrics_row', file='confirmatory_metrics.csv', copies=len(rows))
+    for key in expected:
+        n = spec['scenarios'][key[0]]['vehicles']
+        dl = len(groups['decision_log.csv'].get(key, []))
+        if dl and dl != n: flag(key, 'decision_log_row_count', found=dl, expected=n)
+        bl = groups['batch_allocation_log.csv'].get(key, [])
+        if bl and key not in {k for k, _ in bad} and sum(int(float(r['batch_size'])) for r in bl) != n:
+            flag(key, 'batch_log_total_mismatch', found=sum(int(float(r['batch_size'])) for r in bl), expected=n)
+    malformed = set()
+    for key, detail in bad:
+        malformed.add(key); per_key[key].append(detail)
+    for key in expected:
+        sc = spec['scenarios'][key[0]]; n = sc['vehicles']
+        mr = groups['confirmatory_metrics.csv'].get(key)
+        if mr and key not in malformed:
+            m0 = mr[0]
+            if int(float(m0['vehicles'])) != n: flag(key, 'metrics_vehicle_count', file='confirmatory_metrics.csv', found=m0['vehicles'], expected=n)
+            if int(float(m0['route_A_count'])) + int(float(m0['route_B_count'])) != n:
+                flag(key, 'metrics_route_counts_do_not_sum', file='confirmatory_metrics.csv', found=int(float(m0['route_A_count'])) + int(float(m0['route_B_count'])), expected=n)
+        dec = groups['decision_log.csv'].get(key, []); veh = groups['vehicle_records.csv'].get(key, [])
+        if dec and veh:
+            dids = [r['vehicle'] for r in dec]
+            if len(dids) != len(set(dids)): flag(key, 'duplicate_decision_rows', file='decision_log.csv')
+            if set(dids) != {r['vehicle'] for r in veh}: flag(key, 'decision_vehicle_ids_mismatch', file='decision_log.csv')
+        for r in groups['batch_allocation_log.csv'].get(key, []):
+            if key not in malformed and int(float(r['A_count'])) + int(float(r['B_count'])) != int(float(r['batch_size'])):
+                flag(key, 'batch_row_counts_do_not_sum', file='batch_allocation_log.csv', epoch_s=r['epoch_s']); break
+    # Route labels and route counts are reported in three files; tie them to the path actually driven in the raw edge events.
+    labels = {tuple(path): lab for lab, path in spec['route_labels'].items()}
+    for key in expected:
+        ev = groups['edge_event_records.csv'].get(key)
+        if not ev or key in malformed: continue
+        by_v = defaultdict(list)
+        for e in ev: by_v[e['vehicle']].append(e)
+        driven = {v: labels.get(tuple(x['edge'] for x in sorted(L, key=lambda x: float(x['arrival_s'])))) for v, L in by_v.items()}
+        for r in groups['vehicle_records.csv'].get(key, []):
+            if driven.get(r['vehicle']) != r['route']:
+                flag(key, 'vehicle_route_label_mismatch', file='vehicle_records.csv', vehicle=r['vehicle'], label=r['route'], driven=driven.get(r['vehicle'])); break
+        for r in groups['decision_log.csv'].get(key, []):
+            if driven.get(r['vehicle']) != r['chosen_route']:
+                flag(key, 'decision_route_mismatch', file='decision_log.csv', vehicle=r['vehicle'], chosen=r['chosen_route'], driven=driven.get(r['vehicle'])); break
+        nA = sum(1 for v in driven.values() if v == 'A'); nB = sum(1 for v in driven.values() if v == 'B')
+        mr = groups['confirmatory_metrics.csv'].get(key)
+        if mr and (int(float(mr[0]['route_A_count'])), int(float(mr[0]['route_B_count']))) != (nA, nB):
+            flag(key, 'metrics_route_counts_vs_paths', file='confirmatory_metrics.csv',
+                 reported=(mr[0]['route_A_count'], mr[0]['route_B_count']), driven=(nA, nB))
+        bl = groups['batch_allocation_log.csv'].get(key, [])
+        if bl and (sum(int(float(r['A_count'])) for r in bl), sum(int(float(r['B_count'])) for r in bl)) != (nA, nB):
+            flag(key, 'batch_route_totals_vs_paths', file='batch_allocation_log.csv', driven=(nA, nB))
+        # Batch log per epoch, and the decision log time fields, against the vehicle records (epoch rule from the spec, decision D3).
+        u, a0 = spec['epoch_s'], spec['epoch_anchor_s']
+        pt = {r['vehicle']: float(r['p_time_s']) for r in groups['vehicle_records.csv'].get(key, [])}
+        def epoch_of(p): return round(a0 + math.floor(max(0.0, p - a0) / u + 1e-9) * u, 6)
+        exp = defaultdict(lambda: [0, 0, 0])
+        for v, p in pt.items():
+            e = exp[epoch_of(p)]; e[0] += 1; e[1] += driven.get(v) == 'A'; e[2] += driven.get(v) == 'B'
+        if bl:
+            got = sorted((round(float(r['epoch_s']), 6), int(float(r['batch_size'])), int(float(r['A_count'])), int(float(r['B_count']))) for r in bl)
+            want = sorted((e, *map(int, x)) for e, x in exp.items())
+            if got != want: flag(key, 'batch_epoch_mismatch', file='batch_allocation_log.csv', found=got[:4], expected=want[:4])
+        for r in groups['decision_log.csv'].get(key, []):
+            p = pt.get(r['vehicle'])
+            if p is None: continue
+            ep, pa, sa = float(r['decision_epoch_s']), float(r['p_arrival_s']), float(r['seconds_after_incident'])
+            why = ('p_arrival_s differs from the vehicle record' if abs(pa - p) > EPS else
+                   'decision epoch after the P arrival (retroactive)' if ep > pa + EPS else
+                   'decision epoch is not the batch epoch of the P arrival' if abs(ep - epoch_of(p)) > EPS else
+                   'seconds_after_incident is not epoch minus incident time' if abs(sa - (ep - spec['incident_s'])) > EPS else None)
+            if why: flag(key, 'decision_field_mismatch', file='decision_log.csv', vehicle=r['vehicle'], why=why); break
     out = []
-    for m in met:
-        key = (m['scenario'], m['policy']); sc = spec['scenarios'][m['scenario']]
-        res = audit_run(spec, ge[key], gv[key], scale=sc['branch_capacity_scale'], expected_vehicles=sc['vehicles'],
-                        spacing_s=sc['spacing_s'], reported={k: m[k] for k in (
-                            'total_fleet_travel_time_vehicle_min', 'mean_travel_time_min', 'median_travel_time_min',
-                            'p95_nearest_rank_min', 'completed', 'incomplete')})
+    def entry(key, res):
+        counts = defaultdict(int)
+        for v in res['violations']: counts[v['check']] += 1
+        res['violation_counts'] = dict(counts); res['pass'] = not res['violations']
         out.append({'scenario': key[0], 'policy': key[1], **res})
+    empty = {'violations': [], 'events_checked': 0, 'vehicles_checked': 0, 'recomputed': {}}
+    for key in expected:
+        have = all(key in groups[n] for n in ('confirmatory_metrics.csv', 'vehicle_records.csv', 'edge_event_records.csv'))
+        if have and key not in malformed:
+            sc = spec['scenarios'][key[0]]; m = groups['confirmatory_metrics.csv'][key][0]
+            res = audit_run(spec, groups['edge_event_records.csv'][key], groups['vehicle_records.csv'][key],
+                            scale=sc['branch_capacity_scale'], expected_vehicles=sc['vehicles'], spacing_s=sc['spacing_s'],
+                            reported={k: m[k] for k in ('total_fleet_travel_time_vehicle_min', 'mean_travel_time_min',
+                                                        'median_travel_time_min', 'p95_nearest_rank_min', 'completed', 'incomplete')})
+        else:
+            res = dict(empty, violations=[])
+        res['violations'] = res['violations'] + per_key.get(key, [])
+        entry(key, res)
+    for key in per_key:
+        if key not in expected: entry(key, dict(empty, violations=per_key[key]))
+    if pkg: entry(('(package)', '(package)'), dict(empty, violations=pkg))
     return out
 
+
+COMPLETENESS_CHECKS = ('missing_run', 'unexpected_run', 'duplicate_metrics_row', 'results_file_missing',
+                       'results_file_empty', 'results_file_unreadable', 'missing_required_columns')
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser(); ap.add_argument('--results', required=True); ap.add_argument('--spec', default=str(DEFAULT_SPEC))
     a = ap.parse_args()
-    res = audit_results_dir(a.results, a.spec)
-    allpass = all(r['pass'] for r in res)
-    print(json.dumps({'runs_audited': len(res), 'all_pass': allpass,
+    spec = load_spec(a.spec); expected = len(spec['scenarios']) * len(spec['policies'])
+    try:
+        res = audit_results_dir(a.results, a.spec)
+    except Exception as e:      # never let a malformed package look like a pass or die without a diagnostic
+        print(json.dumps({'all_pass': False, 'error': 'audit_crashed', 'detail': f'{type(e).__name__}: {str(e)[:200]}'}, indent=2)); sys.exit(2)
+    audited = [r for r in res if r['scenario'] != '(package)' and not any(v['check'] in COMPLETENESS_CHECKS for v in r['violations'])]
+    allpass = all(r['pass'] for r in res) and len(audited) == expected and len(res) == expected
+    print(json.dumps({'spec_sha256': hashlib.sha256(Path(a.spec).read_bytes()).hexdigest(), 'spec_is_default': Path(a.spec).resolve() == DEFAULT_SPEC.resolve(), 'expected_runs': expected, 'runs_audited': len(audited), 'all_pass': allpass,
                       'events_checked': sum(r['events_checked'] for r in res),
-                      'violations': [{'scenario': r['scenario'], 'policy': r['policy'], 'counts': r['violation_counts']}
-                                     for r in res if not r['pass']]}, indent=2))
+                      'violations': [{'scenario': r['scenario'], 'policy': r['policy'], 'counts': r['violation_counts'],
+                                      'detail': r['violations'][:12]} for r in res if not r['pass']]}, indent=2))
     sys.exit(0 if allpass else 1)

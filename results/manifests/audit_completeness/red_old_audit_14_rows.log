@@ -1,0 +1,9 @@
+# RED: raw_audit.py as on main (before the fix), metrics file with one row removed (row 7 of 15)
+# command: python raw_audit.py --results <14 row package> --spec graph_spec.json
+{
+  "runs_audited": 14,
+  "all_pass": true,
+  "events_checked": 1492,
+  "violations": []
+}
+exit_status: 0

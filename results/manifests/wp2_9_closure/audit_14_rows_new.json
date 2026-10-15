@@ -1,0 +1,23 @@
+{
+  "spec_sha256": "9f53d31912e665ceb823eb4a1010adeddac6c2e60d7251ae09e3cc331d7ed63f",
+  "spec_is_default": true,
+  "expected_runs": 15,
+  "runs_audited": 14,
+  "all_pass": false,
+  "events_checked": 1742,
+  "violations": [
+    {
+      "scenario": "primary_double_capacity",
+      "policy": "coordinated_batch",
+      "counts": {
+        "missing_run": 1
+      },
+      "detail": [
+        {
+          "check": "missing_run",
+          "file": "confirmatory_metrics.csv"
+        }
+      ]
+    }
+  ]
+}

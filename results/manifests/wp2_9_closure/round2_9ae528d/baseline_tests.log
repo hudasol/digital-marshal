@@ -1,0 +1,12 @@
+test_all_policy_runs_have_zero_fifo_violations (test_confirmatory.ConfirmatoryTests.test_all_policy_runs_have_zero_fifo_violations) ... ok
+test_coordination_uses_same_batches_and_assigns_every_vehicle (test_confirmatory.ConfirmatoryTests.test_coordination_uses_same_batches_and_assigns_every_vehicle) ... ok
+test_metric_definitions_and_p95 (test_confirmatory.ConfirmatoryTests.test_metric_definitions_and_p95) ... ok
+test_periodic_independent_batches_are_explicit (test_confirmatory.ConfirmatoryTests.test_periodic_independent_batches_are_explicit) ... ok
+test_same_information_contract_recorded (test_confirmatory.ConfirmatoryTests.test_same_information_contract_recorded) ... ok
+test_three_demand_regimes_prepositioned (test_confirmatory.ConfirmatoryTests.test_three_demand_regimes_prepositioned) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.007s
+
+OK
+exit=0

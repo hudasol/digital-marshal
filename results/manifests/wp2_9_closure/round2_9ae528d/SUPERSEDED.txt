@@ -1,0 +1,2 @@
+Superseded. Second closure evidence round, for code commit 9ae528d (102 -> 107 tests, 32 mutants, 71 cases). Kept as history; its SHA256SUMS.txt still verifies. Current evidence is one directory up, for commit 0bf46d0396e83e20c0c67e3cbd8694af98d1fb7b.
+This file is not covered by SHA256SUMS.txt.

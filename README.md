@@ -17,7 +17,9 @@ A student built simulation study of how autonomous vehicles could be coordinated
 | `simulation/sumo` | Synthetic SUMO network, scenario runner, smoke test |
 | `results/historical` | Earlier SUMO aggregates, kept and labelled |
 | `results/manifests` | Execution records, logs and hashes |
-| `docs` | Architecture, acceptance criteria, decisions, reconciliation, incomplete items |
+| `docs` | Architecture, acceptance criteria, decisions (including `docs/decisions/OWNER_DECISIONS.md`), review documents, reconciliation, incomplete items |
+
+The WP2.7 baseline is immutable. WP2.9 is the development model. `independent_each_vehicle` and `peer_aware_sequential` are exploratory and do not replace the frozen `independent_periodic` comparator. `coordinated_batch` is a restricted optimiser. Historical SUMO results are earlier and uncalibrated. The Track A import and provenance pull request is open and not merged; this repository does not rely on its files.
 
 ## Run
 

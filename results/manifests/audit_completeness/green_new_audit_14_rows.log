@@ -1,0 +1,24 @@
+# GREEN: fixed raw_audit.py, same 14 row package
+# command: python src/raw_audit.py --results <14 row package>
+{
+  "expected_runs": 15,
+  "runs_audited": 14,
+  "all_pass": false,
+  "events_checked": 1492,
+  "violations": [
+    {
+      "scenario": "overload_stress",
+      "policy": "static",
+      "counts": {
+        "missing_run": 1
+      },
+      "detail": [
+        {
+          "check": "missing_run",
+          "file": "confirmatory_metrics.csv"
+        }
+      ]
+    }
+  ]
+}
+exit_status: 1

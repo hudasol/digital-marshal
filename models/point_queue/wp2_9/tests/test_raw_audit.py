@@ -9,7 +9,7 @@ import confirmatory as c
 import raw_audit as ra
 
 SPEC = ra.load_spec()
-STDLIB_OK = {'argparse', 'csv', 'json', 'math', 'sys', 'collections', 'pathlib'}
+STDLIB_OK = {'hashlib', 'argparse', 'csv', 'json', 'math', 'sys', 'collections', 'pathlib'}
 
 
 def real_run(policy='coordinated_batch', n=24, spacing=5, scale=1.0):
