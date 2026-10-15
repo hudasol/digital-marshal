@@ -1,0 +1,117 @@
+EF.EFFEEEEFF.....E......
+======================================================================
+ERROR: test_closure_boundary_entry_exactly_at_closure_counts (tests.test_gates_and_horizon.ClosureGate.test_closure_boundary_entry_exactly_at_closure_counts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workdir>/wp29/redtree/tests/test_gates_and_horizon.py", line 65, in test_closure_boundary_entry_exactly_at_closure_counts
+    self.assertTrue(run(e2))                  # E2 entry exactly at closure counts
+                    ~~~^^^^
+  File "<workdir>/wp29/redtree/tests/test_gates_and_horizon.py", line 64, in <lambda>
+    run = lambda t: m.run_fixed_routes(vs, {'V001': 'critical'}, closure_start_s=t)[0][0]['closure_violation']
+                    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: run_fixed_routes() got an unexpected keyword argument 'closure_start_s'
+
+======================================================================
+ERROR: test_no_closure_control_allows_critical_route (tests.test_gates_and_horizon.ClosureGate.test_no_closure_control_allows_critical_route)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workdir>/wp29/redtree/tests/test_gates_and_horizon.py", line 53, in test_no_closure_control_allows_critical_route
+    rows, _ = m.run_fixed_routes(vs, {v['id']: 'critical' for v in vs}, closure_start_s=None)
+              ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: run_fixed_routes() got an unexpected keyword argument 'closure_start_s'
+
+======================================================================
+ERROR: test_horizon_boundary_is_inclusive (tests.test_gates_and_horizon.HorizonEnforcement.test_horizon_boundary_is_inclusive)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workdir>/wp29/redtree/tests/test_gates_and_horizon.py", line 109, in test_horizon_boundary_is_inclusive
+    self.assertTrue(m.run_fixed_routes(vs, {'V001': 'A'}, horizon_s=t)[0][0]['complete'])
+                    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: run_fixed_routes() got an unexpected keyword argument 'horizon_s'
+
+======================================================================
+ERROR: test_incomplete_trips_fail_the_gate_but_audit_stays_self_consistent (tests.test_gates_and_horizon.HorizonEnforcement.test_incomplete_trips_fail_the_gate_but_audit_stays_self_consistent)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workdir>/wp29/redtree/tests/test_gates_and_horizon.py", line 119, in test_incomplete_trips_fail_the_gate_but_audit_stays_self_consistent
+    self.assertTrue(fifo['audit']['pass'], fifo['audit']['violations'][:2])   # flags/censoring agree with the horizon
+                    ~~~~^^^^^^^^^
+KeyError: 'audit'
+
+======================================================================
+ERROR: test_metric_spec_declares_the_horizon_that_is_enforced (tests.test_gates_and_horizon.HorizonEnforcement.test_metric_spec_declares_the_horizon_that_is_enforced)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workdir>/wp29/redtree/tests/test_gates_and_horizon.py", line 81, in test_metric_spec_declares_the_horizon_that_is_enforced
+    self.assertEqual(spec['horizon_s'], m.HORIZON_S)
+                                        ^^^^^^^^^^^
+AttributeError: module 'canonical_model' has no attribute 'HORIZON_S'
+
+======================================================================
+ERROR: test_single_source_of_truth_is_7200 (tests.test_gates_and_horizon.HorizonEnforcement.test_single_source_of_truth_is_7200)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workdir>/wp29/redtree/tests/test_gates_and_horizon.py", line 73, in test_single_source_of_truth_is_7200
+    self.assertEqual(m.HORIZON_S, 7200.0)
+                     ^^^^^^^^^^^
+AttributeError: module 'canonical_model' has no attribute 'HORIZON_S'
+
+======================================================================
+ERROR: test_single_vehicle_free_flow_times (tests.test_values.HandComputed.test_single_vehicle_free_flow_times)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workdir>/wp29/redtree/tests/test_values.py", line 19, in test_single_vehicle_free_flow_times
+    r, _ = m.run_fixed_routes([{'id': 'V001', 'depart_s': 0.0}], {'V001': 'critical'}, closure_start_s=None)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: run_fixed_routes() got an unexpected keyword argument 'closure_start_s'
+
+======================================================================
+FAIL: test_every_vehicle_on_closed_critical_route_is_flagged (tests.test_gates_and_horizon.ClosureGate.test_every_vehicle_on_closed_critical_route_is_flagged)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workdir>/wp29/redtree/tests/test_gates_and_horizon.py", line 17, in test_every_vehicle_on_closed_critical_route_is_flagged
+    self.assertTrue(all(r['closure_violation'] for r in rows))
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_pipeline_gate_fails_end_to_end_when_a_policy_leaks (tests.test_gates_and_horizon.ClosureGate.test_pipeline_gate_fails_end_to_end_when_a_policy_leaks)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workdir>/wp29/redtree/tests/test_gates_and_horizon.py", line 39, in test_pipeline_gate_fails_end_to_end_when_a_policy_leaks
+    self.assertTrue(all(not r['checks_pass'] for r in metrics))
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_single_leaking_vehicle_is_counted_once (tests.test_gates_and_horizon.ClosureGate.test_single_leaking_vehicle_is_counted_once)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workdir>/wp29/redtree/tests/test_gates_and_horizon.py", line 27, in test_single_leaking_vehicle_is_counted_once
+    self.assertEqual(met['closed_link_entries'], 1)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_trip_after_horizon_is_incomplete_and_censored_not_dropped (tests.test_gates_and_horizon.HorizonEnforcement.test_trip_after_horizon_is_incomplete_and_censored_not_dropped)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workdir>/wp29/redtree/tests/test_gates_and_horizon.py", line 103, in test_trip_after_horizon_is_incomplete_and_censored_not_dropped
+    self.assertTrue(r['complete'])
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_trip_finishing_between_3600_and_7200_is_complete (tests.test_gates_and_horizon.HorizonEnforcement.test_trip_finishing_between_3600_and_7200_is_complete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workdir>/wp29/redtree/tests/test_gates_and_horizon.py", line 89, in test_trip_finishing_between_3600_and_7200_is_complete
+    self.assertTrue(all(r['complete'] for r in rows))
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true
+
+----------------------------------------------------------------------
+Ran 24 tests in 0.213s
+
+FAILED (failures=5, errors=7)
+red exit 1

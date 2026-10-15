@@ -1,0 +1,10 @@
+{
+  "rows": 25,
+  "all_checks_pass": true
+}
+static                     frozen        262.000  A/B 24/0  coord better by   4.60%
+independent_periodic       frozen        254.275  A/B 18/6  coord better by   1.70%
+coordinated_batch          frozen        249.950  A/B 16/8  coord better by   0.00%
+independent_each_vehicle   EXPLORATORY   254.275  A/B 18/6  coord better by   1.70%
+peer_aware_sequential      EXPLORATORY   251.192  A/B 16/8  coord better by   0.49%
+exit 0
