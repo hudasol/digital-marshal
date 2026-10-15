@@ -1,0 +1,31 @@
+{
+  "scenario": "near_branch_capacity",
+  "policy": "no_reroute_control",
+  "seed": 1,
+  "vehicles": 180,
+  "completed": 180,
+  "incomplete": 0,
+  "total_vehicle_min": 615.9712,
+  "mean_min": 3.4221,
+  "p95_min": 3.7781,
+  "n_A": 0,
+  "n_B": 0,
+  "unassigned": 0,
+  "closed_link_entries": 0,
+  "illegal_transitions": 0,
+  "collisions": 0,
+  "duplicate_arrivals": 0,
+  "sim_end_s": 331.0,
+  "mean_time_loss_s": 18.31,
+  "horizon_s": 3600.0,
+  "termination_reason": "all_arrived",
+  "in_network_at_end": 0,
+  "not_inserted_at_end": 0,
+  "route_infeasible": 180,
+  "capacity_variant": "base",
+  "capacity_scale": 1.0,
+  "checks_pass": false,
+  "failed_gates": [
+    "route_infeasible"
+  ]
+}
