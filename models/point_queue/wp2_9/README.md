@@ -19,9 +19,10 @@ Limits: the specification and the audit were written with AI assistance and have
 Run from this directory.
 
 ```
-PYTHONPATH=src python -m unittest discover -s tests -v          # 107 tests
-python tools/mutation_check.py . python                         # re breaks each fix; every mutant (32) must be caught
-python tools/audit_adversarial.py                               # 71 corrupted copies run through the real audit command
+PYTHONPATH=src python -m unittest discover -s tests -v          # 116 tests
+python tools/mutation_check.py . python                         # re breaks each fix; every mutant (34) must be caught
+python tools/audit_adversarial.py                               # 75 corrupted copies run through the real audit command
+python tools/exhaustive_batch_oracle.py --max-batch 16          # analysis: all 2^m assignments per batch vs the restricted optimiser (about 35 s)
 PYTHONPATH=src python src/confirmatory.py --out ../../../scratch/check   # regeneration check, not a confirmatory run
 python src/raw_audit.py --results ../../../scratch/check        # exit 0 only for a complete, clean package
 PYTHONPATH=src python src/exploratory.py --out ../../../scratch/expl     # exploratory policies, separate output
@@ -32,7 +33,7 @@ Never point `--out` at the historical results of the baseline.
 ## What is what
 
 * Immutable WP2.7 baseline: `../baseline_wp2_7` (source, tests and results as supplied; not modified).
-* WP2.9 development model: this directory. Frozen policies: `static`, `independent_periodic` and `coordinated_batch`. `coordinated_batch` is a restricted optimiser (it searches the count sent to Route A with an even spread, not all assignments); it is not proven optimal.
+* WP2.9 development model: this directory. Frozen policies: `static`, `independent_periodic` and `coordinated_batch`. `coordinated_batch` is a restricted optimiser (it searches the count sent to Route A with an even spread, not all assignments); it is not proven optimal. An exhaustive per batch check (`tools/exhaustive_batch_oracle.py`, replaying the frozen history) found it optimal in 18 of the 20 frozen batches and short of the optimum by 4.5 s (near_branch_capacity, epoch 240) and 12.0 s (overload_stress, epoch 180) of summed batch travel time in the other two; that is evidence of a gap, not of global optimality, and nothing was changed.
 * Exploratory policies `independent_each_vehicle` and `peer_aware_sequential` (`src/exploratory.py`) are separate, never write to `results/`, and do not replace the frozen `independent_periodic` or decide any confirmatory pass or fail.
 * Historical SUMO results: `../../../results/historical/sumo_phase1`, kept as produced and labelled.
 * The 5% improvement target is provisional and not approved. Cross model differences and the SUMO scenario gaps remain open.

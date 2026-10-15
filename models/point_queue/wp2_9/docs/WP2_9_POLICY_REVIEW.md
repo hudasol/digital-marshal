@@ -17,7 +17,7 @@ Status: AI-authored review of `src/confirmatory.py`; every claim below was check
 
 ## 2. Frozen `coordinated_batch`
 
-* It searches the count `k` of vehicles sent to A with A assignments spread evenly through the batch (`((i+1)*k)//m > (i*k)//m`), not all 2^m assignments. It is a restricted optimiser: good for a screening comparison, not a proven batch optimum. An exhaustive check on small batches is a candidate follow-up, not done here.
+* It searches the count `k` of vehicles sent to A with A assignments spread evenly through the batch (`((i+1)*k)//m > (i*k)//m`), not all 2^m assignments. It is a restricted optimiser: good for a screening comparison, not a proven batch optimum. An exhaustive per batch oracle (`tools/exhaustive_batch_oracle.py`, replaying the frozen committed history, same simulator and objective) shows the evenly spread search is optimal in 18 of 20 frozen batches and misses the optimum by 4.5 s (near_branch_capacity, epoch 240 s) and 12.0 s (overload_stress, epoch 180 s) of summed travel time. Production was never better than the optimum. No policy or result was changed.
 * Tie-break prefers larger `k`. Flipping it changes several pinned results (mutation-tested).
 
 ## 3. New exploratory baselines (`src/exploratory.py`, never written to `results/`)

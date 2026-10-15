@@ -7,8 +7,8 @@ Branch `wp2.9-fixes`, based on tag `wp2.7-baseline` (WP2.7 source, tests, docs a
 | Horizon | One constant `HORIZON_S = 7200.0` in `canonical_model.py`, enforced by `run_fixed_routes(horizon_s=...)`; `confirmatory.py` and `metric_spec.json` read it. The baseline enforced a hard-coded 3600 s. 7200 s is the value in the WP2.7 docs and `metric_spec.json`; confirm this is the intended frozen horizon. | `src/canonical_model.py`, `src/confirmatory.py` |
 | Closure gate | `closure_violation` and `closed_link_entries` are derived from each vehicle's entry time on `E2`/`E3` (entry at or after `closure_start_s`). They were hard-coded `False` / `0`. Audit flags `all_depart_before_incident` and `all_p_arrivals_at_or_after_incident` are computed, not constants. | same |
 | Audit | `audit_fifo` (which re-applied the model's own recurrence) is removed. `src/raw_audit.py` checks properties of the raw records against `config/graph_spec.json`, a separately transcribed spec with no model imports. | `src/raw_audit.py`, `config/graph_spec.json` |
-| Tests | 107 tests (6 original unchanged + 101 new, including 41 audit completeness tests and an adversarial runner test): adversarial closed route (unit and pipeline), horizon enforcement and boundary, hand-computed queue values, pinned results, golden byte-identity of 6 frozen outputs, audit independence, spec drift, 14 fault-injection tests, exploratory separation. | `tests/` |
-| Mutation check | `tools/mutation_check.py` re-breaks each fix in a scratch copy; 32/32 mutants are caught (18 original plus 10 for audit completeness plus 4 for route consistency). | `tools/` |
+| Tests | 116 tests (6 original unchanged + 110 new, including 47 audit completeness, route and epoch tests, 3 oracle tests and an adversarial runner test): adversarial closed route (unit and pipeline), horizon enforcement and boundary, hand-computed queue values, pinned results, golden byte-identity of 6 frozen outputs, audit independence, spec drift, 14 fault-injection tests, exploratory separation. | `tests/` |
+| Mutation check | `tools/mutation_check.py` re-breaks each fix in a scratch copy; 34/34 mutants are caught (18 original, 10 audit completeness, 4 route consistency, 2 epoch and decision field). | `tools/` |
 | Policy review | Independent policy review and corrected epoch grid. | `docs/WP2_9_POLICY_REVIEW.md` |
 | Exploratory baselines | `independent_each_vehicle`, `peer_aware_sequential`; separate runner that refuses to write to `results/`. | `src/exploratory.py` |
 
@@ -19,6 +19,11 @@ Branch `wp2.9-fixes`, based on tag `wp2.7-baseline` (WP2.7 source, tests, docs a
 ## Route consistency (post engineering review)
 
 A review probe showed that swapping `route_A_count` and `route_B_count`, flipping a route label in `vehicle_records.csv`, or flipping `chosen_route` in `decision_log.csv` still gave exit 0, because those fields were never compared with the edge paths. `audit_results_dir` now derives each vehicle's route from its raw edge events (labels in `route_labels` in `config/graph_spec.json`) and flags `vehicle_route_label_mismatch`, `decision_route_mismatch`, `metrics_route_counts_vs_paths` and `batch_route_totals_vs_paths`. Frozen outputs are unaffected.
+
+## Bounded closeout additions
+
+* `raw_audit.py` also checks, per run, each batch log row against the batch epoch of the vehicles' P arrivals (`batch_epoch_mismatch`) and the decision log time fields (`decision_field_mismatch`: P arrival, epoch not after P arrival, epoch equal to the batch epoch, seconds after incident). `epoch_s` (30) and `epoch_anchor_s` (180) were added to `config/graph_spec.json`; they are protocol parameters (decision D3), not new choices. The CLI output now names the specification used (`spec_sha256`, `spec_is_default`).
+* `tools/exhaustive_batch_oracle.py` (analysis only, never writes to `results/`): see README.
 
 ## Output compatibility
 

@@ -15,7 +15,8 @@
 
 ### Track B closure (branch `feature/wp2.9-audit-completeness`)
 * Raw audit derives the expected 5 by 3 matrix from the specification and fails closed on missing, empty, malformed, duplicated, unexpected or inconsistent packages, with diagnostics naming check, file, scenario and policy (B-01).
-* 107 WP2.9 tests, 32 mutants, a 71 case adversarial runner against the real command.
+* 116 WP2.9 tests, 34 mutants, a 75 case adversarial runner, an exhaustive batch oracle against the real command.
+* Bounded closeout: per epoch batch and decision log time field checks; CLI names the specification used.
 * Post engineering review fix: route labels, decision routes and route counts are checked against the driven edge paths.
 * Horizon consistency documented, owner decision still open (ADR-0001 addendum, B-02). Review documents for independent review (B-03, B-07). Owner decisions list. Stale README replaced (B-04).
 

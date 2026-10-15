@@ -67,7 +67,7 @@ Tick each item yourself; do not copy the AI's conclusions.
 
 ### Test quality
 - [ ] Read `tests/test_audit_completeness.py` and `tools/audit_adversarial.py`; judge whether expected outcomes are independent of the implementation.
-- [ ] Judge whether the 32 mutants cover the risks you care about; add mutants if not.
+- [ ] Judge whether the 34 mutants cover the risks you care about; add mutants if not.
 - [ ] Review `independence-and-common-mode.md` for risks missed.
 
 ## 3. Sign off block (empty)
