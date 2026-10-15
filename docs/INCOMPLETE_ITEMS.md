@@ -5,10 +5,11 @@ Three groups: completed engineering actions, outstanding engineering work, and d
 ## 1. Completed engineering actions (AI assisted, not independently reviewed)
 * Repository bootstrap with the WP2.7 baseline imported unchanged.
 * WP2.9 fixes: closure gate measured from vehicle records, one horizon constant, independent raw record audit.
-* B-01: audit completeness fixed; fail closed on missing, empty, malformed, duplicated, unexpected or inconsistent packages; 36 completeness tests, 28 mutants, 67 case adversarial run, original missing row defect reproduced on the old audit and now rejected.
+* B-01: audit completeness fixed; fail closed on missing, empty, malformed, duplicated, unexpected or inconsistent packages; 41 completeness tests, 32 mutants, 71 case adversarial run, original missing row defect reproduced on the old audit and now rejected.
 * B-02 engineering part: code, spec, metric file and tests agree on 7200 s; boundary and censoring tests exist; the point queue versus SUMO difference is documented (ADR-0001 addendum).
 * B-03 and B-07 preparation: traceability, independence analysis and reviewer checklist written.
 * B-04: README replaced.
+* Post engineering review: found and fixed a gap (route labels and route counts were not tied to the driven paths); see `results/manifests/wp2_9_closure/HANDOFF.md`.
 * Evidence recorded in `results/manifests/wp2_9_closure/`.
 
 ## 2. Outstanding engineering work

@@ -18,6 +18,7 @@ Source document: `FAIR_BASELINE_SPEC.md` (WP2.6 fair baseline specification), SH
 | scenarios: vehicles, spacing, scale | 10/10 s/1.0 ; 24/5 s/1.0 ; 60/2 s/1.0 ; 10/10 s/0.5 ; 10/10 s/2.0 | section 3 table | Values match | |
 | scenario identifiers | `primary_half_capacity`, `primary_double_capacity` | section 3 calls them `primary_half_branch_capacity` and `primary_double_branch_capacity` | **Differs from the spec text.** The shorter names are the ones used in the WP2.7 code, outputs and tests. | Confirm the shorter names are the intended frozen identifiers |
 | policies | static, independent_periodic, coordinated_batch | WP2.7 code and documents | Matches WP2.7; section 1 of the FAIR spec names the same three behaviours without these identifiers | Confirm identifiers |
+| route_labels | A = E1,E4,E5,E6,E11; B = E1,E7,E8,E9,E10,E11 | The labels used in the WP2.7 result files; added in the post engineering review | The two paths are the open routes of section 2; the letters are an output naming convention, not in the FAIR spec | Confirm labels |
 | horizon | 7200 s | WP2.7 `metric_spec.json` and docs; **not** in the FAIR spec | Provisional value | Owner decision D1 (`docs/decisions/OWNER_DECISIONS.md`) |
 
 Fields not covered by the audit specification at all: demand per minute (derived from spacing), decision epoch (30 s) and its anchor, tie-break rules, information contract. Those are policy and protocol items, not audit inputs.

@@ -16,6 +16,8 @@ Status: READY FOR INDEPENDENT REVIEW, NOT YET SIGNED OFF. Written by an AI assis
 | Metric definitions | WP2.7 `metric_spec.json` | The audit recomputes the same definitions; it does not question them. |
 | The tests | Written by the same AI that wrote the audit | Tests may share its blind spots. The adversarial runner (`tools/audit_adversarial.py`) states its expected outcomes in a hand written table rather than deriving them from the implementation, and the mutation check re breaks the audit to confirm tests notice, but both are still AI work. |
 
+Residual blind spots (known, not closed): the audit compares labels and counts with the driven paths only per run in total (the per epoch batch split is checked for arithmetic, not against each epoch's vehicles); `--spec` accepts any specification file, so a weakened specification would shrink the expected matrix (the default specification is pinned to the model by `tests/test_raw_audit.py`, and a human should confirm it); decision log fields other than vehicle and chosen route, and the `eligible_routes` and `available_info` text, are not validated; tests and mutants share the author of the audit.
+
 Not checked by the audit: whether the model is realistic; whether the policies implement the intended semantics; route choice quality; whether the frozen comparator is fair.
 
 ## What a human reviewer should do
