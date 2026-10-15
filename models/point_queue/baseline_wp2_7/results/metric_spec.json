@@ -1,0 +1,19 @@
+{
+  "primary": "total_fleet_travel_time_vehicle_min = sum(arrival_s - scheduled_departure_s) / 60 across every vehicle; no censoring in these runs",
+  "secondary": [
+    "mean and median travel time in minutes",
+    "nearest-rank P95: sorted completed travel times at 1-based index ceil(0.95*n)",
+    "completed/incomplete count",
+    "route A/B counts and shares",
+    "maximum dominant-route share in any 30-second decision batch",
+    "total route switches (zero by design because route is locked at P entry; rerouting mid-branch is prohibited)",
+    "seconds from incident activation to first feasible route decision",
+    "closed-link entries",
+    "FIFO recurrence violations and event count"
+  ],
+  "frozen_before_execution": true,
+  "horizon_s": 7200.0,
+  "decision_interval_s": 30.0,
+  "tie_break": "Independent: Route A before B on exact estimated-cost tie. Coordinator: among equal total travel-time scores, prefer the larger A count (key=(score,-k)). Vehicle order within a batch is (P arrival timestamp, vehicle ID).",
+  "threshold_proposal_not_approved": "At least 5% lower total fleet travel time than independent_periodic in primary near-capacity scenario, zero closed-link entries, zero FIFO violations, all trips complete, and no P95 degradation. Team approval required before treating as acceptance gate."
+}

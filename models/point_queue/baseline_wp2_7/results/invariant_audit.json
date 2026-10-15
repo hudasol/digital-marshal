@@ -1,0 +1,212 @@
+[
+  {
+    "scenario": "manageable_primary",
+    "policy": "static",
+    "all_depart_before_incident": true,
+    "all_p_arrivals_at_or_after_incident": true,
+    "all_trips_complete": true,
+    "fifo": {
+      "events_checked": 50,
+      "violations": [],
+      "pass": true
+    },
+    "zero_closed_link_entries": true,
+    "overall_pass": true
+  },
+  {
+    "scenario": "manageable_primary",
+    "policy": "independent_periodic",
+    "all_depart_before_incident": true,
+    "all_p_arrivals_at_or_after_incident": true,
+    "all_trips_complete": true,
+    "fifo": {
+      "events_checked": 50,
+      "violations": [],
+      "pass": true
+    },
+    "zero_closed_link_entries": true,
+    "overall_pass": true
+  },
+  {
+    "scenario": "manageable_primary",
+    "policy": "coordinated_batch",
+    "all_depart_before_incident": true,
+    "all_p_arrivals_at_or_after_incident": true,
+    "all_trips_complete": true,
+    "fifo": {
+      "events_checked": 50,
+      "violations": [],
+      "pass": true
+    },
+    "zero_closed_link_entries": true,
+    "overall_pass": true
+  },
+  {
+    "scenario": "near_branch_capacity",
+    "policy": "static",
+    "all_depart_before_incident": true,
+    "all_p_arrivals_at_or_after_incident": true,
+    "all_trips_complete": true,
+    "fifo": {
+      "events_checked": 120,
+      "violations": [],
+      "pass": true
+    },
+    "zero_closed_link_entries": true,
+    "overall_pass": true
+  },
+  {
+    "scenario": "near_branch_capacity",
+    "policy": "independent_periodic",
+    "all_depart_before_incident": true,
+    "all_p_arrivals_at_or_after_incident": true,
+    "all_trips_complete": true,
+    "fifo": {
+      "events_checked": 126,
+      "violations": [],
+      "pass": true
+    },
+    "zero_closed_link_entries": true,
+    "overall_pass": true
+  },
+  {
+    "scenario": "near_branch_capacity",
+    "policy": "coordinated_batch",
+    "all_depart_before_incident": true,
+    "all_p_arrivals_at_or_after_incident": true,
+    "all_trips_complete": true,
+    "fifo": {
+      "events_checked": 128,
+      "violations": [],
+      "pass": true
+    },
+    "zero_closed_link_entries": true,
+    "overall_pass": true
+  },
+  {
+    "scenario": "overload_stress",
+    "policy": "static",
+    "all_depart_before_incident": true,
+    "all_p_arrivals_at_or_after_incident": true,
+    "all_trips_complete": true,
+    "fifo": {
+      "events_checked": 300,
+      "violations": [],
+      "pass": true
+    },
+    "zero_closed_link_entries": true,
+    "overall_pass": true
+  },
+  {
+    "scenario": "overload_stress",
+    "policy": "independent_periodic",
+    "all_depart_before_incident": true,
+    "all_p_arrivals_at_or_after_incident": true,
+    "all_trips_complete": true,
+    "fifo": {
+      "events_checked": 330,
+      "violations": [],
+      "pass": true
+    },
+    "zero_closed_link_entries": true,
+    "overall_pass": true
+  },
+  {
+    "scenario": "overload_stress",
+    "policy": "coordinated_batch",
+    "all_depart_before_incident": true,
+    "all_p_arrivals_at_or_after_incident": true,
+    "all_trips_complete": true,
+    "fifo": {
+      "events_checked": 335,
+      "violations": [],
+      "pass": true
+    },
+    "zero_closed_link_entries": true,
+    "overall_pass": true
+  },
+  {
+    "scenario": "primary_half_capacity",
+    "policy": "static",
+    "all_depart_before_incident": true,
+    "all_p_arrivals_at_or_after_incident": true,
+    "all_trips_complete": true,
+    "fifo": {
+      "events_checked": 50,
+      "violations": [],
+      "pass": true
+    },
+    "zero_closed_link_entries": true,
+    "overall_pass": true
+  },
+  {
+    "scenario": "primary_half_capacity",
+    "policy": "independent_periodic",
+    "all_depart_before_incident": true,
+    "all_p_arrivals_at_or_after_incident": true,
+    "all_trips_complete": true,
+    "fifo": {
+      "events_checked": 51,
+      "violations": [],
+      "pass": true
+    },
+    "zero_closed_link_entries": true,
+    "overall_pass": true
+  },
+  {
+    "scenario": "primary_half_capacity",
+    "policy": "coordinated_batch",
+    "all_depart_before_incident": true,
+    "all_p_arrivals_at_or_after_incident": true,
+    "all_trips_complete": true,
+    "fifo": {
+      "events_checked": 52,
+      "violations": [],
+      "pass": true
+    },
+    "zero_closed_link_entries": true,
+    "overall_pass": true
+  },
+  {
+    "scenario": "primary_double_capacity",
+    "policy": "static",
+    "all_depart_before_incident": true,
+    "all_p_arrivals_at_or_after_incident": true,
+    "all_trips_complete": true,
+    "fifo": {
+      "events_checked": 50,
+      "violations": [],
+      "pass": true
+    },
+    "zero_closed_link_entries": true,
+    "overall_pass": true
+  },
+  {
+    "scenario": "primary_double_capacity",
+    "policy": "independent_periodic",
+    "all_depart_before_incident": true,
+    "all_p_arrivals_at_or_after_incident": true,
+    "all_trips_complete": true,
+    "fifo": {
+      "events_checked": 50,
+      "violations": [],
+      "pass": true
+    },
+    "zero_closed_link_entries": true,
+    "overall_pass": true
+  },
+  {
+    "scenario": "primary_double_capacity",
+    "policy": "coordinated_batch",
+    "all_depart_before_incident": true,
+    "all_p_arrivals_at_or_after_incident": true,
+    "all_trips_complete": true,
+    "fifo": {
+      "events_checked": 50,
+      "violations": [],
+      "pass": true
+    },
+    "zero_closed_link_entries": true,
+    "overall_pass": true
+  }
+]
