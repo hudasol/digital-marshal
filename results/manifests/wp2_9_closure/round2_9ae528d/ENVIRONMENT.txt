@@ -1,0 +1,8 @@
+Candidate code commit: 9ae528d2238d0d4dedcd07ba7083349f111d422a (branch feature/wp2.9-audit-completeness)
+Checks ran in a clean git worktree of that commit.
+
+Python 3.13.16
+Linux 6.18.44-fc-v114
+git version 2.43.0
+
+Point queue, WP2.9, audit and tests use the standard library only.

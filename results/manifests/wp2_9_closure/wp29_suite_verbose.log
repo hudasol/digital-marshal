@@ -4,6 +4,12 @@ test_spec_policies_match_the_experiment (test_audit_completeness.Control.test_sp
 test_duplicated_event_group_fails (test_audit_completeness.Duplicates.test_duplicated_event_group_fails) ... ok
 test_duplicated_metrics_row_fails (test_audit_completeness.Duplicates.test_duplicated_metrics_row_fails) ... ok
 test_duplicated_vehicle_group_fails (test_audit_completeness.Duplicates.test_duplicated_vehicle_group_fails) ... ok
+test_batch_row_with_the_wrong_epoch_fails (test_audit_completeness.EpochBatchesAndDecisionFields.test_batch_row_with_the_wrong_epoch_fails) ... ok
+test_cli_reports_which_specification_was_used (test_audit_completeness.EpochBatchesAndDecisionFields.test_cli_reports_which_specification_was_used) ... ok
+test_decision_p_arrival_differing_from_the_vehicle_record_fails (test_audit_completeness.EpochBatchesAndDecisionFields.test_decision_p_arrival_differing_from_the_vehicle_record_fails) ... ok
+test_retroactive_decision_epoch_fails (test_audit_completeness.EpochBatchesAndDecisionFields.test_retroactive_decision_epoch_fails) ... ok
+test_seconds_after_incident_must_equal_epoch_minus_incident (test_audit_completeness.EpochBatchesAndDecisionFields.test_seconds_after_incident_must_equal_epoch_minus_incident) ... ok
+test_vehicle_moved_between_epochs_keeps_totals_but_fails (test_audit_completeness.EpochBatchesAndDecisionFields.test_vehicle_moved_between_epochs_keeps_totals_but_fails) ... ok
 test_audit_results_dir_returns_a_failing_entry_for_every_missing_run (test_audit_completeness.LibraryApiFailsClosedToo.test_audit_results_dir_returns_a_failing_entry_for_every_missing_run) ... ok
 test_a_directory_in_place_of_a_result_file_is_diagnosed (test_audit_completeness.MalformedValuesAndConsistency.test_a_directory_in_place_of_a_result_file_is_diagnosed) ... ok
 test_an_internal_error_is_reported_as_a_failure_with_a_diagnostic_never_a_pass (test_audit_completeness.MalformedValuesAndConsistency.test_an_internal_error_is_reported_as_a_failure_with_a_diagnostic_never_a_pass) ... ok
@@ -46,6 +52,9 @@ test_metric_definitions_and_p95 (test_confirmatory.ConfirmatoryTests.test_metric
 test_periodic_independent_batches_are_explicit (test_confirmatory.ConfirmatoryTests.test_periodic_independent_batches_are_explicit) ... ok
 test_same_information_contract_recorded (test_confirmatory.ConfirmatoryTests.test_same_information_contract_recorded) ... ok
 test_three_demand_regimes_prepositioned (test_confirmatory.ConfirmatoryTests.test_three_demand_regimes_prepositioned) ... ok
+test_oversized_batches_are_reported_not_skipped (test_exhaustive_oracle.Oracle.test_oversized_batches_are_reported_not_skipped) ... ok
+test_production_is_never_better_than_the_exhaustive_optimum (test_exhaustive_oracle.Oracle.test_production_is_never_better_than_the_exhaustive_optimum) ... ok
+test_the_restricted_optimiser_is_not_globally_optimal_in_one_small_batch (test_exhaustive_oracle.Oracle.test_the_restricted_optimiser_is_not_globally_optimal_in_one_small_batch) ... ok
 test_default_and_explicit_zero_offset_are_identical (test_exploratory.EpochGrid.test_default_and_explicit_zero_offset_are_identical) ... ok
 test_epoch_anchor_literal_equals_e1_free_flow_time (test_exploratory.EpochGrid.test_epoch_anchor_literal_equals_e1_free_flow_time) ... ok
 test_no_decision_is_ever_made_after_the_vehicle_reaches_p (test_exploratory.EpochGrid.test_no_decision_is_ever_made_after_the_vehicle_reaches_p) ... ok
@@ -107,7 +116,7 @@ test_p95_guardrail_values_in_primary_scenario (test_values.PinnedResults.test_p9
 test_totals_and_splits (test_values.PinnedResults.test_totals_and_splits) ... ok
 
 ----------------------------------------------------------------------
-Ran 107 tests in 9.749s
+Ran 116 tests in 11.383s
 
 OK
 exit=0

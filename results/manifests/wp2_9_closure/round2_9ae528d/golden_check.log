@@ -1,0 +1,7 @@
+confirmatory_metrics.csv: OK
+decision_log.csv: OK
+batch_allocation_log.csv: OK
+vehicle_records.csv: OK
+edge_event_records.csv: OK
+metric_spec.json: OK
+exit=0
