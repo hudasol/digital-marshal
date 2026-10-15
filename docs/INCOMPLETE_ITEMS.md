@@ -9,7 +9,7 @@ Last updated with the repository bootstrap. Items needing a human are marked (hu
 * (human) Decide whether the frozen independent comparator is batch copy or per vehicle, and freeze the epoch phase.
 * (human) Protocol freeze, SUMO scenario matrix freeze, and the decision on the 5% target.
 * (human) Choose a licence. None has been added; until one is added, default copyright applies.
-* (human) Confirm the baseline copy matches the original WP2.7 archive (original archive SHA 256 is recorded in `results/manifests/wp2_9_evidence/EXECUTION_RECORD.md` context; five manifest files were not available in the copy that was imported).
+* (human) Confirm the imported baseline matches the original WP2.7 archive. The project owner reports doing this; it was not verified by the AI assistant. Five files listed in the WP2.7 manifest were not in the imported copy.
 
 ## Engineering work not done
 * SUMO half capacity and double capacity scenarios.
