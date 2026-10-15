@@ -124,6 +124,29 @@ input[type=range]{accent-color:var(--red)}
 .note{font-size:11px;color:var(--mut);margin-top:10px}
 .note.s{margin-top:4px;font-size:10.5px}
 
+
+/* data tab */
+#data{position:fixed;inset:var(--hdr) 0 24px 0;background:var(--bg);z-index:19;overflow:auto;padding:16px 18px 28px}
+#data[hidden]{display:none}
+.dhead h2{margin:0;font-size:20px;font-weight:700}
+.dsub{font-size:11px;color:var(--mut);margin-bottom:6px}
+.dgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:10px}
+.dc{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-width:0}
+.dc.wide{grid-column:1/-1}
+.dc h3{margin:0;font-size:13px;font-weight:700}
+.dc svg{width:100%;height:auto;display:block;font-family:inherit;direction:ltr;unicode-bidi:isolate}
+.hl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 10px}
+.hl div{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+.hl b{display:block;font-size:22px;line-height:1.15;font-weight:700;unicode-bidi:plaintext}
+.hl span{font-size:10.5px;color:var(--mut);line-height:1.35;display:block}
+.hl .idle{grid-column:1/-1;border-color:var(--gold);background:#FFFBEF}
+.tw{overflow:auto}.tw.scr{max-height:320px}
+.dc table{border-collapse:collapse;width:100%;font-size:11.5px}
+.dc th,.dc td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:start;font-variant-numeric:tabular-nums}
+.dc th{font-size:10px;text-transform:uppercase;letter-spacing:.03em;color:var(--mut);position:sticky;top:0;background:#fff}
+.dc td.best{background:#FFF3D0;font-weight:700}
+ul.dn{margin:8px 0 0;padding-inline-start:18px;font-size:11.5px;color:#475569}
+@media (max-width:900px){.dgrid{grid-template-columns:1fr}.hl{grid-template-columns:1fr}}
 @media (max-width:1100px){#res{width:290px}.hud{width:208px}#huds{max-width:100%}}
 @media (max-width:860px){
   #top .tt,#top .st,#top .chip.opt{display:none}#top{gap:8px;padding:0 10px}#top .sp{flex:1}
@@ -148,6 +171,7 @@ input[type=range]{accent-color:var(--red)}
   <span class="chip opt" data-i="chip2"></span>
   <span class="chip opt" data-i="chip3"></span>
   <button class="b" id="resBtn" data-i="resBtn"></button>
+  <button class="b" id="dataBtn"></button>
   <a class="b" href="index.html" data-i="view2d"></a>
   <button class="b" id="langBtn">العربية</button>
 </header>
@@ -183,6 +207,8 @@ input[type=range]{accent-color:var(--red)}
 
 <div id="tip"></div>
 
+<div id="data" hidden></div>
+
 <footer id="foot"><b data-i="ft1"></b><span data-i="ft2"></span></footer>
 
 <div id="intro">
@@ -201,6 +227,7 @@ input[type=range]{accent-color:var(--red)}
 <script src="data.js"></script>
 <script src="engine.js"></script>
 <script src="3d/scene.js"></script>
+<script src="3d/data.js"></script>
 <script src="3d/app.js"></script>
 </body>
 </html>
