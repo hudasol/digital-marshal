@@ -1,0 +1,127 @@
+{
+  "plan": "track_c",
+  "label": "exploratory (not confirmatory; protocol not frozen)",
+  "horizon_s": 7200.0,
+  "scenarios": {
+    "near_branch_capacity": {
+      "params": {
+        "n_abstract": 24,
+        "spacing_abstract_s": 5.0,
+        "branch_capacity_scale": 1.0
+      },
+      "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ]
+    },
+    "manageable_primary": {
+      "params": {
+        "n_abstract": 10,
+        "spacing_abstract_s": 10.0,
+        "branch_capacity_scale": 1.0
+      },
+      "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
+    },
+    "overload_stress": {
+      "params": {
+        "n_abstract": 60,
+        "spacing_abstract_s": 2.0,
+        "branch_capacity_scale": 1.0
+      },
+      "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
+    },
+    "primary_half_capacity": {
+      "params": {
+        "n_abstract": 10,
+        "spacing_abstract_s": 10.0,
+        "branch_capacity_scale": 0.5
+      },
+      "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
+    },
+    "primary_double_capacity": {
+      "params": {
+        "n_abstract": 10,
+        "spacing_abstract_s": 10.0,
+        "branch_capacity_scale": 2.0
+      },
+      "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
+    }
+  },
+  "policies": [
+    "static",
+    "measured_periodic",
+    "independent_periodic",
+    "coordinated_batch",
+    "independent_batch_copy"
+  ],
+  "runs": 300,
+  "workers": 12,
+  "python": "3.12.10",
+  "started": "2026-10-15T08:37:24+0400",
+  "finished": "2026-10-15T08:52:19+0400",
+  "status_counts": {
+    "ok": 300
+  }
+}

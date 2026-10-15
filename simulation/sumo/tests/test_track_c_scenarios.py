@@ -191,6 +191,30 @@ class RunClassification(unittest.TestCase):
         self.assertEqual(len(js), (20 + 4 * 10) * 5)
 
 
+class CommittedRunEvidence(unittest.TestCase):
+    """The exported matrices are complete, unmodified and reproduce their committed aggregates."""
+    DIRS = ('smoke_7200', 'matrix_7200')
+
+    def test_checksums_manifest_and_aggregate_reproduce(self):
+        import hashlib, aggregate_track_c
+        for name in self.DIRS:
+            d = EVIDENCE / name
+            with self.subTest(name):
+                for line in (d / 'SHA256SUMS.txt').read_text().splitlines():
+                    h, f = line.split('  ', 1)
+                    self.assertEqual(hashlib.sha256((d / f).read_bytes()).hexdigest(), h, f)
+                plan = json.loads((d / 'plan.json').read_text())
+                recs = [json.loads(l) for l in (d / 'manifest.jsonl').read_text().splitlines()]
+                self.assertEqual(len(recs), plan['runs']); self.assertEqual(len({r['run'] for r in recs}), plan['runs'])
+                self.assertTrue({r['status'] for r in recs} <= {'ok', 'invalid', 'failed'})
+                self.assertEqual(plan['status_counts'], {s: sum(r['status'] == s for r in recs) for s in {r['status'] for r in recs}})
+                self.assertTrue(all('<matrix>' in ' '.join(r['command']) for r in recs))
+                with tempfile.TemporaryDirectory() as t:
+                    aggregate_track_c.write(aggregate_track_c.aggregate(d), Path(t))
+                    for f in ('track_c_means.csv', 'track_c_paired.csv', 'track_c_fairness_and_horizon.json'):
+                        self.assertEqual((Path(t) / f).read_bytes(), (d / 'aggregate' / f).read_bytes(), f)
+
+
 @unittest.skipUnless(HAVE_SUMO, 'needs SUMO (pip install -r environment/requirements.txt)')
 class SumoClosureAndApproach(unittest.TestCase):
     def test_approach_lanes_from_the_network(self):
