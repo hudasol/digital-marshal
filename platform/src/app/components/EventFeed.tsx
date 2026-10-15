@@ -21,11 +21,18 @@ const SHOWN = new Set([
   'ev-dispatched',
   'ev-preempt',
   'ev-arrived',
+  'works-planned',
+  'works-active',
+  'works-lifted',
+  'works-rejected',
+  'conflict-reasserted',
+  'restricted-entry',
 ]);
 
 export function eventText(t: ReturnType<typeof useT>, e: SimEvent): string {
   const p: Record<string, string | number> = { ref: e.ref ?? '' };
   for (const [k, v] of Object.entries(e.p ?? {})) p[k] = typeof v === 'number' ? Math.round(v * 10) / 10 : String(v);
+  if (p.stage === 'lane' || p.stage === 'full') p.stage = t(`rw.stage.${p.stage}` as I18nKey);
   return t(`ev.${e.kind}` as I18nKey, p);
 }
 
@@ -36,7 +43,7 @@ export function EventFeed() {
   const shown = events.filter((e) => SHOWN.has(e.kind)).slice(0, 5);
   if (!shown.length) return null;
   const click = (e: SimEvent) => {
-    if (e.kind === 'outage-detected' || e.kind === 'incident-resolved') {
+    if (e.kind === 'outage-detected' || e.kind === 'incident-resolved' || e.kind === 'works-planned' || e.kind === 'works-active' || e.kind === 'works-lifted') {
       if (e.ref) controller.selectIncident(e.ref);
       return;
     }

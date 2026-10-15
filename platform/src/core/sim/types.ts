@@ -117,6 +117,10 @@ export interface Vehicle {
   /** emergency vehicle encounter: when it first became aware, and the outcome logged for which vehicle */
   evAware: number;
   evYield: string;
+  /** links this vehicle has seen to be closed (barriers within sight) */
+  blocked: string[];
+  /** closures this vehicle has already reacted to (for counting late discoveries once) */
+  noticed: string[];
 }
 
 export interface TripRecord {
@@ -162,6 +166,8 @@ export interface Closure {
   s0: number;
   s1: number;
   since: number;
+  /** vehicles let through because they were already in, or committed to, the zone when it was set up */
+  pass: number[];
 }
 
 export interface RoadPhysical {
@@ -191,7 +197,18 @@ export interface SimState {
   linkTT: Record<string, number>; // smoothed observed link traversal time, s
   moveDelay: Record<string, number>; // smoothed observed delay per movement `${in}>${out}`, s
   linkEnter: Record<string, number>; // vehicle id -> time it entered its current link
-  counters: { exits: number; delay: number; spawned: number; boxViolations: number; hardBrakes: number; unroutable: number };
+  counters: {
+    exits: number;
+    delay: number;
+    spawned: number;
+    boxViolations: number;
+    hardBrakes: number;
+    unroutable: number;
+    /** vehicles that crossed into a closed lane or segment after it was set up (should stay 0) */
+    restrictedEntries: number;
+    /** vehicles that learned of a closure only by seeing it (late discovery) */
+    lateDiscoveries: number;
+  };
   /** Digital Marshal service state (incidents, messages, deliveries, exceptions); null when not attached */
   dm: DmState | null;
 }

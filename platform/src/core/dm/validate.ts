@@ -132,7 +132,9 @@ export function validate(m: SignedMessage, ctx: ValidationCtx): Verdict {
 
   // 8. time: not from the future, within validity, not stale
   if (h.issuedAt > ctx.now + CLOCK_SKEW) return fail('FUTURE_TIMESTAMP', 'Freshness', `Issued ${(h.issuedAt - ctx.now).toFixed(0)} s in the future`);
-  if (ctx.now < h.validFrom - CLOCK_SKEW) return fail('NOT_YET_VALID', 'Validity', `Valid from ${h.validFrom.toFixed(0)} s`);
+  // planned restrictions may be announced ahead of time; the adapter applies them from validFrom.
+  // Announcements more than an hour ahead are not plausible for this service.
+  if (h.validFrom - ctx.now > 3600) return fail('NOT_YET_VALID', 'Validity', `Takes effect only in ${(h.validFrom - ctx.now).toFixed(0)} s`);
   if (ctx.now > h.validUntil) return fail('EXPIRED', 'Validity', `Expired ${(ctx.now - h.validUntil).toFixed(0)} s ago`);
   const age = ctx.now - h.issuedAt;
   if (age > MAX_AGE[b.type]) return fail('STALE', 'Freshness', `Issued ${age.toFixed(0)} s ago; maximum age for ${b.type} is ${MAX_AGE[b.type]} s`);

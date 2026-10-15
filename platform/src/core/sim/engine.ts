@@ -60,6 +60,8 @@ export interface EngineHooks {
   evInformed?(v: Vehicle, ev: Vehicle): boolean;
   /** outcome of a yield decision */
   onYield?(v: Vehicle, ev: Vehicle, ok: boolean, reason: string): void;
+  /** closures this vehicle knows about from accepted messages (active now) */
+  knownClosures?(v: Vehicle): Array<{ id: string; link: string; lanes: number[]; s0: number; s1: number }>;
 }
 
 const MAX_LOG = 40;
@@ -112,7 +114,7 @@ export class Engine {
       linkTT: {},
       moveDelay: {},
       linkEnter: {},
-      counters: { exits: 0, delay: 0, spawned: 0, boxViolations: 0, hardBrakes: 0, unroutable: 0 },
+      counters: { exits: 0, delay: 0, spawned: 0, boxViolations: 0, hardBrakes: 0, unroutable: 0, restrictedEntries: 0, lateDiscoveries: 0 },
       dm: null,
     };
     for (const id of net.linkIds) {
@@ -131,7 +133,7 @@ export class Engine {
     this.state.trips = [];
     this.state.series = [];
     this.state.events = [];
-    this.state.counters = { exits: 0, delay: 0, spawned: 0, boxViolations: 0, hardBrakes: 0, unroutable: 0 };
+    this.state.counters = { exits: 0, delay: 0, spawned: 0, boxViolations: 0, hardBrakes: 0, unroutable: 0, restrictedEntries: 0, lateDiscoveries: 0 };
     for (const id of this.state.order) {
       const v = this.state.vehicles[id];
       v.stopped = 0;
@@ -229,7 +231,45 @@ export class Engine {
   routeOptions(v: Vehicle): RouteOptions {
     const base: RouteOptions = { moveDelay: this.state.moveDelay };
     const extra = this.hooks.routeOptions?.(v);
-    return extra ? { ...base, ...extra, moveDelay: extra.moveDelay ?? base.moveDelay } : base;
+    const out = extra ? { ...base, ...extra, moveDelay: extra.moveDelay ?? base.moveDelay } : base;
+    if (v.blocked.length) out.avoidLinks = new Set([...(out.avoidLinks ?? []), ...v.blocked]);
+    return out;
+  }
+
+  /** A closure that covers every lane of a link from near its start: the segment cannot be entered
+      (except by vehicles that were let through when it was set up). */
+  fullyClosed(link: string, v?: Vehicle): boolean {
+    const l = this.net.links[link];
+    for (const cl of this.state.road.closures) {
+      if (cl.link === link && cl.s0 < 25 && cl.lanes.length >= l.lanes && !(v && cl.pass.includes(v.id))) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Put cones or barriers on the road. Vehicles that can no longer stop before them (inside the zone,
+   * in the junction on their way into it, or committed to entering it) are let through, as a works
+   * crew waits for them before closing; everyone else must stop, merge or re-route.
+   */
+  placeClosure(c: { id: string; link: string; lanes: number[]; s0: number; s1: number }): void {
+    const st = this.state;
+    const l = this.net.links[c.link];
+    const full = c.s0 < 25 && c.lanes.length >= l.lanes;
+    const pass = new Set<number>();
+    for (const lane of c.lanes) {
+      for (const id of this.laneList(c.link, lane)) {
+        const v = this.veh(id);
+        if (full || v.s > c.s0 - ((v.v * v.v) / (2 * v.p.b) + 3)) pass.add(id);
+      }
+    }
+    if (full) {
+      for (const cid of this.net.connectorIds) if (this.net.connectors[cid].outLink === c.link) for (const id of st.conns[cid]) pass.add(id);
+      for (const id of st.order) {
+        const v = st.vehicles[id];
+        if (v.committed && v.conn && this.net.connectors[v.conn].outLink === c.link) pass.add(id);
+      }
+    }
+    st.road.closures.push({ ...c, lanes: [...c.lanes], since: st.t, pass: [...pass].sort((a, b) => a - b) });
   }
 
   destLink(dest: string): { link: string; s: number } {
@@ -396,6 +436,8 @@ export class Engine {
       lastGate: '',
       evAware: -1,
       evYield: '',
+      blocked: [],
+      noticed: [],
     };
     if (!this.plan(v, null)) return null;
     v.ffT = this.freeFlow(v.route);
@@ -478,6 +520,8 @@ export class Engine {
         }
       }
     }
+    // a segment closed at its entrance cannot be entered, whatever the signals show
+    if (this.fullyClosed(c.outLink, v)) return { kind: 'closure', gap: dist, ref: c.outLink };
     // safety layer, always applied (also to committed vehicles until they cross the line)
     for (const cid of c.conflicts) {
       const occ = st.conns[cid];
@@ -588,6 +632,8 @@ export class Engine {
           const g = this.gate(v, c, D);
           if (g) this.stp(D - 0.8, g.kind, g.ref, g.extra);
         }
+        // never start a movement from a lane it does not begin in: wait for a gap to reach that lane
+        if (c.inLane !== v.seg.lane && D < 18) this.stp(D - 0.8, 'lanechange', c.junction);
       } else if (link.endsAtJunction && v.ri < v.route.length - 1) {
         // no usable connector (should not happen): stop at the line
         this.stp(D - 0.8, 'exit', link.to);
@@ -598,7 +644,7 @@ export class Engine {
       const cls = st.road.closures;
       for (let k = 0; k < cls.length; k++) {
         const cl = cls[k];
-        if (cl.link !== link.id || !cl.lanes.includes(v.seg.lane)) continue;
+        if (cl.link !== link.id || !cl.lanes.includes(v.seg.lane) || cl.pass.includes(v.id)) continue;
         const gap = cl.s0 - v.s;
         if (gap > -v.len && gap < PERCEPTION_M) this.stp(gap - 2, 'closure', cl.id);
       }
@@ -778,11 +824,26 @@ export class Engine {
       reason = 'turn';
       urgency = Math.max(0, Math.min(1, 1 - (D - 25) / 160));
     }
-    // closure ahead in my lane
-    for (const cl of this.state.road.closures) {
+    // closure ahead in my lane: seen (within sight), or known from accepted messages (much earlier)
+    const known = this.hooks.knownClosures?.(v) ?? [];
+    const physical = this.state.road.closures;
+    for (let i = 0; i < physical.length + known.length; i++) {
+      const isKnown = i >= physical.length;
+      const cl = isKnown ? known[i - physical.length] : physical[i];
       if (cl.link !== link.id || !cl.lanes.includes(v.seg.lane)) continue;
+      if (cl.lanes.length >= link.lanes) continue; // a full closure is handled by routing, not merging
+      if (!isKnown && physical[i].pass.includes(v.id)) continue;
       const gap = cl.s0 - v.s;
-      if (gap > -v.len && gap < PERCEPTION_M + 60) {
+      const range = isKnown ? 420 : PERCEPTION_M;
+      if (!isKnown && gap > -v.len && gap < range && !v.noticed.includes(cl.id)) {
+        // first sight of cones in its own lane: was it already known from an accepted message?
+        v.noticed.push(cl.id);
+        if (!known.some((k) => k.link === cl.link && k.lanes.includes(v.seg.lane))) {
+          this.state.counters.lateDiscoveries++;
+          this.log(v, 'CLOSURE_SEEN', { where: cl.link });
+        }
+      }
+      if (gap > -v.len && gap < range) {
         const left = v.seg.lane - 1;
         const right = v.seg.lane + 1;
         const okL = left >= 0 && !cl.lanes.includes(left);
@@ -819,8 +880,14 @@ export class Engine {
   tryChange(v: Vehicle, lane: number, mandatory: boolean, urgency: number, bSafeOverride?: number): boolean {
     const link = this.net.links[v.seg.id];
     if (lane < 0 || lane >= link.lanes) return false;
+    // never into a lane that is closed ahead within sight, or known to be closed ahead
     for (const cl of this.state.road.closures) {
-      if (cl.link === link.id && cl.lanes.includes(lane) && v.s > cl.s0 - 25 && v.s - v.len < cl.s1) return false;
+      if (cl.link === link.id && cl.lanes.includes(lane) && cl.s0 - v.s < PERCEPTION_M && v.s - v.len < cl.s1) return false;
+    }
+    if (v.connected) {
+      for (const cl of this.hooks.knownClosures?.(v) ?? []) {
+        if (cl.link === link.id && cl.lanes.includes(lane) && cl.s0 - v.s < 420 && v.s - v.len < cl.s1) return false;
+      }
     }
     const list = this.laneList(link.id, lane);
     let ahead: Vehicle | null = null;
@@ -912,8 +979,10 @@ export class Engine {
       }
       v.acc = a;
       v.v = nv;
+      const prevS = v.s;
       v.s += ds;
       v.dist += ds;
+      if (st.road.closures.length) this.auditClosures(v, prevS);
       if (nv < STOP_V) {
         v.stopT += DT;
         if (this.recording) v.stopped += DT;
@@ -1008,9 +1077,23 @@ export class Engine {
         }
       }
 
+      // a barrier across the next segment comes into view: re-plan around it
+      if (c && D < PERCEPTION_M && v.mode === 'drive' && this.fullyClosed(c.outLink, v) && !v.blocked.includes(c.outLink)) {
+        const knew = (this.hooks.knownClosures?.(v) ?? []).some((k) => k.link === c.outLink);
+        v.blocked.push(c.outLink);
+        if (!knew) st.counters.lateDiscoveries++;
+        this.log(v, 'CLOSURE_SEEN', { where: c.outLink });
+        if (!this.plan(v, 'closure_seen')) this.log(v, 'NO_ALTERNATIVE', { reason: 'closure_seen' });
+      }
+
       // missed lane for the planned turn: take any movement from this lane and re-plan
       if (c && c.inLane !== v.seg.lane && D < 18 && v.mode === 'drive') {
-        const options = this.net.fromLane[`${link.id}#${v.seg.lane}`] ?? [];
+        // never a movement into a segment that is closed, or that the vehicle knows is about to close
+        const avoid = this.routeOptions(v).avoidLinks;
+        const options = (this.net.fromLane[`${link.id}#${v.seg.lane}`] ?? []).filter((x) => {
+          const out = this.net.connectors[x].outLink;
+          return !this.fullyClosed(out, v) && !avoid?.has(out);
+        });
         const pick =
           options.find((x) => this.net.connectors[x].turn === 'S') ??
           options.find((x) => this.net.connectors[x].turn === 'R') ??
@@ -1041,6 +1124,11 @@ export class Engine {
           return false;
         }
         const cc = this.net.connectors[v.conn];
+        if (cc.inLane !== v.seg.lane) {
+          v.s = link.length - 0.01;
+          v.v = 0;
+          return false;
+        }
         if (!v.committed) {
           const g = this.gate(v, cc, 0);
           if (g) {
@@ -1120,6 +1208,18 @@ export class Engine {
     const key = `${link}>${next}`;
     const pd = st.moveDelay[key];
     st.moveDelay[key] = pd === undefined ? d : pd * 0.85 + d * 0.15;
+  }
+
+  /** Audit: did this vehicle just move into a closed lane extent? (Should never happen.) */
+  private auditClosures(v: Vehicle, prevS: number): void {
+    if (v.seg.k !== 'L') return;
+    for (const cl of this.state.road.closures) {
+      if (cl.link !== v.seg.id || !cl.lanes.includes(v.seg.lane) || cl.pass.includes(v.id)) continue;
+      if (prevS < cl.s0 && v.s >= cl.s0 && cl.since < this.state.t - 0.05) {
+        this.state.counters.restrictedEntries++;
+        this.event('restricted-entry', 'critical', v.tag, { link: cl.link, lane: v.seg.lane });
+      }
+    }
   }
 
   private recordTrip(v: Vehicle): void {

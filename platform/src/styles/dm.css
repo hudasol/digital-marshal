@@ -409,3 +409,112 @@ html[lang='ar'] .feed-title {
   height: 100%;
   background: var(--amber);
 }
+
+/* roadworks and message security tests */
+.chip.amber {
+  color: var(--amber);
+  background: var(--amber-dim);
+  border-color: rgba(244, 183, 64, 0.35);
+}
+.kv b.ok {
+  color: var(--green);
+}
+.kv b.bad {
+  color: var(--red);
+}
+.sub-check {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin: 6px 0;
+  overflow: hidden;
+}
+.sub-head {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 14px auto 1fr;
+  gap: 6px;
+  align-items: center;
+  border: 0;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 6px 8px;
+  font-size: 11px;
+  color: var(--text-1);
+  text-align: start;
+}
+.sub-head .icon-svg {
+  width: 13px;
+  height: 13px;
+  color: var(--green);
+}
+.sub-head b {
+  font-weight: 560;
+  text-align: end;
+}
+.sub-head b.ok {
+  color: var(--green);
+}
+.sub-head b.bad {
+  color: var(--red);
+}
+.sub-check .checks {
+  padding: 6px 8px 8px;
+  border-top: 1px solid var(--line);
+}
+.sec-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 5px;
+}
+.sec-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 8px;
+  align-items: start;
+  border: 1px solid var(--line);
+  border-inline-start: 3px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 7px 8px;
+  background: rgba(255, 255, 255, 0.015);
+}
+.sec-row.pass {
+  border-inline-start-color: var(--green);
+}
+.sec-row.fail {
+  border-inline-start-color: var(--red);
+}
+.sec-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.sec-main b {
+  font-size: 12px;
+  color: var(--text-0);
+  font-weight: 600;
+}
+.sec-main > span {
+  font-size: 11px;
+  color: var(--text-2);
+  line-height: 1.4;
+}
+.sec-main .sec-expect {
+  color: var(--text-3);
+  font-size: 10.5px;
+}
+.sec-result {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.sec-result .chip {
+  font-size: 10.5px;
+}
+.sec-rx {
+  font-size: 11px;
+  color: var(--text-2);
+}

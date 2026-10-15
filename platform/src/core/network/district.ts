@@ -74,3 +74,21 @@ export const PLACES = [
 export const BLACKOUT_JUNCTIONS = ['J6', 'J7', 'J10', 'J11'];
 /** Works zone on Tower Road southbound between North Avenue and the boulevard. */
 export const WORKS_LINK = 'J3>J7';
+
+export interface WorksStageSpec {
+  stage: 'lane' | 'full';
+  link: string;
+  lanes: number[];
+  s0: number;
+  s1: number;
+  /** seconds between publication and the cones going out */
+  lead: number;
+  duration: number;
+}
+
+/** The roadworks scenario: the kerb lane closed mid-block first (the 218 m link keeps room to merge
+    back before J7, where lane 2 carries straight and right turns), then the whole segment. */
+export const WORKS_STAGES: Record<'lane' | 'full', WorksStageSpec> = {
+  lane: { stage: 'lane', link: WORKS_LINK, lanes: [1], s0: 50, s1: 140, lead: 30, duration: 1800 },
+  full: { stage: 'full', link: WORKS_LINK, lanes: [0, 1], s0: 5, s1: 205, lead: 45, duration: 1800 },
+};

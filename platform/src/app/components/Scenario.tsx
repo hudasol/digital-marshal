@@ -4,14 +4,18 @@ import { useT, type I18nKey } from '../i18n';
 import { Icon, type IconName } from './Icons';
 import { Section } from './SidePanel';
 import { controller } from '../controller';
-import { BLACKOUT_JUNCTIONS } from '../../core/network/district';
+import { BLACKOUT_JUNCTIONS, WORKS_STAGES } from '../../core/network/district';
 import { getNetwork } from '../../core/network/build';
+import { INJECTIONS } from '../../core/dm/inject';
+import { TRUST_STORE } from '../../core/dm/trust';
 import type { Policy } from '../../core/dm/types';
+import type { WorksFrame } from '../dmframes';
 
 const CARDS: Array<{ key: ScenarioKey; icon: IconName; ready: boolean }> = [
   { key: 'normal', icon: 'city', ready: true },
   { key: 'blackout', icon: 'signal', ready: true },
   { key: 'emergency', icon: 'ambulance', ready: true },
+  { key: 'roadworks', icon: 'cone', ready: true },
 ];
 
 export function ScenarioCards() {
@@ -125,6 +129,166 @@ export function EmergencyControls() {
   );
 }
 
+function WorksStatus({ w, now }: { w: WorksFrame; now: number }) {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const lanes = w.lanes.map((k) => k + 1).join(', ');
+  let line: { tone: string; text: string } | null = null;
+  if (w.stage === 'rejected') line = { tone: 'critical', text: t('rw.rejected', { code: w.submission?.code ?? '' }) };
+  else if (w.status === 'resolved') line = { tone: 'ok', text: t('rw.lifted') };
+  else if (w.activatesAt !== null) {
+    const what = t(w.stage === 'full' ? 'rw.what.full' : 'rw.what.lane');
+    line = { tone: 'warn', text: t('rw.pending', { what, n: Math.max(0, Math.ceil(w.activatesAt - now)) }) };
+  } else if (w.inPlace) {
+    line =
+      w.stage === 'full'
+        ? { tone: 'critical', text: t('rw.inPlace.full', { road: w.road }) }
+        : { tone: 'critical', text: t('rw.inPlace.lane', { lanes, s0: w.s0.toFixed(0), s1: w.s1.toFixed(0) }) };
+  }
+  const sub = w.submission;
+  return (
+    <>
+      {line && <div className={`status-line ${line.tone}`}>{line.text}</div>}
+      {sub && (
+        <div className="sub-check">
+          <button className="sub-head" onClick={() => setOpen((x) => !x)} aria-expanded={open}>
+            <Icon name={sub.status === 'accepted' ? 'check' : 'x'} />
+            <span>{t('rw.submission')}</span>
+            <b className={sub.status === 'accepted' ? 'ok' : 'bad'}>{t('rw.subText', { code: sub.code, n: sub.checks.length })}</b>
+          </button>
+          {open && (
+            <ul className="checks">
+              {sub.checks.map((c, i) => (
+                <li key={i} className={c.pass ? 'pass' : 'fail'}>
+                  <Icon name={c.pass ? 'check' : 'x'} />
+                  <b>{c.name}</b>
+                  <span>{c.detail}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+export function RoadworksControls() {
+  const t = useT();
+  const dm = useStore((s) => s.dm);
+  const now = useStore((s) => s.clock.t);
+  const w = dm?.works ?? null;
+  const net = getNetwork();
+  const link = net.links[WORKS_STAGES.lane.link];
+  const active = w?.status === 'active';
+  const scope = TRUST_STORE['WORKS-C07'].scope;
+  return (
+    <Section title={t('scn.roadworks')}>
+      <div className="kv small" style={{ marginBottom: 10 }}>
+        <span>{t('rw.contractor')}</span>
+        <b className="mono">WORKS-C07</b>
+        <span>{t('rw.where')}</span>
+        <b>
+          {link.roadName} <span className="mono muted">{link.id}</span>
+        </b>
+        <span>{t('rw.permit')}</span>
+        <b className="mono">{'links' in scope ? scope.links.join(', ') : ''}</b>
+      </div>
+      <div className="btn-row">
+        <button className="btn warn" onClick={() => controller.planWorks('lane')} disabled={active}>
+          <Icon name="cone" /> {t('rw.planLane')}
+        </button>
+        <button className="btn danger" onClick={() => controller.planWorks('full')} disabled={!active || w?.stage === 'full'}>
+          {t('rw.escalate')}
+        </button>
+        <button className="btn" onClick={() => controller.liftWorks()} disabled={!active}>
+          {t('rw.lift')}
+        </button>
+      </div>
+      {w && <WorksStatus w={w} now={now} />}
+      {dm && (
+        <>
+          <div className="mini-title">{t('rw.audit')}</div>
+          <div className="kv small">
+            <span>{t('rw.late')}</span>
+            <b className="num">{dm.audit.lateDiscoveries}</b>
+            <span>{t('rw.restricted')}</span>
+            <b className={`num ${dm.audit.restrictedEntries ? 'bad' : 'ok'}`}>{dm.audit.restrictedEntries}</b>
+          </div>
+        </>
+      )}
+      <p className="note">{t('rw.note')}</p>
+    </Section>
+  );
+}
+
+export function SecurityTests() {
+  const t = useT();
+  const dm = useStore((s) => s.dm);
+  const policy = dm?.policy ?? 'C';
+  const rows = dm?.security ?? [];
+  const live = dm?.liveIncident ?? false;
+  return (
+    <Section title={t('sec.title')}>
+      <p className="note" style={{ marginTop: 0 }}>
+        {t('sec.intro')}
+      </p>
+      {policy === 'A' && <div className="callout small-callout">{t('sec.policyA')}</div>}
+      <ul className="sec-list">
+        {INJECTIONS.map((x) => {
+          let last = null;
+          for (let i = rows.length - 1; i >= 0; i--) {
+            if (rows[i].test === x.id) {
+              last = rows[i];
+              break;
+            }
+          }
+          const blocked = x.needsIncident && !live;
+          const ok = last ? last.code === x.expect && !(last.rx?.accepted ?? 0) : null;
+          return (
+            <li key={x.id} className={`sec-row ${ok === null ? '' : ok ? 'pass' : 'fail'}`}>
+              <div className="sec-main">
+                <b>{t(`sec.${x.id}` as I18nKey)}</b>
+                <span>{t(`sec.${x.id}.d` as I18nKey)}</span>
+                <span className="sec-expect">
+                  {t('sec.expect')} <span className="mono">{x.expect}</span>
+                </span>
+              </div>
+              <button
+                className="btn sm"
+                onClick={() => controller.injectTest(x.id)}
+                disabled={policy === 'A' || blocked}
+                title={blocked ? t('sec.needsIncident') : undefined}
+              >
+                {t('sec.inject')}
+              </button>
+              {last && (
+                <div className="sec-result">
+                  <span className={`chip ${last.status === 'accepted' ? 'red' : last.status === 'flagged' ? 'amber' : 'green'}`}>
+                    {t('sec.node')} <span className="mono">{last.code}</span>
+                  </span>
+                  <span className="sec-rx">
+                    {last.rx
+                      ? t('sec.vehicles', { rejected: last.rx.rejected, flagged: last.rx.flagged, accepted: last.rx.accepted })
+                      : now() - last.at < 3
+                        ? t('sec.inflight')
+                        : t('sec.none')}
+                  </span>
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      <p className="note">{t('sec.note')}</p>
+    </Section>
+  );
+}
+
+function now(): number {
+  return controller.engine.state.t;
+}
+
 export function PolicyControls() {
   const t = useT();
   const dm = useStore((s) => s.dm);
@@ -228,7 +392,9 @@ export function ScenarioPanel() {
       <ScenarioCards />
       {scenario === 'blackout' && <BlackoutControls />}
       {scenario === 'emergency' && <EmergencyControls />}
+      {scenario === 'roadworks' && <RoadworksControls />}
       <PolicyControls />
+      {(scenario === 'roadworks' || engineering) && <SecurityTests />}
       <label className="toggle eng-toggle">
         <span>
           <Icon name="code" /> {t('eng.toggle')}

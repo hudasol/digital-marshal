@@ -46,8 +46,10 @@ export interface SignedMessage {
   header: MessageHeader;
   body: MessageBody;
   sig: { alg: 'ECDSA-P256-SHA256'; keyId: string; value: string };
-  /** how the message entered the channel (published by the system or injected for a security test) */
-  origin: 'published' | 'injected';
+  /** how the message entered the channel: published by the node, submitted to it, or injected for a security test */
+  origin: 'published' | 'submitted' | 'injected';
+  /** for injected messages: which security test produced it */
+  test?: string;
 }
 
 export type ReasonCode =
@@ -97,6 +99,8 @@ export interface Incident {
   title: string;
   /** physical ground truth that triggered it (for the inspector and the audit) */
   cause: string;
+  /** roadworks: which planned stage is current (a new stage replaces the cones of the previous one) */
+  stage?: number;
 }
 
 export interface Delivery {
@@ -220,6 +224,8 @@ export interface DmState {
   /** the current (or last) emergency run */
   ev: EvRecord | null;
   evRuns: EvRecord[];
+  /** receiver verdicts per injected message (security demonstration) */
+  rxTally: Record<string, { accepted: number; rejected: number; flagged: number; duplicate: number; codes: Partial<Record<ReasonCode, number>> }>;
   /** cumulative reach per incident: vehicles that received, accepted or rejected any of its messages */
   reach: Record<string, { received: Record<string, true>; accepted: Record<string, true>; rejected: Record<string, true> }>;
   stats: {

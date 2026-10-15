@@ -7,12 +7,15 @@ import { QUALITY, guessTier, lowerTier } from '../render/quality';
 import type { SimSession } from '../core/sim/session';
 import { createSession, dmFor } from '../core/scenarios';
 import { OverlayLayer } from '../render/overlays';
+import { WorksLayer, type WorksZone } from '../render/works';
+import { WORKS_STAGES } from '../core/network/district';
+import type { InjectionId } from '../core/dm/inject';
 import { dmFrame, incidentFrame, vehicleDmView } from './dmframes';
 import type { Policy } from '../core/dm/types';
 import type { Marker } from './store';
 import { DT } from '../core/sim/params';
 import { useStore, type CamMode, type QualityTier } from './store';
-import { translate } from './i18n';
+import { translate, type I18nKey } from './i18n';
 import { networkFrame, vehicleFrame, type VehicleFrame } from './frames';
 import type { FollowTarget } from '../render/CameraRig';
 
@@ -58,6 +61,12 @@ const MARKER_KINDS: Record<string, Marker['tone']> = {
   'inject-accepted': 'critical',
   'ev-dispatched': 'critical',
   'ev-arrived': 'ok',
+  'works-planned': 'warn',
+  'works-active': 'warn',
+  'works-lifted': 'ok',
+  'works-rejected': 'critical',
+  'conflict-reasserted': 'warn',
+  'restricted-entry': 'critical',
 };
 
 class Controller {
@@ -65,6 +74,7 @@ class Controller {
   city: CityRenderer | null = null;
   vehicles: VehicleLayer | null = null;
   overlays: OverlayLayer | null = null;
+  works: WorksLayer | null = null;
   readonly session = makeSession();
   playing = true;
   speed = 1;
@@ -117,6 +127,9 @@ class Controller {
     w.scene.add(this.vehicles.group);
     this.overlays = new OverlayLayer(net);
     w.scene.add(this.overlays.group);
+    this.works = new WorksLayer(net);
+    this.works.enabled = st.overlays.v2x;
+    w.scene.add(this.works.group);
     this.vehicles.refresh(this.engine, true);
     const b = net.bounds;
     w.rig.bounds = { minX: b.minX, maxX: b.maxX, minZ: -b.maxY, maxZ: -b.minY };
@@ -136,6 +149,7 @@ class Controller {
     useStore.subscribe((now, prev) => {
       if (now.overlays.labels !== prev.overlays.labels) this.city?.setLabels(now.overlays.labels);
       if (now.overlays.v2x !== prev.overlays.v2x && this.overlays) this.overlays.enabled = now.overlays.v2x;
+      if (now.overlays.v2x !== prev.overlays.v2x && this.works) this.works.enabled = now.overlays.v2x;
       if (now.selection !== prev.selection) this.onSelection();
     });
     this.start();
@@ -376,7 +390,11 @@ class Controller {
     st.setDmFrames(dmf, inc, vdm, events, markers.slice(-200));
     // header status
     const active = dmf.incidents.filter((i) => i.status === 'active');
-    const label = active.length ? active.map((i) => `${i.title.split(' at ')[0]} \u00b7 ${i.id}`).join(' | ') : dmf.dark.length ? 'Signal outage (not yet detected)' : '';
+    const label = active.length
+      ? active.map((i) => `${translate(st.lang, `inc.type.${i.type}` as I18nKey)} \u00b7 ${i.id}`).join(' | ')
+      : dmf.dark.length
+        ? translate(st.lang, 'hdr.undetected')
+        : '';
     const level = dmf.dark.length || dmf.mrcNow ? 'critical' : dmf.exceptions.open || active.length ? 'warn' : 'normal';
     if (st.scenarioLabel !== label || st.alertLevel !== level) useStore.setState({ scenarioLabel: label, alertLevel: level });
   }
@@ -443,6 +461,42 @@ class Controller {
     if (t > 0) this.seekTarget = t;
     this.publishClock();
     this.publishFrames();
+  }
+
+  /** The works contractor submits the next stage of its plan (validated, then published ahead of time). */
+  planWorks(stage: 'lane' | 'full'): void {
+    const spec = WORKS_STAGES[stage];
+    this.session.intervene('works', { ...spec, lanes: [...spec.lanes] }, this.session.t);
+    this.afterIntervention();
+    this.focusWorks();
+  }
+
+  /** The contractor reports the works finished. */
+  liftWorks(): void {
+    this.session.intervene('works-lift', {}, this.session.t);
+    this.afterIntervention();
+  }
+
+  /** Put one crafted message on the air (security demonstration). */
+  injectTest(test: InjectionId): void {
+    this.session.intervene('inject', { test }, this.session.t);
+    this.afterIntervention();
+  }
+
+  focusWorks(): void {
+    const l = getNetwork().links[WORKS_STAGES.lane.link];
+    const s = (WORKS_STAGES.lane.s0 + WORKS_STAGES.lane.s1) / 2;
+    this.focusSim(l.start.x + l.dir.x * s, l.start.y + l.dir.y * s, 230, 0.78);
+  }
+
+  /** Closure stages announced and scheduled, not yet in place (the crew's plan). */
+  private plannedWorks(): WorksZone[] {
+    const out: WorksZone[] = [];
+    for (const p of dmFor(this.engine).s.pending) {
+      if (p.kind !== 'works_activate') continue;
+      out.push({ id: `${p.params.incident}-${p.params.stage}`, link: String(p.params.link), lanes: p.params.lanes as number[], s0: Number(p.params.s0), s1: Number(p.params.s1) });
+    }
+    return out;
   }
 
   setComms(params: Record<string, unknown>): void {
@@ -558,6 +612,7 @@ class Controller {
       this.overlays?.setCameraDistance(this.world.rig.pose.dist);
       this.overlays?.update(this.engine.state.road.dark, dmFor(this.engine).s.pulses, this.renderT, wall);
       this.overlays?.updateCorridor(this.corridorPath());
+      this.works?.update(this.engine.state.road.closures, this.plannedWorks(), wall);
       this.vehicles?.setCameraDistance(this.world.rig.pose.dist);
       this.vehicles?.draw(this.engine, this.alpha(), wall);
       stats = this.world.frame(dt);

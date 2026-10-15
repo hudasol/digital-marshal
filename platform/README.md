@@ -48,6 +48,22 @@ npm run preview    # serve the production build on http://localhost:4173
 | `[` and `]` | Collapse the operations and intelligence panels |
 | Shift + P | Performance monitor |
 
+## Scenarios
+
+All three run on the same incident, message, validation and exception-coordination core, under policy
+A (no shared city information), B (validated broadcast, independent responses) or C (B plus coordination).
+
+| Scenario | What happens |
+|---|---|
+| 01 Signal blackout | Controllers lose power. Vehicles treat dark junctions as all-way stops; AVs stop in a minimal risk condition at junctions outside their operating domain and ask for remote assistance. |
+| 02 Emergency vehicle | An ambulance crosses the district. Vehicles yield only when their own gap check passes; infeasible yields are recorded with a reason. Policy C adds signal priority. |
+| 05 Roadworks | A contractor submits a signed lane closure, then a full closure. The node validates the submission against the contractor's permit before republishing it ahead of time. An audit counts any entry into a closed lane (expected 0). |
+
+The roadworks panel also runs 13 message security tests (tampered, forged, unknown sender, retired key,
+beyond permission, outside permit, unknown location, other map version, expired, replayed, future-dated,
+older version, conflicting version). Each crafted message is validated by the node and by every vehicle
+that receives it, and the panel reports their actual verdicts.
+
 ## Honesty labels
 
 * The district, roads, demand and signal plans are synthetic. Street names are codes, not real streets.

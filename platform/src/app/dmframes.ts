@@ -1,6 +1,7 @@
 import type { Engine } from '../core/sim/engine';
 import { dmFor } from '../core/scenarios';
 import type { CheckResult, ExceptionRecord, Incident, Policy, ReasonCode, SignedMessage } from '../core/dm/types';
+import { INJECTIONS } from '../core/dm/inject';
 
 /* Plain-data views of the Digital Marshal layer for the interface. */
 
@@ -30,8 +31,42 @@ export interface EvFrame {
   incidentId: string;
 }
 
+export interface WorksFrame {
+  incidentId: string;
+  status: Incident['status'];
+  version: number;
+  /** stage the latest node message describes: lane, full or lifted */
+  stage: string;
+  link: string;
+  road: string;
+  lanes: number[];
+  s0: number;
+  s1: number;
+  /** cones physically on the road */
+  inPlace: boolean;
+  /** when the announced stage takes effect, if it has not yet */
+  activatesAt: number | null;
+  submission: { msgId: string; status: string; code: ReasonCode; checks: CheckResult[] } | null;
+}
+
+export interface SecurityRow {
+  msgId: string;
+  test: string;
+  expect: ReasonCode;
+  at: number;
+  status: string;
+  code: ReasonCode;
+  checks: CheckResult[];
+  rx: { accepted: number; rejected: number; flagged: number; duplicate: number; codes: Partial<Record<ReasonCode, number>> } | null;
+}
+
 export interface DmFrame {
   policy: Policy;
+  works: WorksFrame | null;
+  security: SecurityRow[];
+  /** an active incident whose current version receivers hold (needed by version tests) */
+  liveIncident: boolean;
+  audit: { restrictedEntries: number; lateDiscoveries: number };
   incidents: IncidentSummary[];
   activeCount: number;
   exceptions: { open: number; inProgress: number; resolved: number; auto: number; withdrawn: number; raised: number };
@@ -85,6 +120,77 @@ function summary(inc: Incident): IncidentSummary {
   };
 }
 
+function worksFrame(e: Engine): WorksFrame | null {
+  const dm = dmFor(e);
+  const s = dm.s;
+  const all = Object.values(s.incidents).filter((i) => i.type === 'roadworks');
+  const inc = all.find((i) => i.status === 'active') ?? all[all.length - 1];
+  const subs = Object.values(s.messages).filter((m) => m.origin === 'submitted');
+  const sub = subs[subs.length - 1] ?? null;
+  const subView = sub
+    ? { msgId: sub.header.msgId, status: s.verdicts[sub.header.msgId]?.status ?? '', code: s.verdicts[sub.header.msgId]?.code ?? 'ACCEPTED', checks: s.verdicts[sub.header.msgId]?.checks ?? [] }
+    : null;
+  if (!inc) {
+    // a submission the node refused never became an incident
+    if (!sub) return null;
+    const ln = sub.body.area.lanes?.[0];
+    return {
+      incidentId: '',
+      status: 'resolved',
+      version: 0,
+      stage: 'rejected',
+      link: ln?.link ?? '',
+      road: e.net.links[ln?.link ?? '']?.roadName ?? '',
+      lanes: ln?.lanes ?? [],
+      s0: ln?.s0 ?? 0,
+      s1: ln?.s1 ?? 0,
+      inPlace: false,
+      activatesAt: null,
+      submission: subView,
+    };
+  }
+  const lastId = dm.latestIncidentMessage(inc);
+  const last = lastId ? s.messages[lastId] : null;
+  const ln = inc.area.lanes?.[0];
+  const pend = inc.status === 'active' ? dm.pendingWorks() : null;
+  return {
+    incidentId: inc.id,
+    status: inc.status,
+    version: inc.version,
+    stage: String(last?.body.detail.stage ?? ''),
+    link: ln?.link ?? '',
+    road: e.net.links[ln?.link ?? '']?.roadName ?? '',
+    lanes: ln?.lanes ?? [],
+    s0: ln?.s0 ?? 0,
+    s1: ln?.s1 ?? 0,
+    inPlace: e.state.road.closures.some((c) => c.id.startsWith(`WZ-${inc.id}-`)),
+    activatesAt: pend?.at ?? null,
+    submission: subView,
+  };
+}
+
+function securityRows(e: Engine): SecurityRow[] {
+  const s = dmFor(e).s;
+  const rows: SecurityRow[] = [];
+  for (const m of Object.values(s.messages)) {
+    if (m.origin !== 'injected') continue;
+    const v = s.verdicts[m.header.msgId];
+    const spec = INJECTIONS.find((x) => x.id === m.test);
+    const rx = s.rxTally[m.header.msgId];
+    rows.push({
+      msgId: m.header.msgId,
+      test: m.test ?? '',
+      expect: spec?.expect ?? 'ACCEPTED',
+      at: m.header.issuedAt,
+      status: v?.status ?? '',
+      code: v?.code ?? 'ACCEPTED',
+      checks: v?.checks ?? [],
+      rx: rx ? { ...rx, codes: { ...rx.codes } } : null,
+    });
+  }
+  return rows;
+}
+
 export function dmFrame(e: Engine): DmFrame {
   const dm = dmFor(e);
   const s = dm.s;
@@ -92,8 +198,16 @@ export function dmFrame(e: Engine): DmFrame {
   const ex = Object.values(s.exceptions);
   let mrcNow = 0;
   for (const id of e.state.order) if (e.state.vehicles[id].mode === 'mrc') mrcNow++;
+  const live = (['roadworks', 'signal_outage', 'emergency_corridor'] as const).some((type) => {
+    const inc = dm.activeIncident(type);
+    return !!inc && !!dm.latestIncidentMessage(inc);
+  });
   return {
     policy: s.params.policy,
+    works: worksFrame(e),
+    security: securityRows(e),
+    liveIncident: live,
+    audit: { restrictedEntries: e.state.counters.restrictedEntries, lateDiscoveries: e.state.counters.lateDiscoveries },
     incidents,
     activeCount: incidents.filter((i) => i.status === 'active').length,
     exceptions: {

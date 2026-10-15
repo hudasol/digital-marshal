@@ -126,7 +126,7 @@ function MessageRow({ m }: { m: MessageView }) {
         <div className="msg-body">
           <div className="small muted">{m.text}</div>
           <div className="small mono muted" style={{ marginTop: 4 }}>
-            {m.issuer} · {m.origin === 'injected' ? t('msg.injected') : t('msg.published')} · {m.signature}
+            {m.issuer} · {m.origin === 'injected' ? t('msg.injected') : m.origin === 'submitted' ? t('msg.submitted') : t('msg.published')} · {m.signature}
           </div>
           {m.verdict && m.verdict.checks.length > 0 && (
             <>

@@ -3,6 +3,7 @@ import { SimSession } from './sim/session';
 import type { Engine, RunConfig } from './sim/engine';
 import { DigitalMarshal, DEFAULT_DM } from './dm/service';
 import type { DmParams, SignedMessage } from './dm/types';
+import { buildInjection, type InjectionId } from './dm/inject';
 
 /* Scenario plumbing shared by the interface and the headless experiment runner: a session with the
    Digital Marshal layer attached, and the interventions that scenarios record on its timeline. */
@@ -44,9 +45,18 @@ export function applyIntervention(engine: Engine, kind: string, params: Record<s
     case 'dispatch':
       dm.dispatch(String(params.from ?? 'hospital'), String(params.to ?? 'scene'));
       break;
-    case 'inject':
-      dm.inject(structuredClone(params.message as SignedMessage));
+    case 'works':
+      dm.submitWorks(params as unknown as Parameters<typeof dm.submitWorks>[0]);
       break;
+    case 'works-lift':
+      dm.liftWorks();
+      break;
+    case 'inject': {
+      // built from the situation at the moment of injection, so a replay rebuilds the same message
+      const msg = params.test ? buildInjection(dm, params.test as InjectionId) : structuredClone(params.message as SignedMessage);
+      if (msg) dm.inject(msg);
+      break;
+    }
     case 'comms': {
       const p = dm.s.params;
       if (params.extraLatencyMs !== undefined) p.extraLatencyMs = Number(params.extraLatencyMs);

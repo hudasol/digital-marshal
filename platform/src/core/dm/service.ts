@@ -55,6 +55,19 @@ export const DEFAULT_DM: DmParams = {
 };
 
 const REFRESH_EVERY = 60;
+const NO_CLOSURES: Array<{ id: string; link: string; lanes: number[]; s0: number; s1: number }> = [];
+
+export interface WorksSpec {
+  stage: 'lane' | 'full';
+  link: string;
+  lanes: number[];
+  s0: number;
+  s1: number;
+  /** seconds between publication and the cones going out */
+  lead: number;
+  /** planned duration of the restriction, s */
+  duration: number;
+}
 const ADVICE_EVERY = 20;
 const AUTH_VALID = 1800;
 
@@ -96,6 +109,7 @@ export function initDmState(params: DmParams, seed: number): DmState {
     lastAdvice: -Infinity,
     lastRefresh: {},
     reach: {},
+    rxTally: {},
     ev: null,
     evRuns: [],
   };
@@ -113,6 +127,7 @@ export class DigitalMarshal {
     engine.hooks.onMrc = (v, j) => this.onMrc(v, j);
     engine.hooks.onExit = (v) => this.onExit(v);
     engine.hooks.evInformed = (v, ev) => this.evInformed(v, ev);
+    engine.hooks.knownClosures = (v) => this.knownClosures(v);
     engine.hooks.onYield = (v, ev, ok, reason) => this.onYield(v, ev, ok, reason);
     engine.hooks.afterStep = () => {
       prevAfter?.();
@@ -365,16 +380,18 @@ export class DigitalMarshal {
     text: string,
     severity: number,
     validFor: number,
+    validFrom?: number,
   ): SignedMessage {
     const t = this.now;
+    const from = validFrom ?? t;
     const header = {
       msgId: '',
       incidentId: inc.id,
       version: inc.version,
       issuer,
       issuedAt: t,
-      validFrom: t,
-      validUntil: t + validFor,
+      validFrom: from,
+      validUntil: from + validFor,
       mapVersion: this.engine.net.version,
     };
     const body: MessageBody = { type, severity, area, detail, text };
@@ -389,8 +406,16 @@ export class DigitalMarshal {
     return msg;
   }
 
-  private publish(inc: Incident, type: MessageType, detail: MessageBody['detail'], text: string, severity: number, validFor = 3600): SignedMessage {
-    const msg = this.makeMessage('DM-TMC', inc, type, inc.area, detail, text, severity, validFor);
+  private publish(
+    inc: Incident,
+    type: MessageType,
+    detail: MessageBody['detail'],
+    text: string,
+    severity: number,
+    validFor = 3600,
+    validFrom?: number,
+  ): SignedMessage {
+    const msg = this.makeMessage('DM-TMC', inc, type, inc.area, detail, text, severity, validFor, validFrom);
     const s = this.s;
     s.messages[msg.header.msgId] = msg;
     s.verdicts[msg.header.msgId] = { status: 'accepted', code: 'ACCEPTED', checks: [{ name: 'Origin', pass: true, detail: 'Issued by this coordination node' }] };
@@ -489,8 +514,26 @@ export class DigitalMarshal {
       type: msg.body.type,
       issuer: msg.header.issuer,
     });
-    // rogue broadcasters bypass the node: put it on the air regardless, so vehicle-side checks are exercised
-    this.broadcast(msg);
+    // a conflicting copy of the current version is on the air: once the node has heard it, it
+    // re-issues the authoritative state as a new version so every receiver converges on it
+    if (v.code === 'CONFLICTING_UPDATE') s.pending.push({ at: this.now + 2, kind: 'reassert', params: { incident: msg.header.incidentId } });
+    // rogue broadcasters bypass the node: put it on the air regardless, so vehicle-side checks are
+    // exercised. Under policy A there is no shared channel for vehicles to listen to.
+    if (this.policy !== 'A') this.broadcast(msg);
+  }
+
+  /** Re-issue the incident's current state as a new version, superseding any conflicting copy. */
+  private reassert(incidentId: string): void {
+    const inc = this.s.incidents[incidentId];
+    if (!inc || inc.status !== 'active') return;
+    const lastId = this.latestIncidentMessage(inc);
+    if (!lastId) return;
+    const last = this.s.messages[lastId];
+    inc.version++;
+    inc.updatedAt = this.now;
+    const from = Math.max(this.now, last.header.validFrom);
+    this.publish(inc, last.body.type, last.body.detail, last.body.text, last.body.severity, Math.max(60, last.header.validUntil - from), from);
+    this.engine.event('conflict-reasserted', 'warn', inc.id, { version: inc.version });
   }
 
   // ================================================================== vehicle adapter
@@ -513,8 +556,9 @@ export class DigitalMarshal {
           return e ? { version: e.version, bodyDigest: bodyDigest(s.messages[e.msgId]) } : null;
         }
         const inc = s.incidents[incidentId];
-        if (!inc || !inc.messages.length) return null;
-        const last = s.messages[inc.messages[inc.messages.length - 1]];
+        const lastId = inc ? this.latestIncidentMessage(inc) : null;
+        if (!lastId) return null;
+        const last = s.messages[lastId];
         return { version: last.header.version, bodyDigest: bodyDigest(last) };
       },
     };
@@ -532,11 +576,18 @@ export class DigitalMarshal {
     const latency = this.now - msg.header.issuedAt;
     k.rx[d.msgId] = { at: this.now, latency, path: d.path, status: verdict.status, code: verdict.code };
     s.stats.delivered++;
+    if (msg.origin === 'injected') {
+      const tally = (s.rxTally[d.msgId] ??= { accepted: 0, rejected: 0, flagged: 0, duplicate: 0, codes: {} });
+      tally[verdict.status]++;
+      tally.codes[verdict.code] = (tally.codes[verdict.code] ?? 0) + 1;
+    }
     if (verdict.status === 'duplicate') return;
-    const reach = (s.reach[msg.header.incidentId] ??= { received: {}, accepted: {}, rejected: {} });
-    reach.received[v.id] = true;
-    if (verdict.status === 'accepted') reach.accepted[v.id] = true;
-    else reach.rejected[v.id] = true;
+    if (msg.origin !== 'injected') {
+      const reach = (s.reach[msg.header.incidentId] ??= { received: {}, accepted: {}, rejected: {} });
+      reach.received[v.id] = true;
+      if (verdict.status === 'accepted') reach.accepted[v.id] = true;
+      else reach.rejected[v.id] = true;
+    }
     if (msg.origin === 'published') {
       s.stats.latencySum += Math.max(0, this.now - (s.lastBroadcast[d.msgId] ?? msg.header.issuedAt));
       s.stats.latencyN++;
@@ -618,7 +669,7 @@ export class DigitalMarshal {
     if (at < 0) return; // the vehicle has already moved past the advised start
     const suffix = route.slice(at);
     const opts = this.routeOptions(v);
-    const blocked = junctionsOf(this.engine.net, suffix).some((j) => opts.avoidJunctions?.has(j));
+    const blocked = junctionsOf(this.engine.net, suffix).some((j) => opts.avoidJunctions?.has(j)) || suffix.some((l) => opts.avoidLinks?.has(l));
     const dest = this.engine.destLink(v.dest).link;
     if (blocked || suffix[suffix.length - 1] !== dest) return;
     if (suffix.join('|') === v.route.slice(v.route.indexOf(cur)).join('|')) return;
@@ -638,8 +689,18 @@ export class DigitalMarshal {
     const avoid = new Set<string>();
     const pen = new Map<string, number>();
     const odd = this.engine.cfg.oddMaxLanes;
+    const links = new Set<string>();
     for (const incId of Object.keys(k.incidents)) {
       const e = k.incidents[incId];
+      if (e.active && e.type === 'ROAD_RESTRICTION') {
+        const msg = this.s.messages[e.msgId];
+        // plan around a segment closure that will be in place by the time the vehicle gets there.
+        // Lane closures are handled by merging early; their effect on travel time reaches route
+        // choice through observed delays, like any other congestion.
+        if (msg && this.now >= msg.header.validFrom - 90 && this.now <= msg.header.validUntil) {
+          for (const ln of msg.body.area.lanes ?? []) if (ln.lanes.length >= this.engine.net.links[ln.link].lanes) links.add(ln.link);
+        }
+      }
       if (!e.active || e.type !== 'SIGNAL_OUTAGE') continue;
       const msg = this.s.messages[e.msgId];
       for (const j of msg?.body.area.junctions ?? []) {
@@ -647,7 +708,110 @@ export class DigitalMarshal {
         else pen.set(j, (pen.get(j) ?? 0) + DARK_JUNCTION_PENALTY);
       }
     }
-    return { avoidJunctions: avoid, junctionPenalty: pen };
+    return { avoidJunctions: avoid, junctionPenalty: pen, avoidLinks: links };
+  }
+
+  /** Lane closures this vehicle knows about from accepted restriction messages, once they are in effect. */
+  knownClosures(v: Vehicle): Array<{ id: string; link: string; lanes: number[]; s0: number; s1: number }> {
+    const k = this.s.knowledge[v.id];
+    if (!k || !v.connected) return NO_CLOSURES;
+    let out: Array<{ id: string; link: string; lanes: number[]; s0: number; s1: number }> | null = null;
+    for (const incId in k.incidents) {
+      const e = k.incidents[incId];
+      if (!e.active || e.type !== 'ROAD_RESTRICTION') continue;
+      const msg = this.s.messages[e.msgId];
+      if (!msg || this.now < msg.header.validFrom || this.now > msg.header.validUntil) continue;
+      for (const ln of msg.body.area.lanes ?? []) (out ??= []).push({ id: incId, link: ln.link, lanes: ln.lanes, s0: ln.s0, s1: ln.s1 });
+    }
+    return out ?? NO_CLOSURES;
+  }
+
+  // ================================================================== roadworks
+
+  /**
+   * A works contractor submits a planned restriction, signed with its own key. The node validates the
+   * submission (issuer, permission, scope, freshness) before anything reaches vehicles; if accepted it
+   * records the incident and republishes the restriction under its own signature, ahead of time.
+   * The crew puts the cones out when the restriction takes effect.
+   */
+  submitWorks(spec: WorksSpec): boolean {
+    const s = this.s;
+    const existing = this.activeIncident('roadworks');
+    const incId = existing?.id ?? `INC-${String(s.nextIncident).padStart(4, '0')}`;
+    const version = existing ? existing.version + 1 : 1;
+    const area: MessageArea = { lanes: [{ link: spec.link, lanes: [...spec.lanes], s0: spec.s0, s1: spec.s1 }] };
+    const validFrom = this.now + spec.lead;
+    const road = this.engine.net.links[spec.link]?.roadName ?? spec.link;
+    const text =
+      spec.stage === 'lane'
+        ? `Lane ${spec.lanes.map((l) => l + 1).join(', ')} closed on ${road} (${spec.link}) from ${spec.s0.toFixed(0)} m to ${spec.s1.toFixed(0)} m`
+        : `${road} (${spec.link}) closed to all traffic`;
+    const detail = { stage: spec.stage, link: spec.link, lanes: spec.lanes.join(','), s0: spec.s0, s1: spec.s1 };
+    // 1. the contractor's own signed submission, validated by the node
+    const sub = this.makeMessage('WORKS-C07', { id: incId, version }, 'ROAD_RESTRICTION', area, detail, text, 3, spec.duration, validFrom);
+    sub.origin = 'submitted';
+    s.messages[sub.header.msgId] = sub;
+    const verdict = validate(sub, { ...this.ctxFor(null), current: () => null });
+    s.verdicts[sub.header.msgId] = verdict;
+    if (verdict.status !== 'accepted') {
+      this.engine.event('works-rejected', 'warn', sub.header.msgId, { code: verdict.code, link: spec.link });
+      return false;
+    }
+    // 2. the node records the incident and republishes the restriction under its own signature
+    let inc = existing;
+    if (inc) {
+      inc.version = version;
+      inc.updatedAt = this.now;
+      inc.area = area;
+    } else {
+      inc = this.newIncident('roadworks', area, `Roadworks on ${road}`, `Planned works by contractor WORKS-C07 on ${road} (${spec.link})`);
+      inc.issuer = 'WORKS-C07';
+    }
+    inc.stage = (inc.stage ?? 0) + 1;
+    inc.messages.push(sub.header.msgId);
+    this.publish(inc, 'ROAD_RESTRICTION', detail, text, 3, spec.duration, validFrom);
+    this.engine.event('works-planned', 'warn', inc.id, { stage: spec.stage, link: spec.link, lead: spec.lead, version });
+    // 3. the crew sets up the cones when the restriction takes effect
+    s.pending.push({ at: validFrom, kind: 'works_activate', params: { incident: inc.id, stage: inc.stage, link: spec.link, lanes: [...spec.lanes], s0: spec.s0, s1: spec.s1 } });
+    return true;
+  }
+
+  /** The contractor reports the works finished: the node validates the report, the cones come off and the restriction is lifted. */
+  liftWorks(): boolean {
+    const s = this.s;
+    const inc = this.activeIncident('roadworks');
+    if (!inc) return false;
+    const st = this.engine.state;
+    const links = (inc.area.lanes ?? []).map((x) => x.link);
+    const sub = this.makeMessage('WORKS-C07', { id: inc.id, version: inc.version + 1 }, 'RESTRICTION_LIFTED', inc.area, { stage: 'lifted' }, `Works finished on ${links.join(', ')}`, 1, 600);
+    sub.origin = 'submitted';
+    s.messages[sub.header.msgId] = sub;
+    const verdict = validate(sub, { ...this.ctxFor(null), current: () => null });
+    s.verdicts[sub.header.msgId] = verdict;
+    if (verdict.status !== 'accepted') {
+      this.engine.event('works-rejected', 'warn', sub.header.msgId, { code: verdict.code, link: links.join(', ') });
+      return false;
+    }
+    inc.messages.push(sub.header.msgId);
+    st.road.closures = st.road.closures.filter((c) => !c.id.startsWith(`WZ-${inc.id}-`));
+    s.pending = s.pending.filter((p) => !(p.kind === 'works_activate' && p.params.incident === inc.id));
+    for (const id of st.order) {
+      const v = st.vehicles[id];
+      if (v.blocked.length) v.blocked = v.blocked.filter((l) => !links.includes(l));
+    }
+    inc.version++;
+    inc.updatedAt = this.now;
+    this.publish(inc, 'RESTRICTION_LIFTED', { stage: 'lifted' }, `Works finished on ${links.join(', ')}: all lanes open`, 1, 600);
+    inc.status = 'resolved';
+    inc.resolvedAt = this.now;
+    this.engine.event('works-lifted', 'ok', inc.id, { link: links.join(', ') });
+    return true;
+  }
+
+  /** Planned activation of the current roadworks stage, if it has not happened yet. */
+  pendingWorks(): { at: number; stage: number } | null {
+    for (const p of this.s.pending) if (p.kind === 'works_activate') return { at: p.at, stage: Number(p.params.stage) };
+    return null;
   }
 
   authorized(v: Vehicle, junction: string): boolean {
@@ -888,12 +1052,11 @@ export class DigitalMarshal {
    * uses, so later vehicles are spread over other detours instead of all choosing the same one.
    * One signed allocation table per round; each vehicle reads its own entry and still checks it.
    */
-  private adviseDetours(): void {
+  private adviseDetours(inc: Incident): void {
     const s = this.s;
     const st = this.engine.state;
     const net = this.engine.net;
-    const inc = this.activeIncident('signal_outage');
-    if (!inc) return;
+    const works = inc.type === 'roadworks';
     const candidates: Array<{ v: Vehicle; d: number }> = [];
     for (const id of st.order) {
       const v = st.vehicles[id];
@@ -902,15 +1065,17 @@ export class DigitalMarshal {
       if (!k || !k.incidents[inc.id]?.active) continue;
       if (k.advice && this.now - k.advice.at < 60) continue;
       const opts = this.routeOptions(v);
-      if (!opts.avoidJunctions?.size) continue;
+      const avoidJ = opts.avoidJunctions;
+      const avoidL = opts.avoidLinks;
+      if (works ? !avoidL?.size : !avoidJ?.size) continue;
       const cur = v.seg.k === 'L' ? v.seg.id : net.connectors[v.seg.id].outLink;
-      // a vehicle already on the approach to an avoided junction cannot be helped by a detour
-      if (opts.avoidJunctions.has(net.links[cur].to)) continue;
+      // a vehicle already on the approach to what it must avoid cannot be helped by a detour
+      if (works ? avoidL!.has(cur) : avoidJ!.has(net.links[cur].to)) continue;
       const start = Math.max(0, v.route.indexOf(cur));
-      const remaining = junctionsOf(net, v.route, start);
-      // vehicles that already avoid the area are counted as load but not re-advised
+      const crosses = works ? v.route.slice(start).some((l) => avoidL!.has(l)) : junctionsOf(net, v.route, start).some((j) => avoidJ!.has(j));
+      // vehicles whose plan already avoids the area are assigned after the others (they add load)
       const p = this.position(v);
-      candidates.push({ v, d: Math.hypot(p.x, p.y) + (remaining.some((j) => opts.avoidJunctions!.has(j)) ? 0 : 1e6) });
+      candidates.push({ v, d: Math.hypot(p.x, p.y) + (crosses ? 0 : 1e6) });
     }
     if (!candidates.length) return;
     candidates.sort((a, b) => a.d - b.d || a.v.id - b.v.id);
@@ -933,7 +1098,7 @@ export class DigitalMarshal {
       'DM-TMC',
       inc,
       'ROUTE_ADVISORY',
-      { junctions: inc.area.junctions },
+      works ? { links: (inc.area.lanes ?? []).map((x) => x.link) } : { junctions: inc.area.junctions },
       { round: Math.round(this.now), assignments: entries },
       `Detour allocation for ${entries.length} vehicles around ${inc.id}`,
       2,
@@ -978,9 +1143,13 @@ export class DigitalMarshal {
     }
 
     // coordinated detour advice
-    if (this.policy === 'C' && this.activeIncident('signal_outage') && now - s.lastAdvice >= ADVICE_EVERY - 1e-9) {
-      s.lastAdvice = now;
-      this.adviseDetours();
+    if (this.policy === 'C' && now - s.lastAdvice >= ADVICE_EVERY - 1e-9) {
+      for (const incId of Object.keys(s.incidents)) {
+        const inc = s.incidents[incId];
+        if (inc.status !== 'active' || (inc.type !== 'signal_outage' && inc.type !== 'roadworks')) continue;
+        s.lastAdvice = now;
+        this.adviseDetours(inc);
+      }
     }
 
     // emergency corridor
@@ -994,7 +1163,8 @@ export class DigitalMarshal {
     for (const id of st.order) if (st.vehicles[id].mode === 'mrc') s.stats.mrcVehicleSeconds += DT;
   }
 
-  private latestIncidentMessage(inc: Incident): string | null {
+  /** The node's latest message stating the incident's condition (not advice or authorisations). */
+  latestIncidentMessage(inc: Incident): string | null {
     for (let i = inc.messages.length - 1; i >= 0; i--) {
       const m = this.s.messages[inc.messages[i]];
       if (m && m.header.issuer === 'DM-TMC' && m.body.type !== 'ROUTE_ADVISORY') return m.header.msgId;
@@ -1007,7 +1177,8 @@ export class DigitalMarshal {
     const s = this.s;
     const last = s.messages[lastId];
     s.lastRefresh[inc.id] = this.now;
-    const msg = this.makeMessage('DM-TMC', inc, last.body.type, last.body.area, last.body.detail, last.body.text, last.body.severity, Math.max(60, last.header.validUntil - this.now));
+    const from = Math.max(this.now, last.header.validFrom);
+    const msg = this.makeMessage('DM-TMC', inc, last.body.type, last.body.area, last.body.detail, last.body.text, last.body.severity, Math.max(60, last.header.validUntil - from), from);
     s.messages[msg.header.msgId] = msg;
     s.verdicts[msg.header.msgId] = { status: 'accepted', code: 'ACCEPTED', checks: [] };
     inc.messages.push(msg.header.msgId);
@@ -1018,6 +1189,26 @@ export class DigitalMarshal {
     const st = this.engine.state;
     if (a.kind === 'dispatch') {
       this.dispatch(String(a.params.from), String(a.params.to));
+      return;
+    }
+    if (a.kind === 'reassert') {
+      this.reassert(String(a.params.incident));
+      return;
+    }
+    if (a.kind === 'works_activate') {
+      const incId = String(a.params.incident);
+      const inc = this.s.incidents[incId];
+      // only the current stage goes out; a stage superseded before it took effect never does
+      if (!inc || inc.status !== 'active' || inc.stage !== Number(a.params.stage)) return;
+      st.road.closures = st.road.closures.filter((c) => !c.id.startsWith(`WZ-${incId}-`));
+      this.engine.placeClosure({
+        id: `WZ-${incId}-${a.params.stage}`,
+        link: String(a.params.link),
+        lanes: [...(a.params.lanes as number[])],
+        s0: Number(a.params.s0),
+        s1: Number(a.params.s1),
+      });
+      this.engine.event('works-active', 'warn', incId, { link: String(a.params.link) });
       return;
     }
     if (a.kind === 'detect_outage') {
