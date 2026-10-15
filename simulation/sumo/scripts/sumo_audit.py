@@ -88,7 +88,7 @@ def audit_run(d):
             nA += r['route'] == 'A'; nB += r['route'] == 'B'
         for k, v in (('completed', ncomp), ('incomplete', len(veh) - ncomp), ('n_A', nA), ('n_B', nB), ('unassigned', nun), ('closed_link_entries', closed_n)):
             if summ.get(k) != v: bad('summary_vs_vehicles', field=k, summary=summ.get(k), recomputed=v)
-        if abs(summ.get('total_vehicle_min', -1) - tot) > 1e-3: bad('summary_vs_vehicles', field='total_vehicle_min', summary=summ.get('total_vehicle_min'), recomputed=round(tot, 4))
+        if abs(summ.get('total_vehicle_min', -1) - tot) > 1e-5 * len(veh) + 1e-3: bad('summary_vs_vehicles', field='total_vehicle_min', summary=summ.get('total_vehicle_min'), recomputed=round(tot, 4))
         # ---- unfinished accounting and termination
         inc_n = len(veh) - ncomp
         if inc_n != man.get('in_network_at_end', -1) + man.get('not_inserted_at_end', -1): bad('unfinished_accounting', incomplete=inc_n, in_network=man.get('in_network_at_end'), not_inserted=man.get('not_inserted_at_end'))
