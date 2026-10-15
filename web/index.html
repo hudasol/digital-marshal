@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Digital Marshal Simulation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --red:#DA291C; --red-dark:#B82217; --char:#242526; --ink:#1B1D21; --bg:#F8FAFC; --off:#FCFCFC;
+  --gold:#FFB715; --line:#E2E8F0; --slate:#64748B; --slate-l:#CBD5E1; --card:#FFFFFF;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font-family:'Montserrat','Noto Sans Arabic',system-ui,sans-serif;font-weight:400;font-size:14px;line-height:1.5}
+[dir=rtl] body, body.ar{font-family:'Noto Sans Arabic','Montserrat',system-ui,sans-serif}
+h1,h2,h3{font-weight:600;line-height:1.2;margin:0;color:var(--ink)}
+.hdr{background:var(--red);color:#fff;padding:0 24px;display:flex;align-items:center;gap:24px;min-height:72px}
+.logo{display:flex;flex-direction:column;justify-content:center;padding:10px 0;margin-inline-end:8px}
+.logo b{font-weight:700;font-size:18px;letter-spacing:.14em;line-height:1.1}
+.logo span{font-weight:500;font-size:15px;line-height:1.3}
+.hdr .title{flex:1;min-width:0}
+.hdr .title h1{color:#fff;font-size:18px}
+.hdr .title div{font-size:12px;font-weight:500;opacity:.92}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid rgba(255,255,255,.7);color:#fff;font-size:11px;font-weight:600;padding:2px 10px;border-radius:2px;letter-spacing:.04em;white-space:nowrap}
+.lang{background:#fff;color:var(--red);border:0;font:600 12px inherit;font-family:inherit;padding:6px 12px;cursor:pointer;border-radius:2px}
+.lang:hover{background:var(--char);color:#fff}
+.wrap{max-width:1480px;margin:0 auto;padding:16px 24px 32px}
+.bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);padding:10px 14px;border-radius:4px}
+.bar label{font-size:11px;font-weight:600;color:var(--slate);text-transform:uppercase;letter-spacing:.06em}
+select{font:500 13px 'Montserrat','Noto Sans Arabic',sans-serif;border:1px solid var(--slate-l);padding:7px 10px;background:#fff;color:var(--ink);border-radius:2px;min-width:230px}
+select:hover{border-color:var(--char)}
+button.b{font:600 13px 'Montserrat','Noto Sans Arabic',sans-serif;border:1px solid var(--char);background:#fff;color:var(--char);padding:7px 14px;cursor:pointer;border-radius:2px}
+button.b:hover{background:var(--char);color:#fff}
+button.b.pri{background:var(--red);border-color:var(--red);color:#fff}
+button.b.pri:hover{background:var(--red-dark);border-color:var(--red-dark)}
+button.b.on{background:var(--char);color:#fff}
+.speed{display:flex}.speed button.b{border-radius:0;margin-inline-start:-1px}
+.clock{margin-inline-start:auto;font-weight:600;font-size:15px;font-variant-numeric:tabular-nums}
+.clock small{font-weight:500;color:var(--slate);font-size:11px;margin-inline-start:6px}
+.scrub{width:100%;margin:12px 0 4px;accent-color:var(--red)}
+.timeline{position:relative;height:18px;font-size:11px;color:var(--slate)}
+.timeline i{position:absolute;top:0;transform:translateX(-50%);font-style:normal;font-weight:600;white-space:nowrap}
+.timeline i.inc{color:var(--red)}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:12px 14px}
+.card h3{font-size:13px;display:flex;align-items:center;gap:8px}
+.tag{display:inline-block;width:10px;height:10px;border-radius:2px}
+.sub{font-size:11px;color:var(--slate);font-weight:500;margin-top:2px}
+svg.map{width:100%;height:auto;display:block;margin-top:6px;background:var(--off);border:1px solid var(--line)}
+.live{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.live div{border-top:2px solid var(--line);padding-top:4px}
+.live b{display:block;font-size:20px;font-weight:600;line-height:1.2;font-variant-numeric:tabular-nums}
+.live span{font-size:10px;color:var(--slate);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.live .q b{color:var(--red)}
+.grid2{display:grid;grid-template-columns:1.25fr 1fr;gap:12px;margin-top:12px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:end;font-variant-numeric:tabular-nums}
+th:first-child,td:first-child{text-align:start}
+th{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--slate);font-weight:600}
+td.best{background:#FFF6DC;font-weight:600}
+td.neg{color:var(--red);font-weight:600}
+.hl{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:8px 0 12px}
+.hl div{border-inline-start:4px solid var(--red);padding:2px 10px}
+.hl b{display:block;font-size:24px;font-weight:600;line-height:1.2}
+.hl span{font-size:11px;color:var(--slate);font-weight:500}
+#log{max-height:238px;overflow:auto;font-size:12px}
+#log div{padding:5px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:64px 1fr;gap:8px}
+#log b{font-variant-numeric:tabular-nums;font-weight:600}
+#log .inc{color:var(--red);font-weight:600}
+.note{font-size:12px;color:var(--ink)}
+.note ul{margin:6px 0 0;padding-inline-start:18px}
+.note li{margin:2px 0}
+.warn{border-inline-start:4px solid var(--gold);background:#FFFBEF;padding:8px 12px;font-size:12px;margin-top:12px}
+footer{margin-top:16px;font-size:11px;color:var(--slate);line-height:1.5}
+.leg{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;font-weight:500;margin-top:8px;color:var(--ink)}
+.leg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-inline-end:5px;vertical-align:-1px}
+@media(max-width:1100px){.grid3{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}.hl{grid-template-columns:1fr}.hdr{flex-wrap:wrap;padding:10px 16px}.wrap{padding:12px 16px 24px}}
+@keyframes pulse{0%{r:6;opacity:.9}100%{r:70;opacity:0}}
+.pulse{animation:pulse 2.4s ease-out infinite}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <div class="logo" id="logoSlot" aria-label="Digital Marshal"><b>DIGITAL MARSHAL</b><span lang="ar" dir="rtl">المارشال الرقمي</span></div>
+  <div class="title"><h1 data-i="title"></h1><div data-i="subtitle"></div></div>
+  <div class="chips"><span class="chip" data-i="chip1"></span><span class="chip" data-i="chip2"></span><span class="chip" data-i="chip3"></span></div>
+  <button class="lang" id="langBtn">العربية</button>
+</header>
+
+<main class="wrap">
+  <div class="bar">
+    <div><label data-i="scenario"></label><br><select id="scn"></select></div>
+    <button class="b pri" id="play" data-i="play"></button>
+    <button class="b" id="reset" data-i="reset"></button>
+    <div class="speed" id="speed"></div>
+    <div class="clock"><span id="clk">0 s</span><small data-i="simtime"></small></div>
+  </div>
+  <input class="scrub" id="scrub" type="range" min="0" max="100" value="0" step="1" aria-label="timeline">
+  <div class="timeline" id="tl"></div>
+
+  <section class="grid3" id="panels"></section>
+
+  <div class="leg">
+    <span><i style="background:#242526"></i><span data-i="legA"></span></span>
+    <span><i style="background:#FFB715;border:1px solid #242526"></i><span data-i="legB"></span></span>
+    <span><i style="background:#fff;border:2px solid #DA291C"></i><span data-i="legQ"></span></span>
+    <span><i style="background:#DA291C"></i><span data-i="legX"></span></span>
+  </div>
+
+  <section class="grid2">
+    <div class="card">
+      <h2 style="font-size:15px" data-i="results"></h2>
+      <div class="sub" id="resSub"></div>
+      <div class="hl" id="hl"></div>
+      <table id="kpi"></table>
+    </div>
+    <div class="card">
+      <h2 style="font-size:15px" data-i="chartT"></h2>
+      <div class="sub" data-i="chartS"></div>
+      <svg id="chart" viewBox="0 0 520 230" style="width:100%;height:auto;margin-top:8px"></svg>
+      <div class="leg" id="chartLeg"></div>
+    </div>
+  </section>
+
+  <section class="grid2">
+    <div class="card">
+      <h2 style="font-size:15px" data-i="logT"></h2>
+      <div class="sub" data-i="logS"></div>
+      <div id="log" style="margin-top:6px"></div>
+    </div>
+    <div class="card note">
+      <h2 style="font-size:15px" data-i="xmT"></h2>
+      <div class="sub" data-i="xmS"></div>
+      <table id="xm" style="margin-top:6px"></table>
+      <ul id="xmNotes"></ul>
+    </div>
+  </section>
+
+  <div class="warn" data-i="honesty"></div>
+  <footer data-i="footer"></footer>
+</main>
+
+<script src="data.js"></script>
+<script>
+(function(){
+'use strict';
+var D = window.DM_DATA;
+var LANG='en';
+var I18N={
+ en:{title:'Digital Marshal: incident coordination for autonomous vehicles',subtitle:'Replay of the frozen point queue model. Three routing policies, one closed corridor, identical demand.',
+  chip1:'SYNTHETIC NETWORK',chip2:'EXPLORATORY',chip3:'NOT AN RTA SYSTEM',scenario:'Scenario',play:'Play',pause:'Pause',reset:'Reset',simtime:'simulated time',
+  legA:'Route A (single lane branch)',legB:'Route B (two lane branch)',legQ:'Waiting in an edge queue',legX:'Closed by incident',
+  results:'Results for the selected scenario',chartT:'Vehicles waiting in queues',chartS:'Count of vehicles held in an edge queue at each moment',
+  logT:'Decision log',logS:'Route decisions at each 30 second epoch (route locked at the split point P)',
+  xmT:'Cross model check (point queue vs SUMO)',xmS:'Coordinated improvement over independent periodic, percent',
+  honesty:'Honest status. The network, demand and capacities are invented for this study and are not calibrated to Dubai. No confirmatory experiment has been run, and the provisional 5 percent target is not met by any result shown here. This viewer replays the output of the deterministic model; it does not estimate field performance.',
+  footer:'Student prototype. Not affiliated with, or endorsed by, the Roads and Transport Authority or any other government body. Source: github.com/hudasol/digital-marshal. Data regenerated with tools/build_web_data.py from models/point_queue/wp2_9.',
+  static:'Static (Route A)',independent_periodic:'Independent periodic',coordinated_batch:'Coordinated batch',
+  staticD:'Everyone takes Route A',independentD:'Each batch copies one probe choice',coordD:'Joint split of each batch',
+  inq:'In queue',arr:'Arrived',rtA:'On route A',rtB:'On route B',
+  total:'Total fleet time (veh min)',mean:'Mean trip (min)',p95:'P95 trip (min)',split:'Route split A / B',maxshare:'Max batch share',closed:'Closed link entries',fifo:'Queue audit violations',
+  vsInd:'vs independent',vsStat:'vs static',incident:'Incident at 120 s: edges E2 and E3 closed. Advisory published (simulated).',depart:'Fleet starts leaving the origin.',
+  epoch:'Batch',ind:'Independent',coo:'Coordinated',done:'All vehicles arrived.',
+  hlTotal:'Coordinated total fleet time',hlInd:'Change vs independent periodic',hlStat:'Change vs static Route A',
+  better:'lower',worse:'higher',same:'no change',
+  xmPQ:'Point queue',xmSumo:'SUMO mean',xmCI:'SUMO 95% interval',xmSeeds:'Seeds better',
+  n1:'Both models rank coordinated at or below independent, and both below static, in the loaded scenarios.',
+  n2:'The gap to independent periodic is small in both models and far below the provisional 5 percent target.',
+  n3:'The two models do not share identical policy semantics, so the figures are not a replication pair.',
+  sc:{manageable_primary:'Manageable primary (10 vehicles)',near_branch_capacity:'Near branch capacity (24 vehicles)',overload_stress:'Overload stress (60 vehicles)',primary_half_capacity:'Half capacity (10 vehicles)',primary_double_capacity:'Double capacity (10 vehicles)'}},
+ ar:{title:'المارشال الرقمي: تنسيق الحوادث للمركبات ذاتية القيادة',subtitle:'إعادة تشغيل لنموذج الطوابير النقطية المجمّد. ثلاث سياسات توجيه وممر واحد مغلق وطلب متطابق.',
+  chip1:'شبكة افتراضية',chip2:'استكشافي',chip3:'ليس نظاماً لهيئة الطرق',scenario:'السيناريو',play:'تشغيل',pause:'إيقاف مؤقت',reset:'إعادة',simtime:'زمن المحاكاة',
+  legA:'المسار أ (فرع بحارة واحدة)',legB:'المسار ب (فرع بحارتين)',legQ:'في انتظار الطابور',legX:'مغلق بسبب الحادث',
+  results:'نتائج السيناريو المحدد',chartT:'المركبات المنتظرة في الطوابير',chartS:'عدد المركبات المحتجزة في طابور على الطريق في كل لحظة',
+  logT:'سجل القرارات',logS:'قرارات المسار في كل دورة مدتها 30 ثانية (يُثبَّت المسار عند نقطة التفرع)',
+  xmT:'مقارنة بين النموذجين (الطوابير النقطية و SUMO)',xmS:'تحسن التنسيق مقارنة بالمستقل الدوري، بالنسبة المئوية',
+  honesty:'الوضع بصدق. الشبكة والطلب والسعات مفترضة لهذه الدراسة وغير معايرة على دبي. لم تُجرَ تجربة تأكيدية، ولا تحقق أي نتيجة هنا الهدف المؤقت البالغ 5 بالمئة. هذه الأداة تعيد عرض مخرجات النموذج الحتمي ولا تقدّر الأداء الميداني.',
+  footer:'نموذج طلابي أولي. غير تابع لهيئة الطرق والمواصلات أو أي جهة حكومية أخرى وغير معتمد منها. المصدر: github.com/hudasol/digital-marshal.',
+  static:'ثابت (المسار أ)',independent_periodic:'مستقل دوري',coordinated_batch:'دفعات منسقة',
+  staticD:'الجميع يسلكون المسار أ',independentD:'كل دفعة تنسخ قرار مركبة واحدة',coordD:'توزيع مشترك لكل دفعة',
+  inq:'في الطابور',arr:'وصلت',rtA:'على المسار أ',rtB:'على المسار ب',
+  total:'إجمالي زمن الأسطول (مركبة دقيقة)',mean:'متوسط الرحلة (دقيقة)',p95:'الرحلة عند المئين 95 (دقيقة)',split:'توزيع المسارات أ / ب',maxshare:'أعلى حصة في دفعة',closed:'دخول روابط مغلقة',fifo:'مخالفات تدقيق الطابور',
+  vsInd:'مقارنة بالمستقل',vsStat:'مقارنة بالثابت',incident:'حادث عند 120 ثانية: إغلاق الرابطين E2 و E3. نُشر التنبيه (محاكاة).',depart:'بدء انطلاق الأسطول من نقطة الأصل.',
+  epoch:'دفعة',ind:'مستقل',coo:'منسق',done:'وصلت جميع المركبات.',
+  hlTotal:'إجمالي زمن الأسطول المنسق',hlInd:'التغير مقارنة بالمستقل الدوري',hlStat:'التغير مقارنة بالمسار الثابت أ',
+  better:'أقل',worse:'أعلى',same:'دون تغير',
+  xmPQ:'الطوابير النقطية',xmSumo:'متوسط SUMO',xmCI:'فترة ثقة 95%',xmSeeds:'البذور الأفضل',
+  n1:'يضع النموذجان المنسق عند مستوى المستقل أو أفضل منه، وكلاهما أفضل من الثابت، في السيناريوهات المحملة.',
+  n2:'الفارق عن المستقل الدوري صغير في النموذجين وأقل بكثير من الهدف المؤقت البالغ 5 بالمئة.',
+  n3:'لا يتطابق تعريف السياسات في النموذجين، لذلك لا تشكل الأرقام زوج تكرار.',
+  sc:{manageable_primary:'أساسي قابل للإدارة (10 مركبات)',near_branch_capacity:'قرب سعة الفرع (24 مركبة)',overload_stress:'ضغط زائد (60 مركبة)',primary_half_capacity:'نصف السعة (10 مركبات)',primary_double_capacity:'ضعف السعة (10 مركبات)'}}
+};
+var POL=['static','independent_periodic','coordinated_batch'];
+var POLCOL={static:'#64748B',independent_periodic:'#FFB715',coordinated_batch:'#DA291C'};
+var POLD={static:'staticD',independent_periodic:'independentD',coordinated_batch:'coordD'};
+var NODES={O:[0,0],P:[600,0],C:[1200,100],A1:[1100,-100],A2:[1700,-100],B1:[1100,0],B2:[1700,0],B3:[2000,0],M:[2300,-50],D:[2900,-50]};
+var LANES={E1:4,E2:1,E3:1,E4:1,E5:1,E6:1,E7:2,E8:2,E9:2,E10:2,E11:4};
+// SUMO cross model figures from docs/CROSS_MODEL_RECONCILIATION.md (historical SUMO prototype aggregates)
+var XM=[['manageable_primary','0.00','0.03','[0.0, 0.095]','1 of 10'],['near_branch_capacity','1.70','0.53','[0.125, 0.903]','16 of 20'],['overload_stress','2.55','1.18','[0.018, 2.43]','7 of 10']];
+
+function px(n){return [40+NODES[n][0]*0.3172, 150+NODES[n][1]*0.95];}
+var EDGE={};D.graph.edges.forEach(function(e){EDGE[e.id]=e;});
+function $(s,r){return (r||document).querySelector(s);}
+function el(t,a,p){var e=document.createElementNS('http://www.w3.org/2000/svg',t);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;}
+function T(k){return I18N[LANG][k]!==undefined?I18N[LANG][k]:k;}
+
+var state={scn:'near_branch_capacity',t:0,playing:false,speed:20,last:0,tMax:600};
+var P={}; // per policy view objects
+
+function applyLang(){
+  document.documentElement.lang=LANG;document.documentElement.dir=LANG==='ar'?'rtl':'ltr';document.body.className=LANG==='ar'?'ar':'';
+  document.querySelectorAll('[data-i]').forEach(function(n){n.textContent=T(n.getAttribute('data-i'));});
+  $('#langBtn').textContent=LANG==='ar'?'English':'العربية';
+  $('#play').textContent=state.playing?T('pause'):T('play');
+  var sel=$('#scn');Array.prototype.forEach.call(sel.options,function(o){o.textContent=I18N[LANG].sc[o.value];});
+  POL.forEach(function(p){if(P[p]){P[p].title.textContent=T(p);P[p].sub.textContent=T(POLD[p]);P[p].lab[0].textContent=T('inq');P[p].lab[1].textContent=T('arr');P[p].lab[2].textContent=T('rtA');P[p].lab[3].textContent=T('rtB');}});
+  renderStatic();draw();
+}
+
+function buildPanels(){
+  var host=$('#panels');host.innerHTML='';
+  POL.forEach(function(p){
+    var c=document.createElement('div');c.className='card';
+    c.innerHTML='<h3><span class="tag" style="background:'+POLCOL[p]+'"></span><span class="ttl"></span></h3><div class="sub"></div><svg class="map" viewBox="0 32 1000 268"></svg>'+
+     '<div class="live"><div class="q"><b>0</b><span></span></div><div><b>0</b><span></span></div><div><b>0</b><span></span></div><div><b>0</b><span></span></div></div>';
+    host.appendChild(c);
+    var svg=$('svg',c);
+    var o={card:c,svg:svg,title:$('.ttl',c),sub:$('.sub',c),vals:[],lab:[],dots:{},edgeEls:{}};
+    var lv=c.querySelectorAll('.live div');for(var i=0;i<4;i++){o.vals.push($('b',lv[i]));o.lab.push($('span',lv[i]));}
+    // defs hatch
+    var defs=el('defs',{},svg);var pt=el('pattern',{id:'h'+p,width:8,height:8,patternUnits:'userSpaceOnUse',patternTransform:'rotate(45)'},defs);
+    el('rect',{width:8,height:8,fill:'#fff'},pt);el('rect',{width:4,height:8,fill:'#DA291C'},pt);
+    // edges
+    D.graph.edges.forEach(function(e){
+      var a=px(e.src),b=px(e.dst),w=3+LANES[e.id]*2.5;
+      var g=el('g',{},svg);
+      el('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:'#CBD5E1','stroke-width':w,'stroke-linecap':'round'},g);
+      var closed=el('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:'url(#h'+p+')','stroke-width':w,'stroke-linecap':'round',opacity:0},g);
+      var mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;
+      var dy=(e.id==='E1'||e.id==='E11')?-18:(e.id==='E2'||e.id==='E3')?22:(['E4','E5','E6'].indexOf(e.id)>=0?-14:22);
+      var tx=el('text',{x:mx,y:my+dy,'text-anchor':'middle','font-size':14,'font-weight':600,fill:'#64748B'},g);tx.textContent=e.id+' · '+e.cap_vpm+'/min';
+      o.edgeEls[e.id]=closed;
+    });
+    // nodes
+    Object.keys(NODES).forEach(function(n){var q=px(n);el('circle',{cx:q[0],cy:q[1],r:6,fill:'#fff',stroke:'#242526','stroke-width':2},svg);
+      var t=el('text',{x:q[0],y:q[1]+(n==='C'?-12:(n==='A1'||n==='A2'?-12:(n==='O'||n==='D'?24:-13))),'text-anchor':'middle','font-size':15,'font-weight':700,fill:'#242526'},svg);t.textContent=n==='O'?'Origin':n==='D'?'Dest.':n==='P'?'P':n;});
+    // control marker and advisory pulse at P
+    var pp=px('P');o.pulse=el('circle',{cx:pp[0],cy:pp[1],r:6,fill:'none',stroke:'#FFB715','stroke-width':3,opacity:0},svg);
+    o.pulse2=el('circle',{cx:pp[0],cy:pp[1],r:6,fill:'none',stroke:'#DA291C','stroke-width':2,opacity:0},svg);
+    var ban=el('g',{opacity:0},svg);var cc=px('C');el('rect',{x:cc[0]-85,y:cc[1]+22,width:170,height:26,fill:'#DA291C'},ban);
+    var bt=el('text',{x:cc[0],y:cc[1]+40,'text-anchor':'middle','font-size':14,'font-weight':700,fill:'#fff'},ban);bt.textContent='CLOSED E2 / E3';o.ban=ban;
+    o.dotLayer=el('g',{},svg);
+    P[p]=o;
+  });
+}
+
+function runOf(p){return D.runs[state.scn+'|'+p];}
+function vlist(p){var r=runOf(p);return Object.keys(r.vehicles).sort().map(function(k){return r.vehicles[k];});}
+
+function ensureDots(){
+  POL.forEach(function(p){
+    var o=P[p];o.dotLayer.innerHTML='';o.dots=[];
+    vlist(p).forEach(function(v,i){
+      var c=el('circle',{r:7,cx:-20,cy:-20,fill:v.r==='A'?'#242526':'#FFB715',stroke:v.r==='A'?'#fff':'#242526','stroke-width':1.2,opacity:0},o.dotLayer);
+      o.dots.push({v:v,c:c,i:i});
+    });
+  });
+}
+
+function posOf(v,t){
+  if(t<v.d) return null;
+  if(t>=v.a) return null;
+  var ev=v.ev;
+  for(var k=0;k<ev.length;k++){
+    var e=ev[k];
+    if(t>=e[1]&&t<e[2]||(k===ev.length-1&&t<e[2])){
+      var f=EDGE[e[0]].free_min*60,ms=e[2]-f;
+      var waiting=t<ms-1e-9&&(ms-e[1])>1e-6;
+      var fr=waiting?0:Math.max(0,Math.min(1,(t-ms)/f));
+      return {edge:e[0],fr:fr,waiting:waiting};
+    }
+  }
+  return null;
+}
+
+function draw(){
+  var t=state.t,inc=D.graph.incident_s;
+  $('#clk').textContent=Math.round(t)+' s';
+  $('#scrub').value=t;
+  var cnt={};
+  POL.forEach(function(p){
+    var o=P[p],q=0,arr=0,a=0,b=0,stack={};
+    var show=t>=inc;
+    Object.keys(o.edgeEls).forEach(function(id){o.edgeEls[id].setAttribute('opacity',(show&&D.graph.closed.indexOf(id)>=0)?1:0);});
+    o.ban.setAttribute('opacity',show?1:0);
+    var age=t-inc;
+    var pa=(age>=0&&age<40)?(1-age/40):0;
+    o.pulse.setAttribute('opacity',pa*0.9);o.pulse.setAttribute('r',6+Math.max(0,age)*2.2);
+    o.pulse2.setAttribute('opacity',(age>=6&&age<46)?(1-(age-6)/40)*0.8:0);o.pulse2.setAttribute('r',6+Math.max(0,age-6)*2.2);
+    o.dots.forEach(function(d){
+      var v=d.v;
+      if(t>=v.a)arr++;
+      var ps=posOf(v,t);
+      if(!ps){d.c.setAttribute('opacity',0);return;}
+      var ed=EDGE[ps.edge],A=px(ed.src),B=px(ed.dst);
+      var dx=B[0]-A[0],dy=B[1]-A[1],L=Math.sqrt(dx*dx+dy*dy)||1,ux=dx/L,uy=dy/L;
+      var off=0;
+      if(ps.waiting){var s=stack[ps.edge]=(stack[ps.edge]||0)+1;off=-s*9.5;q++;}
+      var f=ps.fr;
+      var lanes=LANES[ps.edge],lane=((d.i)%lanes)-(lanes-1)/2;
+      var cx=A[0]+dx*f+ux*off+(-uy)*lane*5.5,cy=A[1]+dy*f+uy*off+ux*lane*5.5;
+      d.c.setAttribute('cx',cx);d.c.setAttribute('cy',cy);d.c.setAttribute('opacity',1);
+      d.c.setAttribute('stroke',ps.waiting?'#DA291C':(v.r==='A'?'#fff':'#242526'));
+      d.c.setAttribute('stroke-width',ps.waiting?2.4:1.2);
+      if(ps.waiting)d.c.setAttribute('fill','#fff');else d.c.setAttribute('fill',v.r==='A'?'#242526':'#FFB715');
+    });
+    // route counts decided so far = vehicles whose p time has passed (epoch granularity ignored)
+    vlist(p).forEach(function(v){if(t>=v.p){if(v.r==='A')a++;else b++;}});
+    o.vals[0].textContent=q;o.vals[1].textContent=arr+' / '+vlist(p).length;o.vals[2].textContent=a;o.vals[3].textContent=b;
+  });
+  var m=$('#cursor');if(m){var x=chartX(t);m.setAttribute('x1',x);m.setAttribute('x2',x);}
+  renderLog();
+}
+
+function chartX(t){return 36+(t/state.tMax)*(520-36-10);}
+
+function queueSeries(p){
+  var vs=vlist(p),out=[],step=5;
+  for(var t=0;t<=state.tMax;t+=step){
+    var q=0;vs.forEach(function(v){v.ev.forEach(function(e){var f=EDGE[e[0]].free_min*60,ms=e[2]-f;if(ms-e[1]>1e-6&&t>=e[1]&&t<ms)q++;});});
+    out.push([t,q]);
+  }
+  return out;
+}
+
+function renderChart(){
+  var svg=$('#chart');svg.innerHTML='';
+  var series={},mx=1;
+  POL.forEach(function(p){series[p]=queueSeries(p);series[p].forEach(function(d){if(d[1]>mx)mx=d[1];});});
+  mx=Math.ceil(mx/5)*5||5;
+  var H=230,top=10,bot=28;
+  function y(v){return top+(1-v/mx)*(H-top-bot);}
+  for(var g=0;g<=4;g++){var v=mx*g/4,yy=y(v);el('line',{x1:36,x2:510,y1:yy,y2:yy,stroke:'#E2E8F0'},svg);var tx=el('text',{x:30,y:yy+4,'text-anchor':'end','font-size':10,fill:'#64748B'},svg);tx.textContent=Math.round(v);}
+  for(var g2=0;g2<=5;g2++){var tt=state.tMax*g2/5,xx=chartX(tt);var tx2=el('text',{x:xx,y:H-10,'text-anchor':'middle','font-size':10,fill:'#64748B'},svg);tx2.textContent=Math.round(tt)+'s';}
+  var ix=chartX(D.graph.incident_s);el('line',{x1:ix,x2:ix,y1:top,y2:H-bot,stroke:'#DA291C','stroke-dasharray':'4 3'},svg);
+  POL.forEach(function(p){
+    var pts=series[p].map(function(d){return chartX(d[0]).toFixed(1)+','+y(d[1]).toFixed(1);}).join(' ');
+    el('polyline',{points:pts,fill:'none',stroke:POLCOL[p],'stroke-width':p==='coordinated_batch'?3:2.2,'stroke-linejoin':'round'},svg);
+  });
+  el('line',{id:'cursor',x1:chartX(state.t),x2:chartX(state.t),y1:top,y2:H-bot,stroke:'#242526','stroke-width':1.5},svg);
+  $('#chartLeg').innerHTML=POL.map(function(p){return '<span><i style="background:'+POLCOL[p]+'"></i>'+T(p)+'</span>';}).join('');
+}
+
+function f2(x,n){return Number(x).toFixed(n===undefined?2:n);}
+function pct(a,b){return (a-b)/b*100;}
+function renderStatic(){
+  if(!P.static)return;
+  var M={};POL.forEach(function(p){M[p]=runOf(p).metrics;});
+  var tot={};POL.forEach(function(p){tot[p]=parseFloat(M[p].total_fleet_travel_time_vehicle_min);});
+  var vsI=pct(tot.coordinated_batch,tot.independent_periodic),vsS=pct(tot.coordinated_batch,tot.static);
+  function lab(x){return (x<0?'':'+')+f2(x)+'%';}
+  $('#hl').innerHTML='<div><b>'+f2(tot.coordinated_batch,1)+'</b><span>'+T('hlTotal')+' (veh min)</span></div>'+
+    '<div><b>'+lab(vsI)+'</b><span>'+T('hlInd')+'</span></div><div><b>'+lab(vsS)+'</b><span>'+T('hlStat')+'</span></div>';
+  var rows=[['total',function(p){return f2(M[p].total_fleet_travel_time_vehicle_min);},true],['mean',function(p){return f2(M[p].mean_travel_time_min);},true],['p95',function(p){return f2(M[p].p95_nearest_rank_min);},true],
+    ['split',function(p){return M[p].route_A_count+' / '+M[p].route_B_count;},false],['maxshare',function(p){return f2(M[p].max_30s_batch_dominant_route_share);},false],['closed',function(p){return M[p].closed_link_entries;},false],['fifo',function(p){return M[p].fifo_violations;},false]];
+  var h='<tr><th></th>'+POL.map(function(p){return '<th>'+T(p)+'</th>';}).join('')+'</tr>';
+  rows.forEach(function(r){
+    var vals=POL.map(function(p){return parseFloat(M[p][r[0]==='total'?'total_fleet_travel_time_vehicle_min':r[0]==='mean'?'mean_travel_time_min':r[0]==='p95'?'p95_nearest_rank_min':'vehicles']);});
+    var best=r[2]?Math.min.apply(null,vals):null;
+    h+='<tr><td>'+T(r[0])+'</td>'+POL.map(function(p,i){var b=(r[2]&&Math.abs(vals[i]-best)<1e-9&&(vals[0]!==vals[1]||vals[1]!==vals[2]));return '<td class="'+(b?'best':'')+'">'+r[1](p)+'</td>';}).join('')+'</tr>';
+  });
+  $('#kpi').innerHTML=h;
+  var s=D.scenarios[state.scn];
+  $('#resSub').textContent=I18N[LANG].sc[state.scn]+' · '+s.vehicles+' / '+s.spacing_s+' s · scale '+s.branch_capacity_scale;
+  // cross model table
+  var x='<tr><th></th><th>'+T('xmPQ')+'</th><th>'+T('xmSumo')+'</th><th>'+T('xmCI')+'</th><th>'+T('xmSeeds')+'</th></tr>';
+  XM.forEach(function(r){x+='<tr><td>'+I18N[LANG].sc[r[0]].split(' (')[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td><td>'+r[4]+'</td></tr>';});
+  $('#xm').innerHTML=x;$('#xmNotes').innerHTML='<li>'+T('n1')+'</li><li>'+T('n2')+'</li><li>'+T('n3')+'</li>';
+  renderChart();renderTimeline();
+}
+
+function renderTimeline(){
+  var tl=$('#tl');tl.innerHTML='';
+  var items=[[0,T('depart').split('.')[0],''],[D.graph.incident_s,'120 s',' inc']];
+  items.forEach(function(it){var i=document.createElement('i');i.className=it[2];i.style.left=(it[0]/state.tMax*100)+'%';i.textContent=it[0]===0?'0 s':'Incident 120 s';tl.appendChild(i);});
+}
+
+function renderLog(){
+  var t=state.t,h='';
+  var bi=runOf('independent_periodic').batches,bc=runOf('coordinated_batch').batches;
+  var ev=[[0,'<span>'+T('depart')+'</span>','']];
+  ev.push([D.graph.incident_s,T('incident'),'inc']);
+  bi.forEach(function(b,i){var c=bc[i];if(!c)return;ev.push([b[0],T('epoch')+' '+b[1]+': '+T('ind')+' A'+b[2]+' B'+b[3]+' · '+T('coo')+' A'+c[2]+' B'+c[3],'']);});
+  ev.sort(function(a,b){return a[0]-b[0];});
+  var shown=ev.filter(function(e){return e[0]<=t;});
+  shown.slice(-40).reverse().forEach(function(e){h+='<div><b>'+Math.round(e[0])+' s</b><span class="'+e[2]+'">'+e[1]+'</span></div>';});
+  if(t>=state.tMax-1)h='<div><b>'+Math.round(t)+' s</b><span>'+T('done')+'</span></div>'+h;
+  $('#log').innerHTML=h;
+}
+
+function computeTMax(){
+  var mx=0;POL.forEach(function(p){vlist(p).forEach(function(v){if(v.a>mx)mx=v.a;});});
+  state.tMax=Math.ceil((mx+20)/10)*10;
+  var s=$('#scrub');s.max=state.tMax;
+}
+
+function setScenario(k){
+  state.scn=k;state.t=0;state.playing=false;computeTMax();ensureDots();$('#play').textContent=T('play');renderStatic();draw();
+}
+
+function frame(ts){
+  if(state.playing){
+    var dt=(ts-state.last)/1000;state.last=ts;
+    state.t=Math.min(state.tMax,state.t+dt*state.speed);
+    if(state.t>=state.tMax){state.playing=false;$('#play').textContent=T('play');}
+    draw();
+  }
+  requestAnimationFrame(frame);
+}
+
+function init(){
+  var sel=$('#scn');Object.keys(D.scenarios).forEach(function(k){var o=document.createElement('option');o.value=k;sel.appendChild(o);});
+  sel.value=state.scn;
+  var sp=$('#speed');[5,20,60,200].forEach(function(s){var b=document.createElement('button');b.className='b'+(s===state.speed?' on':'');b.textContent=s+'x';b.onclick=function(){state.speed=s;Array.prototype.forEach.call(sp.children,function(c){c.className='b';});b.className='b on';};sp.appendChild(b);});
+  buildPanels();computeTMax();ensureDots();
+  sel.onchange=function(){setScenario(sel.value);};
+  $('#play').onclick=function(){if(state.t>=state.tMax)state.t=0;state.playing=!state.playing;state.last=performance.now();$('#play').textContent=state.playing?T('pause'):T('play');};
+  $('#reset').onclick=function(){state.t=0;state.playing=false;$('#play').textContent=T('play');draw();};
+  $('#scrub').oninput=function(e){state.t=parseFloat(e.target.value);draw();};
+  $('#langBtn').onclick=function(){LANG=LANG==='en'?'ar':'en';applyLang();};
+  document.addEventListener('keydown',function(e){if(e.code==='Space'&&e.target.tagName!=='SELECT'){e.preventDefault();$('#play').click();}});
+  applyLang();
+  state.t=150;draw();
+  requestAnimationFrame(frame);
+}
+init();
+})();
+</script>
+</body>
+</html>
