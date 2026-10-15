@@ -1,0 +1,57 @@
+{
+  "abstract_spacing_s": 10.0,
+  "abstract_vehicles": 10,
+  "capacity_scale": 0.5,
+  "capacity_variant": "cap0p5",
+  "checks_pass": true,
+  "closed_edges": [
+    "E2",
+    "E3"
+  ],
+  "driver_tau_s": 3.0,
+  "failed_gates": [],
+  "horizon_s": 7200.0,
+  "in_network_at_end": 0,
+  "incident_s": 120.0,
+  "input_sha256": {
+    "calibration": "5c443264f85f72e79a581832c1c05510e892b8741017ca1bea34f4e79cafa4ab",
+    "demand": "a5c5d41825e2170db0d45585f99dacdfb6963946e9d16bc08ef93843ccf4433f",
+    "dm_run.py": "77f6916bd73f20bfb271d74eb9f74b72c8e6242503d56b38ee6b0b8cda54c130",
+    "network": "ad80abbd34c3ef81ff526155f087a8b2e545c3c0316dcec793cf3fc3a22ae54a"
+  },
+  "invalid_reasons": [],
+  "k_sumo_per_abstract": 7.5,
+  "lead_s": 60.0,
+  "measurement_window_s": [
+    0.0,
+    7200.0
+  ],
+  "mu_A": 0.24869516510935152,
+  "mu_B": 0.4966304516660925,
+  "network_file": "dm.net.xml",
+  "not_inserted_at_end": 0,
+  "output_sha256": {
+    "crossings.json": "ee2eb8629dc3b669ee8acf2143444a96d5ca4e0522193d0f804795876e78ce49",
+    "decisions.csv": "99a19650554bb5181526e9132396774eb4cba778ae2a0bf474e7c8b9e6a97abb",
+    "demand.rou.xml": "a5c5d41825e2170db0d45585f99dacdfb6963946e9d16bc08ef93843ccf4433f",
+    "summary.json": "e30cdbf3e9c744c49bd32b65837105eb2d3ab59a25a79a6bf1a0d1eff14cfa3e",
+    "tripinfo.xml": "9ae712c6bb70d3802eb90dd63c18cf37fe27583c6499afa796d57408d03422ed",
+    "vehicles.csv": "0171675751ba1f9f4e5c673a501e68d29c16ccb82a9a9552c0ec8117b744d96a"
+  },
+  "policy": "coordinated_batch",
+  "run_status": "COMPLETE",
+  "scenario": "primary_half_capacity",
+  "schema": "dm_sumo_run_v2",
+  "seed": 2,
+  "sim_end_s": 954.0,
+  "step_length_s": 1.0,
+  "sumo_vehicles": 75,
+  "termination_reason": "all_arrived",
+  "unfinished_trip_convention": "travel time censored at horizon_s minus scheduled departure; complete=false",
+  "update_s": 30.0,
+  "versions": {
+    "python": "3.13.16",
+    "sumo": "SUMO 1.28.0",
+    "traci": "1.28.0"
+  }
+}

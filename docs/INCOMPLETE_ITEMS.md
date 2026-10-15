@@ -14,9 +14,9 @@ Three groups: completed engineering actions, outstanding engineering work, and d
 * Evidence recorded in `results/manifests/wp2_9_closure/`.
 
 ## 2. Outstanding engineering work
-* SUMO half capacity and double capacity scenarios; a closure and stale information scenario.
-* SUMO horizon is 3600 s while the point queue contract is 7200 s; align or document in the protocol.
-* SUMO policy decision log lacks capacity state, closures and fallback fields; the run summary lacks a configuration hash.
+* SUMO half capacity and double capacity scenarios exist (Track C, exploratory); double capacity did not reach twice the capacity on branch A; a stale information scenario is not built.
+* SUMO horizon is 3600 s while the point queue contract is 7200 s; no Track C run reached either (`docs/TRACK_C_CROSS_MODEL_REPORT.md`); align or document in the protocol after D1.
+* SUMO policy decision log lacks capacity state, closures and fallback fields; a run manifest with configuration identity and hashes now exists (Track C).
 * SUMO independent periodic policy does not share the frozen batch copy semantics; a matching version is not built.
 * Historical SUMO aggregates (160 runs) were not regenerated at this commit; the raw archive is not committed (about six minutes on two cores with `simulation/sumo/scripts/run_matrix.py`).
 * Cross model differences between the point queue and SUMO remain open (`docs/CROSS_MODEL_RECONCILIATION.md`).

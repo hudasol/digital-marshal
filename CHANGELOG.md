@@ -20,5 +20,10 @@
 * Post engineering review fix: route labels, decision routes and route counts are checked against the driven edge paths.
 * Horizon consistency documented, owner decision still open (ADR-0001 addendum, B-02). Review documents for independent review (B-03, B-07). Owner decisions list. Stale README replaced (B-04).
 
+### Track C (branch `feature/track-c-sumo-reconciliation`)
+* SUMO run manifest with configuration identity, versions and hashes; fail closed run validity; explicit horizon and unfinished trip metadata.
+* SUMO half and double capacity scenarios with measured capacity ratios; negative control for closed link infeasibility; independent stdlib run and pair auditor; 91 run exploratory smoke matrix.
+* Track C cross model report with generated tables and a staleness test; handoff `docs/TRACK_C_HANDOFF.md`. No policy change, no confirmatory run.
+
 ### Corrected
 * An earlier review claimed the frozen epoch anchor gave the maximum improvement. The sweep it used allowed decisions after a vehicle reached P. The corrected range is 0.73% to 1.74% (see `results/manifests/wp2_9_evidence/ERRATUM.md`).

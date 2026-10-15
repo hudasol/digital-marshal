@@ -1,0 +1,14 @@
+{
+ "files": {
+  "results/historical/sumo_phase1/README.md": "4ea04c3f44b532aecab92488654bd88cb44e0e84511a8be64ea08be0dedf4b1c",
+  "results/historical/sumo_phase1/aggregate_output.txt": "f05f606bd6d5c7bae9ebff06b6cd09393374fef1ec07bacd4c2034a702b6d8d3",
+  "results/historical/sumo_phase1/sumo_results.csv": "2f5221e0fe70a2ae368e21d3c7fd67111c05b4c8058856de82ddb77b6f5f687f",
+  "results/historical/sumo_phase1/sumo_results_paired.csv": "54589561ad168a725e2d0a05f89e622ec30f13a13c2f85086add30471cd5cdf0",
+  "simulation/sumo/network/calibration.json": "0d8f039d69e34761d25345b122b14d7066c4f50c10336b2c3905b4621553be78",
+  "simulation/sumo/network/dm.edg.xml": "1895cee436739f18c55e55d718b3bc55a5b2c34eaaf45be9381e93f3cb1e74df",
+  "simulation/sumo/network/dm.net.xml": "ad80abbd34c3ef81ff526155f087a8b2e545c3c0316dcec793cf3fc3a22ae54a",
+  "simulation/sumo/network/dm.nod.xml": "5b961575e3a1305599dbb1cf2b098f6ba7d2b99e4e3d44c9d16c882cd9f2544d",
+  "simulation/sumo/network/dm.rou.xml": "0a682234ee574495c09f7850b656d9bc739555b8113e9f31966270f57dbdbb07"
+ },
+ "source_commit": "a960b7f"
+}
