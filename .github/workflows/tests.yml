@@ -1,0 +1,32 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  point-queue-and-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run all standard library test suites
+        run: python tools/run_tests.py
+      - name: Mutation check (each fix is re broken and the suite must fail)
+        run: python tools/mutation_check.py . python
+        working-directory: models/point_queue/wp2_9
+
+  sumo-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned SUMO packages
+        run: pip install -r environment/requirements.txt
+      - name: SUMO smoke test
+        run: python simulation/sumo/scripts/smoke.py
