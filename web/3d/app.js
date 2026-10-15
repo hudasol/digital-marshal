@@ -4,12 +4,13 @@
 (function () {
 'use strict';
 var D0 = window.DM_DATA, ENG = window.DM_ENGINE;
-/* E1 free flow time is set to 85 s in this view. All runs are recomputed by the live engine on that graph (verified identical to the frozen results when E1 is left at 180 s). */
+/* E1 free flow time is set to 85 s in this view and the incident moves from 120 s to 25 s with it, so the run is the frozen run shifted earlier by 95 s (every vehicle journey is 95 s shorter, nothing else changes). Runs are recomputed by the live engine, which reproduces the frozen results when E1 is left at 180 s. */
 var E1_FREE_S = 85;
 var D = (function () {
   if (!ENG) return D0;
   var c = JSON.parse(JSON.stringify(D0));
   c.graph.edges.forEach(function (e) { if (e.id === 'E1') e.free_min = E1_FREE_S / 60; });
+  c.graph.incident_s = D0.graph.incident_s - (180 - E1_FREE_S); // keeps the incident ahead of the first arrival at P by the same 60 s as the frozen run
   Object.keys(D0.runs).forEach(function (k) { var q = k.split('|'); c.runs[k] = ENG.compute(c, q[0], q[1], c.graph.incident_s); });
   return c;
 })();
@@ -321,6 +322,7 @@ function frame(ms) {
   var now = ms / 1000, dt = Math.min(0.1, now - lastNow); lastNow = now;
   var sp = state.speed;
   if (state.tour && state.beat >= 0) { var nb = beats[state.beat + 1], gap = (nb ? nb.t : state.tMax) - state.t; if (gap > 90 && state.t - beats[state.beat].t > 40) sp *= 3; if (beats[1] && state.t < beats[1].t) sp *= 2.6; }
+  if (state.t >= 605 && state.t <= 738) sp *= 3;
   if (state.playing) { state.t = Math.min(state.tMax, state.t + dt * sp); if (state.t >= state.tMax) { state.playing = false; syncPlay(); } }
   tourFrame();
   var counts = world.update(state.t, state.inc, now), c = stepCam(dt, now);
@@ -364,7 +366,7 @@ function ariaTime(now) { if (now - lastAria < 0.6) return; lastAria = now; $('#s
 function boot() {
   world = new S.World($('#stage'), D); buildDock(); buildHud(); initPointer();
   window.addEventListener('resize', function () { world.resize(); });
-  runs = runsFor(state.scn, state.inc); world.setRuns(runs, state.inc); computeTMax(); buildSeries(); applyLang(); placeMark();
+  runs = runsFor(state.scn, state.inc); world.setRuns(runs, state.inc); computeTMax(); buildSeries(); applyLang(); $('#incT').value = state.inc; $('#incV').textContent = state.inc + ' ' + T('second'); placeMark();
   $('#play').onclick = function () { if (state.t >= state.tMax) state.t = 0; state.playing = !state.playing; syncPlay(); };
   $('#restart').onclick = function () { state.t = 0; state.beat = -1; state.playing = true; syncPlay(); };
   $('#scrub').oninput = function () { state.t = parseFloat(this.value); };

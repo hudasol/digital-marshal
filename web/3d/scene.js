@@ -270,7 +270,7 @@ Corridor.prototype.build = function () {
   var NAMES = { static: 'STATIC ROUTING', independent_periodic: 'INDEPENDENT PERIODIC ROUTING', coordinated_batch: 'DYNAMIC COORDINATED ROUTING' }, pc = '#' + ('000000' + POLCOL[this.pol].toString(16)).slice(-6);
   var ptx = textTex(2048, 224, function (x, W, H) {
     x.fillStyle = '#FFFFFF'; x.fillRect(0, 0, W, H); x.fillStyle = pc; x.fillRect(0, 0, W, 34); x.fillRect(0, H - 34, W, 34); x.fillRect(0, 0, 46, H);
-    x.fillStyle = '#242526'; x.font = font(112); x.textBaseline = 'middle'; x.textAlign = 'center'; x.fillText(NAMES[self.pol], W / 2 + 22, H / 2 + 4); });
+    x.fillStyle = '#242526'; var fs = 112; x.font = font(fs); while (x.measureText(NAMES[self.pol]).width > W - 150 && fs > 40) { fs -= 4; x.font = font(fs); } x.textBaseline = 'middle'; x.textAlign = 'center'; x.fillText(NAMES[self.pol], W / 2 + 22, H / 2 + 4); });
   var sx0 = SLAB.x0 + 110, sz0 = z0 - SLAB.hz + 7;
   var sgn = new THREE.Sprite(new THREE.SpriteMaterial({ map: ptx, transparent: true, depthWrite: false, fog: false }));
   sgn.scale.set(78, 8.5, 1); sgn.position.set(sx0, 9, sz0); G.add(sgn);
