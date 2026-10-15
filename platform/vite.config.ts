@@ -20,6 +20,8 @@ export default defineConfig({
       },
     },
   },
+  // the benchmark re-run worker is an ES module like the rest of the app
+  worker: { format: 'es' },
   server: { port: 5173, strictPort: false },
   preview: { port: 4173 },
   test: {

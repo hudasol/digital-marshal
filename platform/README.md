@@ -64,6 +64,21 @@ beyond permission, outside permit, unknown location, other map version, expired,
 older version, conflicting version). Each crafted message is validated by the node and by every vehicle
 that receives it, and the panel reports their actual verdicts.
 
+## A/B/C benchmark
+
+```bash
+npm run experiments              # all experiments, 10 seeds, parallel workers (about 2 to 4 minutes)
+npm run experiments -- --seeds 3 --only blackout
+```
+
+`scripts/run-experiments.ts` runs every experiment in `src/core/experiments.ts` (blackout, emergency
+vehicle, ambulance during the blackout, roadworks) under A, B and C plus ablations that switch off one
+coordination feature at a time (grouped assistance, detour advice, signal priority). Every variant uses
+the same seeds, demand and triggers. Results, with the seeds, a configuration hash and the commit of the
+simulation code, go to `src/data/experiments.json`. The Evidence view shows them with 95% intervals and
+paired per-seed differences, and can re-run any seed in the browser to check it against the committed
+numbers. The benchmark is exploratory: synthetic district, one demand level, not a confirmatory evaluation.
+
 ## Honesty labels
 
 * The district, roads, demand and signal plans are synthetic. Street names are codes, not real streets.

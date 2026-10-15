@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useStore, type CamMode, type QualityChoice } from './store';
 import { useT } from './i18n';
 import { controller, TIMELINE_S } from './controller';
@@ -10,7 +10,8 @@ import { PerfOverlay, Toasts } from './components/Overlays';
 import { IntelPanel } from './components/Intel';
 import { ScenarioPanel } from './components/Scenario';
 import { EventFeed } from './components/EventFeed';
-import { EvidenceView } from './views/EvidenceView';
+// the evidence view carries the benchmark data; load it only when it is opened
+const EvidenceView = lazy(() => import('./views/EvidenceView').then((m) => ({ default: m.EvidenceView })));
 import { EngineeringView } from './views/EngineeringView';
 import { AboutView } from './views/AboutView';
 
@@ -247,7 +248,11 @@ export function App() {
           <PerfOverlay />
         </>
       )}
-      {view === 'compare' && <EvidenceView />}
+      {view === 'compare' && (
+        <Suspense fallback={<div className="view" />}>
+          <EvidenceView />
+        </Suspense>
+      )}
       {view === 'engineering' && <EngineeringView />}
       {view === 'about' && <AboutView />}
       <Toasts />

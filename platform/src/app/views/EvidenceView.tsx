@@ -1,6 +1,8 @@
 import legacy from '../../data/legacy-study.json';
+import { Benchmark } from './Benchmark';
+import { useT } from '../i18n';
 
-/* Evidence view. Section 1 (added with the coordination experiments) shows the new matched runs.
+/* Evidence view. Section 1 is the platform's A/B/C benchmark (src/data/experiments.json).
    Section 2 preserves the earlier corridor routing study exactly as it was reported, with its own
    policy names, so the new work never overwrites or relabels it. */
 
@@ -142,16 +144,17 @@ export function LegacyStudy() {
 }
 
 export function EvidenceView() {
+  const t = useT();
+  const legacyNote = t('evid.legacyLang');
   return (
     <div className="view" role="main">
       <div className="view-inner stack">
         <div>
-          <h1>Research evidence</h1>
-          <p className="lede">
-            Every number on this page comes from a recorded simulation run in this repository. Where a result is small,
-            negative or inconclusive it is shown as it is. The district, demand and capacities are synthetic.
-          </p>
+          <h1>{t('evid.title')}</h1>
+          <p className="lede">{t('evid.lede')}</p>
         </div>
+        <Benchmark />
+        {legacyNote && <div className="note">{legacyNote}</div>}
         <LegacyStudy />
       </div>
     </div>
