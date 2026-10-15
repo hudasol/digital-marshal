@@ -51,6 +51,9 @@ export class World {
   private raycaster = new THREE.Raycaster();
   private ndc = new THREE.Vector2();
   private groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  // per-frame scratch values (the shadow frustum follows the camera every frame)
+  private readonly sunDir = sunDirection();
+  private readonly frameTarget = new THREE.Vector3();
   private disposers: Array<() => void> = [];
   pickHandler: PickHandler | null = null;
   hoverHandler: ((ndc: THREE.Vector2, ray: THREE.Raycaster) => void) | null = null;
@@ -407,11 +410,11 @@ export class World {
 
     // shadow frustum follows the camera target and scales with zoom, snapped to texels to avoid shimmer
     if (this.profile.shadows) {
-      const t = this.rig.target;
+      const t = this.rig.targetInto(this.frameTarget);
       const half = THREE.MathUtils.clamp(this.rig.pose.dist * 0.75, 90, 1100);
       const sc = this.sun.shadow.camera;
       const texel = (half * 2) / this.sun.shadow.mapSize.x;
-      const sd = sunDirection();
+      const sd = this.sunDir;
       // snap target in light space
       const snapX = Math.round(t.x / texel) * texel;
       const snapZ = Math.round(t.z / texel) * texel;

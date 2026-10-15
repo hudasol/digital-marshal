@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useStore } from '../store';
 import { useT, type I18nKey } from '../i18n';
 import { Icon } from './Icons';
@@ -29,12 +29,26 @@ export function TourCard() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [state === null]);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const active = state !== null;
+  const done = !!state?.done;
+  const wasActive = useRef(active);
+  // focus moves to the card when the tour opens (and back to it when its buttons are swapped at the
+  // end); when the tour closes from inside the card, focus returns to the judge-mode button
+  useLayoutEffect(() => {
+    const opened = active && !wasActive.current;
+    const closed = !active && wasActive.current;
+    wasActive.current = active;
+    const lost = !document.activeElement || document.activeElement === document.body;
+    if (opened || (active && lost)) cardRef.current?.focus();
+    else if (closed && lost) document.getElementById('judge-btn')?.focus();
+  }, [active, done]);
   if (!state) return null;
   const step = TOUR[state.step];
   const id = state.done ? 'done' : step.id;
   const progress = state.done ? 1 : Math.min(1, state.elapsed / step.duration);
   return (
-    <div className="tour glass" role="dialog" aria-modal="false" aria-labelledby="tour-title">
+    <div ref={cardRef} tabIndex={-1} className="tour glass" role="dialog" aria-modal="false" aria-labelledby="tour-title">
       <div className="tour-head">
         <span className="tour-badge">
           <Icon name="flag" /> {t('tour.badge')}

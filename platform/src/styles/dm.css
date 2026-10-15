@@ -75,10 +75,27 @@
   color: var(--amber);
   background: var(--amber-dim);
 }
+/* selected and dark differ in shape as well as colour: selected = heavy solid frame and bold,
+   dark (no power) = dashed frame */
+.jchip.on {
+  box-shadow: inset 0 0 0 1px rgba(244, 183, 64, 0.7);
+  font-weight: 700;
+}
 .jchip.dark {
   border-color: rgba(239, 83, 80, 0.8);
-  color: var(--red);
+  border-style: dashed;
+  color: var(--red-text);
   background: var(--red-dim);
+}
+/* legend swatch for the "wide junction" dot */
+.wide-key {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: middle;
+  margin-inline-end: 6px;
 }
 .jchip .wide {
   position: absolute;
@@ -103,7 +120,7 @@
   border: 1px solid var(--line);
 }
 .status-line.critical {
-  color: var(--red);
+  color: var(--red-text);
   border-color: rgba(239, 83, 80, 0.4);
   background: var(--red-dim);
 }
@@ -160,6 +177,7 @@
   inset-inline-start: calc(var(--left-w) + var(--gutter) * 2);
 }
 .feed-title {
+  margin: 0 0 4px;
   font-size: 10px;
   font-weight: 650;
   color: var(--text-2);
@@ -249,6 +267,11 @@ html[lang='ar'] .feed-title {
   background: var(--red);
   box-shadow: 0 0 0 3px var(--red-dim);
 }
+/* resolved = hollow ring, active = filled: the status reads without colour */
+.inc-dot:not(.active) {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--green);
+}
 .inc-name {
   color: var(--text-0);
 }
@@ -296,11 +319,35 @@ html[lang='ar'] .feed-title {
   border-radius: 8px;
   overflow: hidden;
 }
+/* verdict and test-result icons beside the text, so the coloured borders are not the only cue */
+.msg-mark,
+.sec-mark {
+  width: 12px;
+  height: 12px;
+  vertical-align: -2px;
+  margin-inline-end: 4px;
+}
+.msg-mark.ok,
+.sec-mark.pass {
+  color: var(--green);
+}
+.msg-mark.warn {
+  color: var(--amber);
+}
+.msg-mark.bad,
+.sec-mark.fail {
+  color: var(--red-text);
+}
 .msg.tone-warn {
   border-inline-start-color: var(--amber);
 }
 .msg.tone-bad {
   border-inline-start-color: var(--red);
+}
+/* rows clip their corners (overflow: hidden), so the focus ring is drawn inside the row */
+.msg-head:focus-visible,
+.sub-head:focus-visible {
+  outline-offset: -2px;
 }
 .msg-head {
   width: 100%;
@@ -351,7 +398,7 @@ html[lang='ar'] .feed-title {
 }
 .checks li.fail .icon-svg,
 .checks li.fail b {
-  color: var(--red);
+  color: var(--red-text);
 }
 .exc li,
 .rx li {
@@ -382,7 +429,7 @@ html[lang='ar'] .feed-title {
 }
 .rx-rejected .rx-code,
 .rx-flagged .rx-code {
-  color: var(--red);
+  color: var(--red-text);
 }
 .rx-accepted .rx-code {
   color: var(--green);
@@ -420,7 +467,7 @@ html[lang='ar'] .feed-title {
   color: var(--green);
 }
 .kv b.bad {
-  color: var(--red);
+  color: var(--red-text);
 }
 .sub-check {
   border: 1px solid var(--line);
@@ -454,7 +501,7 @@ html[lang='ar'] .feed-title {
   color: var(--green);
 }
 .sub-head b.bad {
-  color: var(--red);
+  color: var(--red-text);
 }
 .sub-check .checks {
   padding: 6px 8px 8px;
@@ -655,7 +702,7 @@ html[lang='ar'] .feed-title {
 }
 .bm-rerun-rows li.bad,
 .bm-rerun-rows li.bad b {
-  color: var(--red);
+  color: var(--red-text);
 }
 .bm-rerun-rows li.running {
   color: var(--amber);
@@ -802,7 +849,7 @@ table.data td.ok {
   color: var(--green);
 }
 table.data td.bad {
-  color: var(--red);
+  color: var(--red-text);
 }
 table.data tr.click {
   cursor: pointer;

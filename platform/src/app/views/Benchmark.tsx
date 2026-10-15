@@ -165,9 +165,9 @@ function ExperimentCard({ exp }: { exp: ExperimentResult }) {
         ))}
       </div>
       <div className="note">{t('bm.ci')}</div>
-      <div className="mini-title">{t('bm.paired')}</div>
+      <h3 className="mini-title">{t('bm.paired')}</h3>
       <Comparisons exp={exp} />
-      <div className="mini-title">{t('bm.table')}</div>
+      <h3 className="mini-title">{t('bm.table')}</h3>
       <div className="table-wrap" style={{ maxHeight: 'none' }}>
         <table className="data">
           <thead>

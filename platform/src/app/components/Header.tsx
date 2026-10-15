@@ -4,6 +4,7 @@ import { BrandMark } from './Icons';
 import { formatClock, formatRel } from '../controller';
 import { Icon } from './Icons';
 import { tour } from '../tour';
+import { rovingKeyDown } from './roving';
 
 const VIEWS: View[] = ['twin', 'compare', 'engineering', 'about'];
 
@@ -48,6 +49,7 @@ export function Header() {
 
       <div className="header-right">
         <button
+          id="judge-btn"
           className={`btn sm judge ${touring ? 'on' : ''}`}
           onClick={() => (touring ? tour.stop() : tour.start(0))}
           title={t('tour.startTitle')}
@@ -55,13 +57,19 @@ export function Header() {
         >
           <Icon name="flag" /> <span className="hide-sm">{touring ? t('tour.exit') : t('tour.start')}</span>
         </button>
-        <nav className="tabs" role="tablist" aria-label="Views">
+        <nav
+          className="tabs"
+          role="tablist"
+          aria-label={t('nav.views')}
+          onKeyDown={(e) => rovingKeyDown(e, { rtl: lang === 'ar', activate: true })}
+        >
           {VIEWS.map((v) => (
             <button
               key={v}
               role="tab"
               className="tab"
               aria-selected={view === v}
+              tabIndex={view === v ? 0 : -1}
               onClick={() => setView(v)}
             >
               {t(`view.${v}`)}
@@ -72,9 +80,9 @@ export function Header() {
           className="btn sm ghost"
           onClick={() => setLang(lang === 'en' ? 'ar' : 'en')}
           aria-label={t('lang.toggle.label')}
-          lang={lang === 'en' ? 'ar' : 'en'}
         >
-          {t('lang.toggle')}
+          {/* only the visible label is in the other language; the button's name stays in this one */}
+          <span lang={lang === 'en' ? 'ar' : 'en'}>{t('lang.toggle')}</span>
         </button>
         <span className="chip hide-md" title={t('chip.prototype.title')}>
           {t('chip.prototype')}

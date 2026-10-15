@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { useStore } from '../store';
 import { useT, type I18nKey } from '../i18n';
 import { controller, formatRel } from '../controller';
@@ -6,6 +6,7 @@ import { dmFor } from '../../core/scenarios';
 import type { ReasonCode } from '../../core/dm/types';
 import { Icon } from '../components/Icons';
 import { resolutionText } from '../explain';
+import { rovingKeyDown } from '../components/roving';
 
 /* Engineering inspector: the raw state of the running session, the recipe that reproduces it, exports
    of everything the interface shows, the validation reason codes, and the known limitations. Values are
@@ -150,12 +151,22 @@ const EXPORTS: Array<{ id: string; label: I18nKey; make: () => { name: string; t
   },
 ];
 
-function useRefresh(ms: number): void {
-  const [, set] = useState(0);
+/** A tick that advances every `ms` while not paused. */
+function useRefresh(ms: number, paused: boolean): number {
+  const [tick, set] = useState(0);
   useEffect(() => {
+    if (paused) return;
     const id = window.setInterval(() => set((x) => x + 1), ms);
     return () => clearInterval(id);
-  }, [ms]);
+  }, [ms, paused]);
+  return tick;
+}
+
+function openVehicle(id: number): void {
+  controller.selectVehicle(id);
+  const st = useStore.getState();
+  if (!st.rightOpen) st.toggleRight();
+  st.setView('twin');
 }
 
 function RunRecipe() {
@@ -240,6 +251,7 @@ function Exports() {
 function Vehicles() {
   const t = useT();
   const [filter, setFilter] = useState<VehicleFilter>('stopped');
+  const rtl = useStore((s) => s.lang === 'ar');
   const st = controller.engine.state;
   const list = st.order
     .map((id) => st.vehicles[id])
@@ -249,9 +261,23 @@ function Vehicles() {
     <div className="card">
       <div className="eng-head">
         <h2>{t('eng.vehicles')}</h2>
-        <div className="seg" role="radiogroup" aria-label={t('eng.vehicles')}>
+        <div
+          className="seg"
+          role="radiogroup"
+          aria-label={t('eng.vehicles')}
+          onKeyDown={(e) => rovingKeyDown(e, { rtl, vertical: true, activate: true })}
+        >
           {(['stopped', 'mrc', 'connected', 'all'] as VehicleFilter[]).map((f) => (
-            <button key={f} role="radio" aria-checked={filter === f} onClick={() => setFilter(f)}>
+            <button
+              key={f}
+              role="radio"
+              aria-checked={filter === f}
+              tabIndex={filter === f ? 0 : -1}
+              onClick={() => setFilter(f)}
+              // the selected filter is marked by more than colour: a check mark and an underline
+              style={filter === f ? { color: 'var(--text-0)', textDecoration: 'underline', textUnderlineOffset: 3 } : undefined}
+            >
+              {filter === f && <span aria-hidden="true">{'✓ '}</span>}
               {t(`eng.f.${f}` as I18nKey)}
             </button>
           ))}
@@ -270,17 +296,17 @@ function Vehicles() {
           </thead>
           <tbody>
             {list.map((v) => (
-              <tr
-                key={v.id}
-                className="click"
-                onClick={() => {
-                  controller.selectVehicle(v.id);
-                  const st = useStore.getState();
-                  if (!st.rightOpen) st.toggleRight();
-                  st.setView('twin');
-                }}
-              >
-                <td className="mono">{v.tag}</td>
+              <tr key={v.id} className="click" onClick={() => openVehicle(v.id)}>
+                <td className="mono">
+                  {/* the keyboard way into the row: a real button (its click bubbles to the row) */}
+                  <button
+                    type="button"
+                    aria-label={t('eng.openVehicle', { tag: v.tag })}
+                    style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}
+                  >
+                    {v.tag}
+                  </button>
+                </td>
                 <td className="mono small">
                   {v.seg.id}#{v.seg.lane}
                 </td>
@@ -440,59 +466,76 @@ function Exceptions() {
 
 export function EngineeringView() {
   const t = useT();
-  useRefresh(500);
-  const clock = useStore((s) => s.clock);
-  const q = useStore((s) => s.effectiveQuality);
-  const e = controller.engine;
+  // the page re-reads the simulation every 500 ms; it can be paused (WCAG 2.2.2)
+  const [paused, setPaused] = useState(false);
+  const tick = useRefresh(500, paused);
   return (
     <div className="view" role="main">
       <div className="view-inner stack">
         <div>
           <h1>{t('eng.title')}</h1>
           <p className="lede">{t('eng.lede')}</p>
-          <div className="eng-status mono small">
-            {formatRel(clock.t)} {'·'} {clock.playing ? t('status.running') : t('status.paused')} {'·'} {clock.speed}x {'·'} {e.state.order.length}{' '}
-            {t('eng.vehiclesShort')} {'·'} {t('eng.gfx')} {q}
-          </div>
+          <button className="btn sm" onClick={() => setPaused(!paused)} style={{ marginBottom: 6 }}>
+            <Icon name={paused ? 'play' : 'pause'} /> {paused ? t('eng.live.resume') : t('eng.live.pause')}
+          </button>
+          {paused && <span className="note" style={{ marginInlineStart: 8 }}>{t('eng.live.paused')}</span>}
         </div>
-        <div className="grid-2">
-          <RunRecipe />
-          <div className="stack">
-            <Exports />
-            <div className="card">
-              <h2>{t('eng.reasons')}</h2>
-              <div className="table-wrap" style={{ maxHeight: 300 }}>
-                <table className="data">
-                  <tbody>
-                    {REASONS.map((r) => (
-                      <tr key={r}>
-                        <td className="mono small">{r}</td>
-                        <td className="small">{t(`rc.${r}` as I18nKey)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="grid-2">
-          <Vehicles />
-          <Signals />
-        </div>
-        <div className="grid-2">
-          <MessageLog />
-          <Exceptions />
-        </div>
-        <div className="card">
-          <h2>{t('eng.limits')}</h2>
-          <ul className="clean">
-            {LIMITS.map((k) => (
-              <li key={k}>{t(`lim.${k}` as I18nKey)}</li>
-            ))}
-          </ul>
-        </div>
+        <EngineeringBody tick={tick} />
       </div>
     </div>
   );
 }
+
+/** Everything that reads the live simulation. It renders only when the tick advances, so pausing
+    the live updates freezes it (it does not subscribe to the clock itself). */
+const EngineeringBody = memo(function EngineeringBody({ tick }: { tick: number }) {
+  const t = useT();
+  void tick;
+  const { clock, effectiveQuality: q } = useStore.getState();
+  const e = controller.engine;
+  return (
+    <>
+      <div className="eng-status mono small">
+        {formatRel(clock.t)} {'·'} {clock.playing ? t('status.running') : t('status.paused')} {'·'} {clock.speed}x {'·'} {e.state.order.length}{' '}
+        {t('eng.vehiclesShort')} {'·'} {t('eng.gfx')} {q}
+      </div>
+      <div className="grid-2">
+        <RunRecipe />
+        <div className="stack">
+          <Exports />
+          <div className="card">
+            <h2>{t('eng.reasons')}</h2>
+            <div className="table-wrap" style={{ maxHeight: 300 }}>
+              <table className="data">
+                <tbody>
+                  {REASONS.map((r) => (
+                    <tr key={r}>
+                      <td className="mono small">{r}</td>
+                      <td className="small">{t(`rc.${r}` as I18nKey)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="grid-2">
+        <Vehicles />
+        <Signals />
+      </div>
+      <div className="grid-2">
+        <MessageLog />
+        <Exceptions />
+      </div>
+      <div className="card">
+        <h2>{t('eng.limits')}</h2>
+        <ul className="clean">
+          {LIMITS.map((k) => (
+            <li key={k}>{t(`lim.${k}` as I18nKey)}</li>
+          ))}
+        </ul>
+      </div>
+    </>
+  );
+});

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { useStore, type CamMode, type QualityChoice } from './store';
 import { useT } from './i18n';
 import { controller, TIMELINE_S } from './controller';
@@ -95,6 +95,8 @@ function DisplaySection() {
   const t = useT();
   const overlays = useStore((s) => s.overlays);
   const setOverlay = useStore((s) => s.setOverlay);
+  const shortcuts = useStore((s) => s.shortcuts);
+  const setShortcuts = useStore((s) => s.setShortcuts);
   return (
     <Section title={t('display.title')}>
       <label className="toggle">
@@ -105,19 +107,30 @@ function DisplaySection() {
         <span>{t('display.v2x')}</span>
         <input type="checkbox" checked={overlays.v2x} onChange={(e) => setOverlay('v2x', e.target.checked)} />
       </label>
+      <label className="toggle">
+        <span>{t('keys.toggle')}</span>
+        <input type="checkbox" checked={shortcuts} onChange={(e) => setShortcuts(e.target.checked)} aria-describedby="keys-note" />
+      </label>
+      <div className="note" id="keys-note">
+        {t('keys.note')}
+      </div>
     </Section>
   );
 }
 
 function BusyOverlay() {
   const busy = useStore((s) => s.busy);
-  if (!busy) return null;
+  // the live region is always present (and empty while idle), so the first message is announced too
   return (
-    <div className="busy-overlay glass" role="status" aria-live="polite">
-      {busy.label}
-      <div className="bar-line">
-        <i style={{ width: `${Math.round(busy.progress * 100)}%` }} />
-      </div>
+    <div role="status" aria-live="polite">
+      {busy && (
+        <div className="busy-overlay glass">
+          {busy.label}
+          <div className="bar-line" aria-hidden="true">
+            <i style={{ width: `${Math.round(busy.progress * 100)}%` }} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -137,19 +150,23 @@ function TwinStage() {
   const host = useRef<HTMLDivElement>(null);
   const webgl = useStore((s) => s.webgl);
   const ready = useStore((s) => s.ready);
+  // the 3D view stays mounted under the other views: there it must leave the tab order and the
+  // accessibility tree, or keyboard and screen reader users land on a city they cannot see
+  const hidden = useStore((s) => s.view !== 'twin');
   const t = useT();
   useEffect(() => {
     if (host.current && webgl) controller.mount(host.current);
     else if (!webgl) controller.startHeadless();
   }, [webgl]);
   return (
-    <>
+    <div style={{ display: 'contents' }} inert={hidden ? true : undefined} aria-hidden={hidden || undefined}>
       <div
         ref={host}
+        id="stage"
         className="stage"
         tabIndex={0}
         role="application"
-        aria-label="3D city view. Drag to orbit, right-drag or shift-drag to pan, scroll to zoom. Arrow keys orbit, plus and minus zoom, Home resets the camera."
+        aria-label={t('a11y.stage')}
         onKeyDown={(e) => {
           if (controller.world?.handleKey(e.nativeEvent)) e.preventDefault();
         }}
@@ -165,8 +182,22 @@ function TwinStage() {
           </div>
         </>
       )}
-    </>
+    </div>
   );
+}
+
+/** The skip link goes to the main content of the current view; in the twin view that is the first
+    open side panel, or the 3D view when both are collapsed. */
+function skipToMain(e: ReactMouseEvent<HTMLAnchorElement>): void {
+  e.preventDefault();
+  const st = useStore.getState();
+  const target =
+    st.view !== 'twin'
+      ? document.querySelector<HTMLElement>('[role="main"], main')
+      : document.getElementById(st.leftOpen ? 'panel-left' : st.rightOpen ? 'panel-right' : 'stage');
+  if (!target) return;
+  if (!target.hasAttribute('tabindex')) target.tabIndex = -1;
+  target.focus();
 }
 
 export function App() {
@@ -197,20 +228,28 @@ export function App() {
     controller.updateViewShift(l, r);
   }, [leftOpen, rightOpen, lang]);
 
-  // global keyboard shortcuts
+  // global keyboard shortcuts; the single-character ones can be turned off (WCAG 2.1.4)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement | null)?.tagName;
-      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+      const el = e.target as HTMLElement | null;
+      const tag = el?.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || el?.isContentEditable) return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const st = useStore.getState();
-      if (e.key === ' ' && st.view === 'twin' && (e.target as HTMLElement)?.tagName !== 'BUTTON') {
+      if (e.key === 'Escape') {
+        st.select(null);
+        return;
+      }
+      if (e.key === 'Home') {
+        controller.resetCamera();
+        return;
+      }
+      if (!st.shortcuts) return;
+      if (e.key === ' ') {
+        // Space keeps its own meaning on anything that can be activated
+        if (st.view !== 'twin' || el?.closest('button, a, summary, [role="button"], [role="tab"], [role="radio"], [role="checkbox"], [role="link"]')) return;
         e.preventDefault();
         controller.togglePlay();
-      } else if (e.key === 'Escape') {
-        st.select(null);
-      } else if (e.key === 'Home') {
-        controller.resetCamera();
       } else if (HOTKEY_MODES[e.key] && st.view === 'twin') {
         controller.setCamMode(HOTKEY_MODES[e.key]);
       } else if (e.key === '[') {
@@ -227,16 +266,16 @@ export function App() {
 
   return (
     <div className="app">
-      <a className="skip-link" href="#main-controls">
-        Skip to controls
+      <a className="skip-link" href="#main" onClick={skipToMain}>
+        {t('a11y.skip')}
       </a>
       <TwinStage />
       <Header />
       {view === 'twin' && (
         <>
+          <h1 className="sr-only">{t('a11y.twin')}</h1>
           <CameraToolbar available={{ incident: hasIncidents, follow: selection?.kind === 'vehicle', emergency: evActive }} />
           <SidePanel side="left" title={t('panel.ops')}>
-            <div id="main-controls" />
             <ScenarioPanel />
             <SimulationSection />
             <DisplaySection />

@@ -1,7 +1,9 @@
 import { useStore, type CamMode } from '../store';
 import { useT, type I18nKey } from '../i18n';
 import { Icon, type IconName } from './Icons';
+import { useState } from 'react';
 import { controller } from '../controller';
+import { rovingKeyDown } from './roving';
 
 interface Item {
   mode: CamMode;
@@ -23,17 +25,30 @@ const ITEMS: Item[] = [
 export function CameraToolbar({ available }: { available: Partial<Record<CamMode, boolean>> }) {
   const t = useT();
   const mode = useStore((s) => s.camMode);
+  const rtl = useStore((s) => s.lang === 'ar');
+  const shortcuts = useStore((s) => s.shortcuts);
+  // roving tabindex: one button is in the tab order (the last focused one, else the current mode)
+  const [last, setLast] = useState<CamMode | 'reset' | null>(null);
+  const enabledOf = (k: CamMode | 'reset') => k === 'reset' || available[k] !== false;
+  const stop = [last, mode, ...ITEMS.map((it) => it.mode), 'reset' as const].find((k) => k !== null && enabledOf(k)) ?? 'reset';
   return (
-    <div className="cam-toolbar glass" role="toolbar" aria-label={t('cam.toolbar')}>
+    <div
+      className="cam-toolbar glass"
+      role="toolbar"
+      aria-label={t('cam.toolbar')}
+      onKeyDown={(e) => rovingKeyDown(e, { rtl })}
+    >
       {ITEMS.map((it) => {
-        const enabled = available[it.mode] !== false;
+        const enabled = enabledOf(it.mode);
         return (
           <button
             key={it.mode}
             aria-pressed={mode === it.mode}
             disabled={!enabled}
+            tabIndex={stop === it.mode ? 0 : -1}
+            onFocus={() => setLast(it.mode)}
             onClick={() => controller.setCamMode(it.mode)}
-            title={`${t(it.key)} (${it.hotkey})`}
+            title={shortcuts ? `${t(it.key)} (${it.hotkey})` : t(it.key)}
             aria-label={t(it.key)}
           >
             <Icon name={it.icon} />
@@ -42,7 +57,13 @@ export function CameraToolbar({ available }: { available: Partial<Record<CamMode
         );
       })}
       <span className="sep" />
-      <button onClick={() => controller.resetCamera()} title={`${t('cam.reset')} (Home)`} aria-label={t('cam.reset')}>
+      <button
+        tabIndex={stop === 'reset' ? 0 : -1}
+        onFocus={() => setLast('reset')}
+        onClick={() => controller.resetCamera()}
+        title={`${t('cam.reset')} (Home)`}
+        aria-label={t('cam.reset')}
+      >
         <Icon name="home" />
       </button>
     </div>

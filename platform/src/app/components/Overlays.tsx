@@ -9,7 +9,7 @@ export function PerfOverlay() {
   const q = useStore((s) => s.effectiveQuality);
   const toggle = useStore((s) => s.togglePerf);
   if (!open) return null;
-  const tone = perf.fps >= 50 ? 'var(--green)' : perf.fps >= 30 ? 'var(--amber)' : 'var(--red)';
+  const tone = perf.fps >= 50 ? 'var(--green)' : perf.fps >= 30 ? 'var(--amber)' : 'var(--red-text)';
   return (
     <div className="perf glass" role="region" aria-label={t('gfx.perf')}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
@@ -18,7 +18,7 @@ export function PerfOverlay() {
         </span>
         <span className="muted">{t('perf.fps')}</span>
         <span style={{ flex: 1 }} />
-        <button className="btn sm icon ghost" onClick={toggle} aria-label="Close">
+        <button className="btn sm icon ghost" onClick={toggle} aria-label={t('perf.close')} title={t('perf.close')}>
           <Icon name="x" />
         </button>
       </div>

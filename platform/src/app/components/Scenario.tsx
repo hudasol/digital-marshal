@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import { useStore, type ScenarioKey } from '../store';
 import { useT, type I18nKey } from '../i18n';
 import { Icon, type IconName } from './Icons';
 import { Section } from './SidePanel';
+import { rovingKeyDown } from './roving';
 import { controller } from '../controller';
 import { BLACKOUT_JUNCTIONS, WORKS_STAGES } from '../../core/network/district';
 import { getNetwork } from '../../core/network/build';
@@ -10,7 +11,7 @@ import { INJECTIONS } from '../../core/dm/inject';
 import { TRUST_STORE } from '../../core/dm/trust';
 import type { Policy } from '../../core/dm/types';
 import type { WorksFrame } from '../dmframes';
-import { placeName } from '../explain';
+import { checkName, placeName } from '../explain';
 
 const CARDS: Array<{ key: ScenarioKey; icon: IconName; ready: boolean }> = [
   { key: 'normal', icon: 'city', ready: true },
@@ -19,18 +20,33 @@ const CARDS: Array<{ key: ScenarioKey; icon: IconName; ready: boolean }> = [
   { key: 'roadworks', icon: 'cone', ready: true },
 ];
 
+/** Radiogroups of buttons use a roving tabindex: only the checked radio is in the Tab order; Arrow
+    keys, Home and End move focus (Left/Right follow the reading direction), and Space or Enter, the
+    button's own activation, selects. Selection does not follow focus: a scenario or policy change
+    restarts the run, so it waits for an explicit choice. */
+function radioGroupKeys(e: KeyboardEvent<HTMLElement>) {
+  rovingKeyDown(e, { rtl: getComputedStyle(e.currentTarget).direction === 'rtl', vertical: true, selector: '[role="radio"]:not([aria-disabled="true"])' });
+}
+
+/** tabIndex for a radio in a roving-tabindex group: the checked one, or the first if none is. */
+function rovingIndex(checked: boolean, index: number, anyChecked: boolean): 0 | -1 {
+  return checked || (!anyChecked && index === 0) ? 0 : -1;
+}
+
 export function ScenarioCards() {
   const t = useT();
   const scenario = useStore((s) => s.scenario);
   const setScenario = useStore((s) => s.setScenario);
+  const anyChecked = CARDS.some((c) => c.key === scenario);
   return (
     <Section title={t('scn.title')}>
-      <div className="scn-cards" role="radiogroup" aria-label={t('scn.title')}>
-        {CARDS.map((c) => (
+      <div className="scn-cards" role="radiogroup" aria-label={t('scn.title')} onKeyDown={radioGroupKeys}>
+        {CARDS.map((c, i) => (
           <button
             key={c.key}
             role="radio"
             aria-checked={scenario === c.key}
+            tabIndex={rovingIndex(scenario === c.key, i, anyChecked)}
             className={`scn-card ${scenario === c.key ? 'on' : ''}`}
             onClick={() => setScenario(c.key)}
             disabled={!c.ready}
@@ -65,28 +81,45 @@ export function BlackoutControls() {
         </div>
         <div className="chips-grid" role="group" aria-label={t('bo.junctions')}>
           {net.junctionIds.map((j) => {
-            const wide = net.junctions[j].maxApproachLanes > odd;
+            const lanes = net.junctions[j].maxApproachLanes;
+            const wide = lanes > odd;
+            const isDark = dark.includes(j);
             return (
               <button
                 key={j}
-                className={`jchip ${sel.includes(j) ? 'on' : ''} ${dark.includes(j) ? 'dark' : ''}`}
+                className={`jchip ${sel.includes(j) ? 'on' : ''} ${isDark ? 'dark' : ''}`}
                 aria-pressed={sel.includes(j)}
                 onClick={() => setSel((x) => (x.includes(j) ? x.filter((y) => y !== j) : [...x, j].sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)))))}
-                title={`${net.junctions[j].label}${wide ? ' · 3-lane approaches' : ''}`}
+                title={`${net.junctions[j].label}${wide ? ` · ${t('bo.wide', { n: lanes })}` : ''}${isDark ? ` · ${t('bo.darkState')}` : ''}`}
               >
                 {j}
                 {wide ? <i className="wide" aria-hidden="true" /> : null}
+                {wide ? <span className="sr-only">, {t('bo.wide', { n: lanes })}</span> : null}
+                {isDark ? <span className="sr-only">, {t('bo.darkState')}</span> : null}
               </button>
             );
           })}
         </div>
+        <p className="note jchip-legend">
+          <i className="wide-key" aria-hidden="true" />
+          {t('bo.legend', { lanes: odd })}
+        </p>
       </div>
       <div className="field">
         <div className="field-row">
           <span>{t('bo.restoreAfter')}</span>
           <b>{restoreMin === 0 ? t('bo.manual') : t('bo.minutes', { n: restoreMin })}</b>
         </div>
-        <input type="range" min={0} max={12} step={1} value={restoreMin} onChange={(e) => setRestoreMin(parseInt(e.target.value, 10))} aria-label={t('bo.restoreAfter')} />
+        <input
+          type="range"
+          min={0}
+          max={12}
+          step={1}
+          value={restoreMin}
+          onChange={(e) => setRestoreMin(parseInt(e.target.value, 10))}
+          aria-label={t('bo.restoreAfter')}
+          aria-valuetext={restoreMin === 0 ? t('bo.manual') : t('bo.minutes', { n: restoreMin })}
+        />
       </div>
       <div className="btn-row">
         <button className="btn danger" onClick={() => controller.triggerBlackout(sel, restoreMin ? restoreMin * 60 : null)} disabled={!sel.length}>
@@ -162,7 +195,7 @@ function WorksStatus({ w, now }: { w: WorksFrame; now: number }) {
               {sub.checks.map((c, i) => (
                 <li key={i} className={c.pass ? 'pass' : 'fail'}>
                   <Icon name={c.pass ? 'check' : 'x'} />
-                  <b>{c.name}</b>
+                  <b>{checkName(t, c.name)}</b>
                   <span>{c.detail}</span>
                 </li>
               ))}
@@ -209,7 +242,7 @@ export function RoadworksControls() {
       {w && <WorksStatus w={w} now={now} />}
       {dm && (
         <>
-          <div className="mini-title">{t('rw.audit')}</div>
+          <h4 className="mini-title">{t('rw.audit')}</h4>
           <div className="kv small">
             <span>{t('rw.late')}</span>
             <b className="num">{dm.audit.lateDiscoveries}</b>
@@ -249,7 +282,11 @@ export function SecurityTests() {
           return (
             <li key={x.id} className={`sec-row ${ok === null ? '' : ok ? 'pass' : 'fail'}`}>
               <div className="sec-main">
-                <b>{t(`sec.${x.id}` as I18nKey)}</b>
+                <b>
+                  {ok !== null && <Icon name={ok ? 'check' : 'x'} className={`sec-mark ${ok ? 'pass' : 'fail'}`} />}
+                  {ok !== null && <span className="sr-only">{t(ok ? 'sec.passed' : 'sec.failed')}: </span>}
+                  {t(`sec.${x.id}` as I18nKey)}
+                </b>
                 <span>{t(`sec.${x.id}.d` as I18nKey)}</span>
                 <span className="sec-expect">
                   {t('sec.expect')} <span className="mono">{x.expect}</span>
@@ -260,6 +297,7 @@ export function SecurityTests() {
                 onClick={() => controller.injectTest(x.id)}
                 disabled={policy === 'A' || blocked}
                 title={blocked ? t('sec.needsIncident') : undefined}
+                aria-label={t('sec.injectNamed', { name: t(`sec.${x.id}` as I18nKey) })}
               >
                 {t('sec.inject')}
               </button>
@@ -297,9 +335,20 @@ export function PolicyControls() {
   const busy = useStore((s) => s.busy);
   return (
     <Section title={t('pol.title')}>
-      <div className="seg" role="radiogroup" aria-label={t('pol.title')}>
+      <div className="seg" role="radiogroup" aria-label={t('pol.title')} onKeyDown={radioGroupKeys}>
         {(['A', 'B', 'C'] as Policy[]).map((p) => (
-          <button key={p} role="radio" aria-checked={policy === p} aria-pressed={policy === p} onClick={() => controller.setPolicy(p)} disabled={!!busy}>
+          <button
+            key={p}
+            role="radio"
+            aria-checked={policy === p}
+            tabIndex={policy === p ? 0 : -1}
+            aria-label={t(`pol.${p}` as I18nKey)}
+            // aria-disabled, not disabled, while a replay runs: the chosen radio keeps keyboard focus
+            aria-disabled={busy ? true : undefined}
+            onClick={() => {
+              if (!busy) controller.setPolicy(p);
+            }}
+          >
             {p}
           </button>
         ))}
@@ -326,7 +375,7 @@ export function CommsControls() {
       <div className="field">
         <div className="field-row">
           <span>{t('comms.loss')}</span>
-          <b>{Math.round(loss * 100)}%</b>
+          <b>{t('comms.lossValue', { n: Math.round(loss * 100) })}</b>
         </div>
         <input
           type="range"
@@ -338,12 +387,13 @@ export function CommsControls() {
           onPointerUp={() => commit({ extraLoss: loss })}
           onKeyUp={() => commit({ extraLoss: loss })}
           aria-label={t('comms.loss')}
+          aria-valuetext={t('comms.lossValue', { n: Math.round(loss * 100) })}
         />
       </div>
       <div className="field">
         <div className="field-row">
           <span>{t('comms.latency')}</span>
-          <b>{lat} ms</b>
+          <b>{t('comms.latencyValue', { n: lat })}</b>
         </div>
         <input
           type="range"
@@ -355,6 +405,7 @@ export function CommsControls() {
           onPointerUp={() => commit({ extraLatencyMs: lat })}
           onKeyUp={() => commit({ extraLatencyMs: lat })}
           aria-label={t('comms.latency')}
+          aria-valuetext={t('comms.latencyValue', { n: lat })}
         />
       </div>
       <label className="toggle">

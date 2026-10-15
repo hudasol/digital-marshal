@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react';
 import { useStore } from '../store';
 import { useT, type I18nKey } from '../i18n';
 import { Icon } from './Icons';
@@ -130,7 +131,8 @@ export function VehicleInspector({ v }: { v: VehicleFrame }) {
         </button>
       </div>
 
-      <div className={`now tone-${tone}`} role="status" aria-live="polite">
+      {/* not a live region: the plan is rewritten several times a second and would keep a screen reader talking */}
+      <div className={`now tone-${tone}`}>
         <div className="now-label">{t('veh.planning')}</div>
         <div className="now-text">{v.exited ? t('veh.exited') : bindText(t, v.bind, v.speedKmh)}</div>
       </div>
@@ -207,6 +209,27 @@ export function IntelPanel() {
   const incident = useStore((s) => s.incident);
   const dm = useStore((s) => s.dm);
   const selection = useStore((s) => s.selection);
+  const selKey = selection ? `${selection.kind}:${selection.id}` : null;
+  const prevKey = useRef(selKey);
+  const opener = useRef<HTMLElement | null>(null);
+  // when an inspector closes, its close button disappears with it: return focus to whatever opened
+  // the inspector (the 3D view, an event in the feed), or to this panel if that is gone
+  useLayoutEffect(() => {
+    const was = prevKey.current;
+    prevKey.current = selKey;
+    if (was === selKey) return;
+    if (!was) {
+      opener.current = document.activeElement as HTMLElement | null;
+      return;
+    }
+    if (selKey) return;
+    const back = opener.current;
+    opener.current = null;
+    const a = document.activeElement;
+    if (a && a !== document.body) return;
+    if (back && back !== document.body && back.isConnected && !back.closest('[inert]')) back.focus();
+    else document.getElementById('panel-right')?.focus();
+  }, [selKey]);
   if (selection?.kind === 'vehicle' && vehicle) return <VehicleInspector v={vehicle} />;
   if (selection?.kind === 'incident' && incident) return <IncidentInspector f={incident} />;
   return (

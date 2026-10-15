@@ -10,15 +10,15 @@
   --bg-1: #0c121b;
   --bg-2: #111925;
   --bg-3: #172131;
-  --glass: rgba(12, 18, 27, 0.78);
+  --glass: rgba(12, 18, 27, 0.86);
   --glass-strong: rgba(10, 15, 23, 0.92);
   --line: rgba(148, 163, 184, 0.13);
   --line-strong: rgba(148, 163, 184, 0.24);
 
   --text-0: #f3f6f9;
   --text-1: #c3cdd8;
-  --text-2: #8b98a8;
-  --text-3: #5e6b7b;
+  --text-2: #9ba7b6;
+  --text-3: #8e9aaa;
 
   --cyan: #45d4e8;
   --cyan-dim: rgba(69, 212, 232, 0.14);
@@ -29,6 +29,8 @@
   --amber-dim: rgba(244, 183, 64, 0.14);
   --red: #ef5350;
   --red-dim: rgba(239, 83, 80, 0.15);
+  /* red used for text: the fill red is too dark to read on the glass panels */
+  --red-text: #ff8a85;
   --violet: #a78bfa;
 
   --r-sm: 6px;

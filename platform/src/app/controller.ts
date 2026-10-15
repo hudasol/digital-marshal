@@ -3,7 +3,7 @@ import { World } from '../render/World';
 import { CityRenderer } from '../render/city';
 import { VehicleLayer } from '../render/vehicles';
 import { getNetwork } from '../core/network/build';
-import { QUALITY, guessTier, lowerTier } from '../render/quality';
+import { QUALITY, FrameMonitor, guessTier, lowerTier } from '../render/quality';
 import type { SimSession } from '../core/sim/session';
 import { createSession, dmFor } from '../core/scenarios';
 import { OverlayLayer } from '../render/overlays';
@@ -84,15 +84,13 @@ class Controller {
   private raf = 0;
   private last = 0;
   private uiAccum = 0;
-  private fpsFrames = 0;
-  private fpsAccum = 0;
-  private fps = 60;
-  private lowFpsTime = 0;
+  private readonly meter = new FrameMonitor();
   private autoQuality = true;
   private started = false;
   private watchdog = 0;
   private lastVehicleFrame: VehicleFrame | null = null;
   private simMs = 0;
+  private disposers: Array<() => void> = [];
 
   get engine() {
     return this.session.engine;
@@ -109,7 +107,16 @@ class Controller {
     }
     const w = this.world;
     const st = useStore.getState();
-    w.rig.reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    // follow the motion preference live, not only at startup
+    const motion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    w.rig.reducedMotion = motion?.matches ?? false;
+    if (motion?.addEventListener) {
+      const onMotion = (e: MediaQueryListEvent) => {
+        if (this.world) this.world.rig.reducedMotion = e.matches;
+      };
+      motion.addEventListener('change', onMotion);
+      this.disposers.push(() => motion.removeEventListener('change', onMotion));
+    }
     w.rig.onUserTakeover = () => useStore.getState().setCamMode('free');
     w.onDragState = (d) => host.classList.toggle('dragging', d);
     const tier = st.quality === 'auto' ? guessTier() : st.quality;
@@ -173,6 +180,8 @@ class Controller {
   }
 
   applyQuality(tier: QualityTier): void {
+    // shaders recompile after a tier change: those frames say nothing about the new tier's load
+    this.meter.disturb();
     this.world?.setQuality(tier);
     this.city?.setQuality(QUALITY[tier]);
     useStore.getState().setEffectiveQuality(tier);
@@ -181,7 +190,7 @@ class Controller {
   setQualityChoice(choice: 'auto' | QualityTier): void {
     useStore.getState().setQuality(choice);
     this.autoQuality = choice === 'auto';
-    this.lowFpsTime = 0;
+    this.meter.resetLow();
     this.applyQuality(choice === 'auto' ? guessTier() : choice);
   }
 
@@ -332,6 +341,7 @@ class Controller {
     const t0 = performance.now();
     this.session.seek(t);
     this.simMs = performance.now() - t0;
+    this.meter.disturb();
     this.renderT = this.session.t;
     this.vehicles?.refresh(this.engine, true);
     this.publishClock();
@@ -346,7 +356,8 @@ class Controller {
     if (this.seekTarget !== null) {
       const remaining = this.session.seek(this.seekTarget, MAX_STEPS_PER_FRAME * 4);
       const total = Math.max(1, this.seekTarget - this.renderT);
-      useStore.getState().setBusy({ label: 'Simulating ahead', progress: 1 - (remaining * DT) / total });
+      const st = useStore.getState();
+      st.setBusy({ label: translate(st.lang, 'play.ahead'), progress: 1 - (remaining * DT) / total });
       if (remaining === 0) {
         this.seekTarget = null;
         useStore.getState().setBusy(null);
@@ -466,6 +477,7 @@ class Controller {
     if ((cfg.dm?.policy ?? 'C') === policy) return;
     const t = this.renderT;
     this.session.reset({ ...cfg, dm: { ...(cfg.dm ?? {}), policy } }, true);
+    this.meter.disturb();
     this.renderT = 0;
     this.vehicles?.refresh(this.engine, true);
     if (t > 0) this.seekTarget = t;
@@ -593,6 +605,10 @@ class Controller {
       this.tickAt(now, 0.1, true);
     };
     this.raf = requestAnimationFrame(loop);
+    // a hidden tab stops drawing; the first frames back are not representative
+    const onVisibility = () => this.meter.disturb();
+    document.addEventListener('visibilitychange', onVisibility);
+    this.disposers.push(() => document.removeEventListener('visibilitychange', onVisibility));
     // Some embedded webviews pause requestAnimationFrame while the page still counts as visible.
     // A low-rate timer keeps the simulation (and the picture) advancing in that case.
     this.watchdog = window.setInterval(() => {
@@ -604,12 +620,14 @@ class Controller {
   }
 
   private tickAt(now: number, maxDt: number, fromRaf: boolean): void {
-    const dt = Math.min(maxDt, Math.max(0, (now - this.last) / 1000));
+    // the simulation step is clamped; the statistics use the real elapsed time
+    const elapsed = Math.max(0, (now - this.last) / 1000);
+    const dt = Math.min(maxDt, elapsed);
     this.last = now;
-    this.frame(dt, fromRaf, now / 1000);
+    this.frame(dt, elapsed, fromRaf, now / 1000);
   }
 
-  private frame(dt: number, fromRaf: boolean, wall: number): void {
+  private frame(dt: number, elapsed: number, fromRaf: boolean, wall: number): void {
     const t0 = performance.now();
     this.advance(dt);
     const simMs = performance.now() - t0;
@@ -628,25 +646,19 @@ class Controller {
       stats = this.world.frame(dt);
     }
 
-    // statistics and adaptive quality (only real display frames count; timer frames are a fallback)
+    const workMs = performance.now() - t0;
+
+    // statistics and adaptive quality (only real display frames count; timer frames are a fallback).
+    // Frames slowed by seeking, replays or simulating ahead are not rendering load: they are skipped.
     if (fromRaf) {
-      this.fpsFrames++;
-      this.fpsAccum += dt;
-    }
-    if (fromRaf && this.fpsAccum >= 0.5) {
-      this.fps = this.fpsFrames / this.fpsAccum;
-      this.fpsFrames = 0;
-      this.fpsAccum = 0;
-      if (this.autoQuality && st.view === 'twin' && document.visibilityState === 'visible') {
-        this.lowFpsTime = this.fps < 34 ? this.lowFpsTime + 0.5 : Math.max(0, this.lowFpsTime - 0.5);
-        if (this.lowFpsTime >= 4) {
-          const lower = lowerTier(st.effectiveQuality);
-          this.lowFpsTime = 0;
-          if (lower) {
-            this.applyQuality(lower);
-            const q = translate(st.lang, lower === 'balanced' ? 'gfx.balanced' : 'gfx.performance');
-            st.pushToast(translate(st.lang, 'gfx.downgraded', { q }), 'warn');
-          }
+      const eligible =
+        this.autoQuality && st.view === 'twin' && document.visibilityState === 'visible' && this.seekTarget === null;
+      if (this.meter.frame(elapsed, workMs, eligible)) {
+        const lower = lowerTier(st.effectiveQuality);
+        if (lower) {
+          this.applyQuality(lower);
+          const q = translate(st.lang, lower === 'balanced' ? 'gfx.balanced' : 'gfx.performance');
+          st.pushToast(translate(st.lang, 'gfx.downgraded', { q }), 'warn');
         }
       }
     }
@@ -657,8 +669,8 @@ class Controller {
       this.publishFrames();
       if (st.perfOpen && stats) {
         st.setPerf({
-          fps: this.fps,
-          frameMs: 1000 / Math.max(1, this.fps),
+          fps: this.meter.fps,
+          frameMs: this.meter.frameMs,
           calls: stats.calls,
           tris: stats.tris,
           geometries: stats.geometries,
@@ -673,6 +685,8 @@ class Controller {
   dispose(): void {
     cancelAnimationFrame(this.raf);
     clearInterval(this.watchdog);
+    this.disposers.forEach((d) => d());
+    this.disposers = [];
     this.world?.dispose();
     this.world = null;
     this.started = false;

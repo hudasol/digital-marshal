@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useStore } from '../store';
 import { useT, type I18nKey } from '../i18n';
 import { formatClock } from '../controller';
@@ -48,7 +49,13 @@ export function EventFeed() {
   const events = useStore((s) => s.events);
   const leftOpen = useStore((s) => s.leftOpen);
   const shown = events.filter((e) => SHOWN.has(e.kind)).slice(0, 5);
-  if (!shown.length) return null;
+  // Screen readers hear only the newest event, through a live region that is always in the DOM
+  // (a region inserted together with its first message usually goes unannounced). The text changes
+  // only when a new event arrives, so switching language does not re-announce the last one.
+  const newest = shown[0];
+  const newestKey = newest ? `${newest.t}-${newest.kind}-${newest.ref ?? ''}` : '';
+  const [said, setSaid] = useState({ key: '', text: '' });
+  if (said.key !== newestKey) setSaid({ key: newestKey, text: newest ? eventText(t, newest) : '' });
   const click = (e: SimEvent) => {
     if (e.kind === 'outage-detected' || e.kind === 'incident-resolved' || e.kind === 'works-planned' || e.kind === 'works-active' || e.kind === 'works-lifted') {
       if (e.ref) controller.selectIncident(e.ref);
@@ -61,19 +68,28 @@ export function EventFeed() {
     }
   };
   return (
-    <div className={`feed glass ${leftOpen ? 'shifted' : ''}`} role="log" aria-label={t('feed.title')} aria-live="polite">
-      <div className="feed-title">{t('feed.title')}</div>
-      <ol>
-        {shown.map((e, i) => (
-          <li key={`${e.t}-${e.kind}-${i}`} className={`tone-${e.tone}`}>
-            <button className="feed-item" onClick={() => click(e)}>
-              <span className="feed-dot" aria-hidden="true" />
-              <span className="feed-t mono">{formatClock(e.t)}</span>
-              <span className="feed-x">{eventText(t, e)}</span>
-            </button>
-          </li>
-        ))}
-      </ol>
-    </div>
+    <>
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {said.text}
+      </div>
+      {shown.length > 0 && (
+        <section className={`feed glass ${leftOpen ? 'shifted' : ''}`} aria-labelledby="feed-title">
+          <h2 className="feed-title" id="feed-title">
+            {t('feed.title')}
+          </h2>
+          <ol>
+            {shown.map((e, i) => (
+              <li key={`${e.t}-${e.kind}-${i}`} className={`tone-${e.tone}`}>
+                <button className="feed-item" onClick={() => click(e)}>
+                  <span className="feed-dot" aria-hidden="true" />
+                  <span className="feed-t mono">{formatClock(e.t)}</span>
+                  <span className="feed-x">{eventText(t, e)}</span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+    </>
   );
 }

@@ -27,7 +27,9 @@ export function LegacyStudy() {
   const byScn = (s: string) => rows.filter((r) => r.scenario === s);
   const maxTotal = Math.max(...rows.map((r) => r.totalFleetTravelTimeVehMin));
   return (
-    <section className="stack" aria-labelledby="legacy-h">
+    // the study is preserved in English only: mark it so Arabic screen readers switch voice and the
+    // text keeps its left-to-right layout inside the right-to-left page
+    <section className="stack" aria-labelledby="legacy-h" lang="en" dir="ltr">
       <div>
         <h2 id="legacy-h">Earlier corridor routing study (WP2.7 point queue model)</h2>
         <div className="muted small">

@@ -98,6 +98,12 @@ button {
   touch-action: none;
   outline: none;
 }
+/* the 3D view takes keyboard focus (arrow keys move the camera): the ring sits inside the edge so
+   the viewport never clips it */
+.stage:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: -4px;
+}
 .stage canvas {
   display: block;
   width: 100%;
@@ -339,7 +345,7 @@ html[lang='ar'] .chip {
   background: var(--green-dim);
 }
 .chip.red {
-  color: var(--red);
+  color: var(--red-text);
   border-color: rgba(239, 83, 80, 0.4);
   background: var(--red-dim);
 }
@@ -405,13 +411,13 @@ html[lang='ar'] .chip {
   background: linear-gradient(180deg, #55d3e5, #34b3c8);
 }
 .btn.danger {
-  background: linear-gradient(180deg, #e2554f, #c43f3a);
+  background: linear-gradient(180deg, #cf433e, #b0342f);
   border-color: rgba(239, 83, 80, 0.75);
   color: #fff;
   font-weight: 650;
 }
 .btn.danger:hover {
-  background: linear-gradient(180deg, #ec6560, #cf4843);
+  background: linear-gradient(180deg, #d84a45, #bb3a35);
 }
 .btn.warn {
   background: linear-gradient(180deg, #f4b740, #d99a22);
@@ -457,6 +463,11 @@ html[lang='ar'] .chip {
   transition:
     transform var(--t-med) var(--ease-out),
     opacity var(--t-med) var(--ease-out);
+}
+/* panels (and the judge-mode card) take focus programmatically; draw the ring inside the edge */
+.panel:focus-visible,
+.tour:focus-visible {
+  outline-offset: -2px;
 }
 .panel.left {
   inset-inline-start: var(--gutter);
@@ -583,7 +594,8 @@ html[lang='ar'] .section-title {
 .seg button:hover {
   color: var(--text-0);
 }
-.seg button[aria-pressed='true'] {
+.seg button[aria-pressed='true'],
+.seg button[aria-checked='true'] {
   background: var(--bg-3);
   color: var(--text-0);
   box-shadow: inset 0 0 0 1px var(--line-strong);
@@ -800,16 +812,38 @@ html[dir='rtl'] .toggle input:checked::after {
 
 /* ------------------------------------------------------------------ canvas overlays */
 
+/* centred in the space between the side panels (or their collapsed toggles), never under them;
+   it wraps onto a second row before it would overlap one */
 .cam-toolbar {
+  --cam-start: calc(var(--left-w) + var(--gutter) * 2);
+  --cam-end: calc(var(--right-w) + var(--gutter) * 2);
   position: absolute;
   top: calc(var(--header-h) + var(--gutter));
-  left: 50%;
-  transform: translateX(-50%);
+  inset-inline-start: var(--cam-start);
+  inset-inline-end: var(--cam-end);
+  width: fit-content;
+  max-width: calc(100% - var(--cam-start) - var(--cam-end));
+  margin-inline: auto;
   z-index: 9;
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 2px;
   padding: 3px;
   border-radius: 11px;
+}
+/* a collapsed panel leaves only its toggle button (icon and title) in the top corner */
+body:has(.panel.left.closed) .cam-toolbar {
+  --cam-start: calc(var(--gutter) * 2 + 170px);
+}
+body:has(.panel.right.closed) .cam-toolbar {
+  --cam-end: calc(var(--gutter) * 2 + 170px);
+}
+/* both panels open on a mid-size screen: icon-only buttons (each keeps its name and tooltip) */
+@media (max-width: 1600px) {
+  body:has(.panel.left:not(.closed)):has(.panel.right:not(.closed)) .cam-toolbar .label {
+    display: none;
+  }
 }
 .cam-toolbar button {
   border: 0;
@@ -829,9 +863,28 @@ html[dir='rtl'] .toggle input:checked::after {
   background: rgba(255, 255, 255, 0.07);
   color: var(--text-0);
 }
-.cam-toolbar button[aria-pressed='true'] {
+.cam-toolbar button {
+  position: relative;
+}
+/* the active mode is marked by shape and weight too, not by colour alone */
+.cam-toolbar button[aria-pressed='true'],
+.cam-toolbar button[aria-checked='true'],
+.cam-toolbar button[aria-selected='true'] {
   background: var(--cyan-dim);
   color: var(--cyan);
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(69, 212, 232, 0.55);
+}
+.cam-toolbar button[aria-pressed='true']::after,
+.cam-toolbar button[aria-checked='true']::after,
+.cam-toolbar button[aria-selected='true']::after {
+  content: '';
+  position: absolute;
+  inset-inline: 8px;
+  bottom: 2px;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
 }
 .cam-toolbar button[disabled] {
   opacity: 0.38;
@@ -904,7 +957,10 @@ html[dir='rtl'] .toggle input:checked::after {
   align-items: flex-end;
   gap: 1px;
   pointer-events: none;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+  /* a dark plate keeps the caption readable over any part of the scene (bright roofs, sky) */
+  padding: 5px 9px;
+  border-radius: var(--r-sm);
+  background: rgba(7, 11, 17, 0.78);
   transition: inset-inline-end var(--t-med) var(--ease-out);
 }
 .district-caption.shifted {
@@ -913,12 +969,12 @@ html[dir='rtl'] .toggle input:checked::after {
 .district-caption b {
   font-size: 11.5px;
   font-weight: 650;
-  color: rgba(243, 246, 249, 0.92);
+  color: var(--text-0);
   letter-spacing: 0.02em;
 }
 .district-caption span {
   font-size: 10.5px;
-  color: rgba(195, 205, 216, 0.85);
+  color: var(--text-1);
 }
 @media (max-width: 860px) {
   .district-caption {
@@ -1153,14 +1209,83 @@ body:has(.map2d) .cam-toolbar {
     bottom: calc(var(--bar-h) + var(--gutter) * 2);
     max-height: 52%;
   }
-  .cam-toolbar {
-    top: auto;
-    bottom: calc(var(--bar-h) + var(--gutter) * 2);
-    max-width: calc(100% - 16px);
-    overflow-x: auto;
+  /* the panels open from the bottom on small screens: the toolbar stays at the top, between the
+     collapsed-panel toggles (icon only here) */
+  .cam-toolbar,
+  body:has(.panel.left.closed) .cam-toolbar,
+  body:has(.panel.right.closed) .cam-toolbar {
+    --cam-start: calc(var(--gutter) * 2 + 46px);
+    --cam-end: calc(var(--gutter) * 2 + 46px);
+  }
+  .cam-toolbar button {
+    padding: 0 7px;
   }
   .cam-toolbar .label {
     display: none;
+  }
+  /* playback bar: keep the speed control, compact, and let the timeline shrink */
+  .bar {
+    gap: 6px;
+    padding: 0 8px;
+  }
+  .bar .divider {
+    display: none;
+  }
+  .bar .seg.hide-sm {
+    display: flex !important;
+    width: auto !important;
+    flex-shrink: 0;
+  }
+  .bar .seg button {
+    flex: 0 0 auto;
+    padding: 5px 5px;
+  }
+  .timeline {
+    min-width: 60px;
+  }
+}
+
+@media (max-width: 600px) {
+  /* the timeline takes its own row above the controls */
+  :root {
+    --bar-h: 92px;
+  }
+  .bar {
+    flex-wrap: wrap;
+    align-content: center;
+    row-gap: 2px;
+    padding: 4px 8px;
+  }
+  .bar .timeline {
+    order: -1;
+    flex: 1 0 100%;
+    height: 34px;
+  }
+  .time-readout {
+    min-width: 0;
+    margin-inline-end: auto;
+  }
+  .play-btn {
+    width: 34px;
+    height: 34px;
+  }
+  .bar .btn.icon {
+    width: 28px;
+  }
+  /* every speed stays reachable: the control scrolls inside itself when 320 px cannot fit them all
+     (keyboard focus scrolls the focused speed into view) */
+  .bar .seg.hide-sm {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .bar .seg button {
+    padding: 4px;
+    font-size: 11px;
+  }
+  .bar .seg button:focus-visible {
+    outline-offset: -2px;
   }
 }
 
@@ -1230,6 +1355,7 @@ body:has(.map2d) .cam-toolbar {
 .mini-title {
   margin: 12px 0 4px;
   font-size: 10.5px;
+  font-weight: inherit;
   color: var(--text-2);
 }
 .spark {

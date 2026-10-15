@@ -79,7 +79,7 @@ export function DmOverview({ dm }: { dm: DmFrame }) {
   return (
     <Section title={t('dm.title')} extra={<span className="chip cyan">{t('dm.policy')} {dm.policy}</span>}>
       {dm.ev && <EvMission ev={dm.ev} />}
-      <div className="mini-title">{t('dm.incidents')}</div>
+      <h4 className="mini-title">{t('dm.incidents')}</h4>
       {dm.incidents.length === 0 ? (
         <p className="note">{t('dm.none')}</p>
       ) : (
@@ -87,16 +87,19 @@ export function DmOverview({ dm }: { dm: DmFrame }) {
           {dm.incidents.slice(0, 5).map((i) => (
             <li key={i.id}>
               <button className="inc-item" onClick={() => controller.selectIncident(i.id)}>
-                <span className={`inc-dot ${i.status}`} />
+                <span className={`inc-dot ${i.status}`} aria-hidden="true" title={t(`inc.status.${i.status}` as I18nKey)} />
                 <span className="mono">{i.id}</span>
-                <span className="inc-name">{t(`inc.type.${i.type}` as I18nKey)}</span>
+                <span className="inc-name">
+                  {t(`inc.type.${i.type}` as I18nKey)}
+                  <span className="sr-only">, {t(`inc.status.${i.status}` as I18nKey)}</span>
+                </span>
                 <span className="inc-meta">{(i.junctions.length ? i.junctions : i.links).join(' ')}</span>
               </button>
             </li>
           ))}
         </ul>
       )}
-      <div className="mini-title">{t('dm.exceptions')}</div>
+      <h4 className="mini-title">{t('dm.exceptions')}</h4>
       <div className="kv small">
         <span>{t('dm.open')}</span>
         <b className="num">{dm.exceptions.open}</b>
@@ -113,7 +116,7 @@ export function DmOverview({ dm }: { dm: DmFrame }) {
         <span>{t('dm.mrcTime')}</span>
         <b className="num">{(dm.stats.mrcVehicleSeconds / 60).toFixed(1)} veh·min</b>
       </div>
-      <div className="mini-title">{t('dm.operators')}</div>
+      <h4 className="mini-title">{t('dm.operators')}</h4>
       <div className="ops">
         {dm.operators.map((o, i) => (
           <div key={i} className={`op ${o.busy ? 'busy' : ''}`}>
@@ -123,7 +126,7 @@ export function DmOverview({ dm }: { dm: DmFrame }) {
           </div>
         ))}
       </div>
-      <div className="mini-title">{t('dm.messages')}</div>
+      <h4 className="mini-title">{t('dm.messages')}</h4>
       <div className="kv small">
         <span>{t('dm.published')}</span>
         <b className="num">{dm.stats.published}</b>
@@ -145,7 +148,11 @@ function MessageRow({ m }: { m: MessageView }) {
   return (
     <li className={`msg tone-${tone}`}>
       <button className="msg-head" onClick={() => setOpen((x) => !x)} aria-expanded={open}>
-        <span className="mono msg-id">{m.msgId}</span>
+        <span className="mono msg-id">
+          {m.verdict && <Icon name={tone === 'ok' ? 'check' : tone === 'warn' ? 'alert' : 'x'} className={`msg-mark ${tone}`} />}
+          {m.verdict && <span className="sr-only">{t(`msg.v.${tone}` as I18nKey)}: </span>}
+          {m.msgId}
+        </span>
         <span className="msg-type">{m.type}</span>
         <span className="msg-v">v{m.version}</span>
         <span className="msg-t mono">{formatRel(m.issuedAt)}</span>
@@ -158,7 +165,7 @@ function MessageRow({ m }: { m: MessageView }) {
           </div>
           {m.verdict && m.verdict.checks.length > 0 && (
             <>
-              <div className="mini-title">{t('msg.checks')}</div>
+              <h4 className="mini-title">{t('msg.checks')}</h4>
               <ul className="checks">
                 {m.verdict.checks.map((c, i) => (
                   <li key={i} className={c.pass ? 'pass' : 'fail'}>
@@ -194,7 +201,7 @@ export function IncidentInspector({ f }: { f: IncidentFrame }) {
           </div>
         </div>
         <span style={{ flex: 1 }} />
-        <button className="btn sm" onClick={() => controller.selectIncident(inc.id, true)}>
+        <button className="btn sm" onClick={() => controller.selectIncident(inc.id, true)} aria-label={t('inc.focus')} title={t('inc.focus')}>
           <Icon name="target" />
         </button>
         <button className="btn sm icon ghost" onClick={() => select(null)} aria-label={t('inc.close')} title={t('inc.close')}>
@@ -225,7 +232,7 @@ export function IncidentInspector({ f }: { f: IncidentFrame }) {
         </div>
         {Object.keys(f.queueAtJunctions).length > 0 && (
           <>
-            <div className="mini-title">{t('inc.queues')}</div>
+            <h4 className="mini-title">{t('inc.queues')}</h4>
             <div className="jbars">
               {Object.entries(f.queueAtJunctions).map(([j, n]) => (
                 <div key={j} className="jbar">
@@ -308,7 +315,7 @@ export function VehicleDmSection({ d, connected }: { d: VehicleDmView | null; co
       )}
       {d.exceptions.length > 0 && (
         <>
-          <div className="mini-title">{t('vdm.exceptions')}</div>
+          <h4 className="mini-title">{t('vdm.exceptions')}</h4>
           <ol className="exc">
             {d.exceptions.map((x) => (
               <li key={x.id} className={`exc-${x.status}`}>

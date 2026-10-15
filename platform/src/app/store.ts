@@ -84,9 +84,12 @@ interface UIState {
   scenario: ScenarioKey;
   engineering: boolean;
   tour: TourState | null;
+  /** Single-key shortcuts (1–7, [ ], Space, Shift+P); they can be turned off (WCAG 2.1.4). */
+  shortcuts: boolean;
 
   setView: (v: View) => void;
   setTour: (t: TourState | null) => void;
+  setShortcuts: (on: boolean) => void;
   setDmFrames: (dm: DmFrame | null, incident: IncidentFrame | null, vehicleDm: VehicleDmView | null, events: SimEvent[], markers: Marker[]) => void;
   setScenario: (s: ScenarioKey) => void;
   toggleEngineering: () => void;
@@ -130,6 +133,14 @@ function initialQuality(): QualityChoice {
   return 'auto';
 }
 
+function initialShortcuts(): boolean {
+  try {
+    return localStorage.getItem('dm.shortcuts') !== 'off';
+  } catch {
+    return true;
+  }
+}
+
 export const useStore = create<UIState>((set, get) => ({
   view: 'twin',
   lang: initialLang(),
@@ -160,9 +171,18 @@ export const useStore = create<UIState>((set, get) => ({
   scenario: 'normal',
   engineering: false,
   tour: null,
+  shortcuts: initialShortcuts(),
 
   setView: (view) => set({ view }),
   setTour: (tour) => set({ tour }),
+  setShortcuts: (shortcuts) => {
+    try {
+      localStorage.setItem('dm.shortcuts', shortcuts ? 'on' : 'off');
+    } catch {
+      /* ignore */
+    }
+    set({ shortcuts });
+  },
   select: (selection) => set({ selection, vehicle: selection?.kind === 'vehicle' ? get().vehicle : null }),
   setFrames: (network, vehicle) => set({ network, vehicle }),
   setBusy: (busy) => set({ busy }),

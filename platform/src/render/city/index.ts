@@ -28,6 +28,9 @@ export class CityRenderer {
   private skyline: SkylineLayer;
   private blocks: BlockOutput;
   private darkJunctions = new Set<string>();
+  private readonly obsRay = new THREE.Ray();
+  private readonly obsBox = new THREE.Box3();
+  private readonly obsHit = new THREE.Vector3();
 
   constructor(net: Network, maxAnisotropy: number, quality: QualityProfile) {
     this.net = net;
@@ -129,14 +132,24 @@ export class CityRenderer {
 
   /** Distance from `from` toward `to` until a building is hit, for the camera; null when clear. */
   obstacle(from: THREE.Vector3, to: THREE.Vector3): number | null {
-    const dir = new THREE.Vector3().subVectors(to, from);
-    const len = dir.length();
-    dir.normalize();
-    const ray = new THREE.Ray(from, dir);
-    const box = new THREE.Box3();
-    const hit = new THREE.Vector3();
+    // runs every frame on low camera shots (follow, street): scratch objects, and boxes off the
+    // segment's ground footprint or below its lowest point are rejected before the ray test
+    const ray = this.obsRay;
+    const box = this.obsBox;
+    const hit = this.obsHit;
+    ray.origin.copy(from);
+    ray.direction.subVectors(to, from);
+    const len = ray.direction.length();
+    if (len < 1e-6) return null;
+    ray.direction.multiplyScalar(1 / len);
+    const minX = Math.min(from.x, to.x);
+    const maxX = Math.max(from.x, to.x);
+    const minZ = Math.min(from.z, to.z);
+    const maxZ = Math.max(from.z, to.z);
+    const minY = Math.min(from.y, to.y);
     let best: number | null = null;
     for (const b of this.blocks.bounds) {
+      if (b.x1 < minX || b.x0 > maxX || -b.y0 < minZ || -b.y1 > maxZ || b.h < minY) continue;
       box.min.set(b.x0, 0, -b.y1);
       box.max.set(b.x1, b.h, -b.y0);
       // a focus point inside a footprint (for example the centroid of an incident area) is not an obstacle

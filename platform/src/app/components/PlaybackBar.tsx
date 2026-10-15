@@ -9,6 +9,7 @@ const SPEEDS = [0.5, 1, 2, 4, 8, 16];
 export function PlaybackBar({ markers = [], length }: { markers?: TimelineMarker[]; length: number }) {
   const t = useT();
   const clock = useStore((s) => s.clock);
+  const shortcuts = useStore((s) => s.shortcuts);
   const span = Math.max(length, clock.horizon, clock.t, 1);
   const pct = (x: number) => `${Math.max(0, Math.min(100, (x / span) * 100))}%`;
   const nextMarker = markers.find((m) => m.t > clock.t + 0.5);
@@ -20,7 +21,7 @@ export function PlaybackBar({ markers = [], length }: { markers?: TimelineMarker
           className="play-btn"
           onClick={() => controller.togglePlay()}
           aria-label={clock.playing ? t('play.pause') : t('play.play')}
-          title={`${clock.playing ? t('play.pause') : t('play.play')} (Space)`}
+          title={`${clock.playing ? t('play.pause') : t('play.play')}${shortcuts ? ' (Space)' : ''}`}
         >
           <Icon name={clock.playing ? 'pause' : 'play'} />
         </button>

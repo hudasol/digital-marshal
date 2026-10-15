@@ -31,16 +31,21 @@ function scene(scenario: ScenarioKey): void {
   if (!controller.playing) controller.togglePlay();
 }
 
+/** Smooth scrolling unless the viewer asked for reduced motion (read at call time: it can change). */
+function scrollBehavior(): ScrollBehavior {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+}
+
 function scrollView(selector: string, offset = 70): void {
   const view = document.querySelector('.view');
   const el = document.querySelector(selector);
-  if (view && el) view.scrollTo({ top: (el as HTMLElement).offsetTop - offset, behavior: 'smooth' });
+  if (view && el) view.scrollTo({ top: (el as HTMLElement).offsetTop - offset, behavior: scrollBehavior() });
 }
 
 function scrollPanel(text: string): void {
   const body = document.querySelector('.panel.left .panel-body');
   const sec = [...document.querySelectorAll('.panel.left .section')].find((s) => s.textContent?.includes(text));
-  if (body && sec) body.scrollTo({ top: (sec as HTMLElement).offsetTop - 50, behavior: 'smooth' });
+  if (body && sec) body.scrollTo({ top: (sec as HTMLElement).offsetTop - 50, behavior: scrollBehavior() });
 }
 
 /** A robotaxi moving on the boulevard, for the follow camera. */

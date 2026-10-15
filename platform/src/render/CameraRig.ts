@@ -314,6 +314,11 @@ export class CameraRig {
   }
 
   get target(): THREE.Vector3 {
-    return new THREE.Vector3(this.pose.tx, this.pose.ty, this.pose.tz);
+    return this.targetInto(new THREE.Vector3());
+  }
+
+  /** The look-at point written into `out` (no allocation; called every frame). */
+  targetInto(out: THREE.Vector3): THREE.Vector3 {
+    return out.set(this.pose.tx, this.pose.ty, this.pose.tz);
   }
 }
