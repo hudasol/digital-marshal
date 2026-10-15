@@ -1,0 +1,16 @@
+requirement,implementation,test_or_evidence,status
+Closure gate measured from records,models/point_queue/wp2_9/src/canonical_model.py,models/point_queue/wp2_9/tests/test_gates_and_horizon.py,done and tested
+One horizon contract,models/point_queue/wp2_9/src/canonical_model.py (HORIZON_S),models/point_queue/wp2_9/tests/test_gates_and_horizon.py and docs/decisions/ADR-0001-horizon.md,done; awaiting owner confirmation
+Independent FIFO audit from raw records,models/point_queue/wp2_9/src/raw_audit.py,models/point_queue/wp2_9/tests/test_raw_audit.py,done and tested
+Adversarial tests: closed links incomplete trips horizon boundaries illegal routes,models/point_queue/wp2_9/tests,test_gates_and_horizon.py and test_raw_audit.py,done and tested
+Tests assert meaningful values,models/point_queue/wp2_9/tests/test_values.py,hand computed and pinned values,done
+Baseline preserved byte for byte,models/point_queue/baseline_wp2_7,diff against supplied copy and tests/golden,done
+Three named policies,models/point_queue/wp2_9/src/confirmatory.py,test_values.py pinned results,done in point queue; SUMO policy semantics differ (see reconciliation)
+Exploratory policies labelled and separate,models/point_queue/wp2_9/src/exploratory.py,test_exploratory.py,done
+SUMO network and runner,simulation/sumo,simulation/sumo/scripts/smoke.py,done for three scenarios
+SUMO invariant audit of raw records,simulation/sumo/scripts/smoke.py (audit),simulation/sumo/tests/test_smoke_audit.py,done for smoke scale
+Decision log with time options perceived costs route,simulation/sumo/scripts/dm_run.py (decisions.csv),results/manifests/sumo_smoke_run,partial: capacity state closures and fallback actions are not logged
+Five scenario families in SUMO,not implemented for half and double capacity,none,open
+Closure and stale information scenario,not implemented,none,open
+Cross model reconciliation,docs/CROSS_MODEL_RECONCILIATION.md,tests/test_reconcile_doc.py,done as exploratory
+Seeds config hash software versions in SUMO outputs,seed recorded; config hash not recorded,none,partial
