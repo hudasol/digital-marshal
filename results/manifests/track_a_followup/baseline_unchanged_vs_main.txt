@@ -1,0 +1,9 @@
+# Baseline source, tests and results versus main (must be empty: nothing under the baseline folder changed)
+(end baseline)
+# Files in this pull request under the historical and decision folders by status (A = added; M or D would be a change to existing content)
+A	docs/decisions/source/WP2_8_Phase1_Threshold_Decision.md
+A	docs/decisions/source/acceptance_criteria.json
+A	results/historical/wp2_7_reported/WP2_7_Audit_Report.md
+A	results/historical/wp2_7_reported/execution_summary.json
+A	results/historical/wp2_7_reported/paired_comparison.json
+A	results/historical/wp2_7_reported/test_results.txt

@@ -1,0 +1,18 @@
+# committed baseline file hash vs hash recorded for the original archive member (recorded values are not recomputed from the archive)
+EQUAL     README.md 8581fb346f2b978997f31bc1b0992f3dcbf6113dc9e77789b16025877a1ecbb5
+EQUAL     docs/FAIRNESS_AND_METRICS.md 4c29a3f5b0c7123ca27e61f2c658fc072d94fcb44fcd56e70910787948c9016a
+EQUAL     docs/PROJECT_CHECKLIST_STATUS.md e21e8c9962d57b530e2519d262e626127c8b4b4652b3600d8babee6db5feaca9
+EQUAL     results/WP2_7_Audit_Report.md 4b2f94764848d5180bee33bba5e8e3498f63e2abac365f4b76bc504eec10da3e
+EQUAL     results/batch_allocation_log.csv fd964b107068e87bc70b37e46302986b77bf5d8a72c714ae464000c5f328d92b
+EQUAL     results/confirmatory_metrics.csv f912881e56ab964e95edf8f014e425b289c744fbb7158007560003a98515503b
+EQUAL     results/decision_log.csv bd8fde7715e453b6a2ac213be02754b0ace9dfd2a8c2c851c9a74009a0379a76
+EQUAL     results/edge_event_records.csv fa88945e82aa2cdca9f0e596717141ca6a953502063a725b0050a2cf94087d07
+EQUAL     results/execution_summary.json 222da5fc5e2acfbc3443696500abd535532dfe2835a7c7ec46246efcf02671b9
+EQUAL     results/invariant_audit.json 063457cea1ca01c6d3f5341f18810d0d30653a61fdc789018dfeb915c1e066d4
+EQUAL     results/metric_spec.json 73bf238dac359849f9df458e382a85008052a8a473a75d99fdec49cbd20d4f92
+EQUAL     results/paired_comparison.json d6e20a0bc83a12ac9dfb548f660eb24564bce2723e5162712aa076bce6b8dbf3
+EQUAL     results/test_results.txt e4c4fe14ac8c919a0b136a53c0a62facf9134d0ea7cd83f8ff33160541ebd0a8
+EQUAL     results/vehicle_records.csv dd5386803e225ca5546f47ce45ee4e8a1cea797acfcb0f25eac1157a174f45b5
+EQUAL     src/canonical_model.py 2d3027a7c6a2fc64a4c3f999fe6e3554a42134a1754db7b2c615054888cddeaa
+EQUAL     src/confirmatory.py 26f05f6f2d99661bb05d11cd0de575ee35c5639c953ed4d2d2d236987f3c91cf
+EQUAL     tests/test_confirmatory.py 24f5ff2564403326e6c0d061978018db6dc8bdb922b6a845fb87f5a7af754f31
