@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Digital Marshal 3D: Corridor Incident Response</title>
+<meta name="description" content="Three routing policies replayed in 3D on the frozen Digital Marshal point queue model. Synthetic network, not an RTA system.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="3d/style.css">
+</head>
+<body>
+<a class="skip" href="#play" data-i="skip"></a>
+<div id="stage" tabindex="0" role="application" data-ia="stageA"></div>
+
+<header id="top">
+  <img class="logo" src="assets/rta-logo.png" alt="Roads and Transport Authority" width="148" height="40">
+  <div class="tt"><h1 data-i="title"></h1><div class="st" data-i="subtitle"></div></div>
+  <div class="sp"></div>
+  <span class="chip g opt" data-i="chip1"></span>
+  <span class="chip opt" data-i="chip2"></span>
+  <span class="chip opt" data-i="chip3"></span>
+  <button class="b" id="resBtn" data-i="resBtn"></button>
+  <button class="b" id="dataBtn"></button>
+  <a class="b" href="index.html" data-i="view2d"></a>
+  <button class="b" id="langBtn">العربية</button>
+</header>
+
+<div id="huds"></div>
+
+<aside id="res" aria-labelledby="resH">
+  <h2 id="resH" data-i="resT"></h2><div class="sub" id="resSub"></div>
+  <div class="pr" style="border-top:0;padding-top:0"><div class="n" data-i="chartT"></div><canvas id="chart" width="600" height="190"></canvas></div>
+  <div id="prs"></div>
+  <div class="ft" data-i="resNote"></div>
+</aside>
+
+<div id="cap" class="off" role="status" aria-live="polite" aria-atomic="true"><span class="k" id="capK"></span><p id="capT"></p><button class="x" id="capX" data-ia="close">×</button></div>
+
+<div id="dock" role="group" data-ia="dockA">
+  <div class="r">
+    <label for="scn" data-i="scn"></label><select id="scn"></select>
+    <button class="b pri" id="play"></button><button class="b" id="restart" data-i="restart"></button>
+    <div class="sg hid" id="spd" role="group" data-ia="spdA"></div>
+    <span class="clock" id="clock"></span>
+    <div class="scrub"><input type="range" id="scrub" min="0" max="600" step="1" value="0" data-ia="scrubA"><span class="mk" id="mk"></span></div>
+  </div>
+  <div class="r">
+    <div class="sg" id="cams" role="group" data-ia="camsA"></div>
+    <button class="b hid" id="lblBtn" data-i="labels"></button>
+    <button class="b gold" id="tourBtn" data-i="tour"></button>
+    <span class="sp2"></span>
+    <label for="incT" data-i="incT"></label><input type="range" id="incT" min="0" max="300" step="5" value="120" data-ia="incA"><b id="incV" style="min-width:42px;font-size:12px">120 s</b>
+    <button class="b pri" id="injNow" data-i="injNow"></button><button class="b" id="injReset" data-i="injReset"></button>
+  </div>
+</div>
+
+<div id="tip"></div>
+
+<div id="data" hidden role="region" tabindex="-1" data-ia="dataA"></div>
+
+<footer id="foot"><b data-i="ft1"></b><span data-i="ft2"></span></footer>
+
+<div id="intro" role="dialog" aria-modal="true" aria-labelledby="introH">
+  <div class="card">
+    <div class="eyebrow" data-i="iEye"></div>
+    <h2 id="introH" data-i="iH"></h2>
+    <p data-i="iP"></p>
+    <div class="kp"><div class="t" id="kpT"></div><div id="kpRows"></div></div>
+    <div class="btns"><button class="b pri" id="goTour" data-i="goTour"></button><button class="b" id="goFree" data-i="goFree"></button></div>
+    <div class="note" data-i="iNote"></div>
+    <div class="note s" data-i="iNote2"></div>
+  </div>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script src="data.js"></script>
+<script src="engine.js"></script>
+<script src="3d/scene.js"></script>
+<script src="3d/data.js"></script>
+<script src="3d/app.js"></script>
+</body>
+</html>

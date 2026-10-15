@@ -35,11 +35,11 @@ function makeVehicles(D,n,spacing){
   for(var i=0;i<n;i++){var id='V'+('000'+(i+1)).slice(-3),d=i*spacing,p=Math.max(d+e1.free_min*60,prev+head);prev=p;vs.push({id:id,depart_s:d,p_arrival_s:p});}
   return vs;
 }
-function batches(vs,T){
+function batches(vs,T,A){
   var groups={};
   vs.forEach(function(v){
     if(v.p_arrival_s<T)return;
-    var epoch=180+Math.floor(Math.max(0,v.p_arrival_s-180)/UPDATE)*UPDATE;
+    var epoch=A+Math.floor(Math.max(0,v.p_arrival_s-A)/UPDATE)*UPDATE;   // grid anchored at the first split point arrival (180 s on the frozen graph)
     if(epoch<T)epoch=T;
     (groups[epoch]=groups[epoch]||[]).push(v);
   });
@@ -47,11 +47,12 @@ function batches(vs,T){
     return [t,groups[t].sort(function(a,b){return a.p_arrival_s-b.p_arrival_s||(a.id<b.id?-1:1);})];
   });
 }
+function anchorOf(D){var f=180;D.graph.edges.forEach(function(e){if(e.id==='E1')f=e.free_min*60;});return f;}
 function subset(vs,idset){return vs.filter(function(v){return idset[v.id];});}
 function assign(D,vs,scale,policy,T){
   var assigned={},stats=[];
   vs.forEach(function(v){if(v.p_arrival_s<T)assigned[v.id]='critical';});   // already past the split point before the incident
-  batches(vs,T).forEach(function(b){
+  batches(vs,T,anchorOf(D)).forEach(function(b){
     var epoch=b[0],group=b[1],before={};Object.keys(assigned).forEach(function(k){before[k]=assigned[k];});
     var choices={},bestK=null;
     if(policy==='static'){group.forEach(function(v){choices[v.id]='A';});}
