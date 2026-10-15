@@ -1,0 +1,7 @@
+2026-10-15T00:52Z
+Python 3.13.16
+eclipse-sumo==1.28.0
+sumo-data==1.28.0
+sumolib==1.28.0
+traci==1.28.0
+Linux 6.18.44-fc-v114

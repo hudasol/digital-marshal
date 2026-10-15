@@ -1,0 +1,21 @@
+{
+  "scenario": "manageable_primary",
+  "policy": "independent_periodic",
+  "seed": 1,
+  "vehicles": 75,
+  "completed": 75,
+  "incomplete": 0,
+  "total_vehicle_min": 857.604,
+  "mean_min": 11.4347,
+  "p95_min": 13.5094,
+  "n_A": 35,
+  "n_B": 40,
+  "unassigned": 0,
+  "closed_link_entries": 0,
+  "illegal_transitions": 0,
+  "collisions": 0,
+  "duplicate_arrivals": 0,
+  "sim_end_s": 941.0,
+  "mean_time_loss_s": 52.952,
+  "checks_pass": true
+}
