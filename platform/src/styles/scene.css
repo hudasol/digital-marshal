@@ -342,20 +342,41 @@ html[lang='ar'] .minimap-title {
   text-align: center;
 }
 .loader .brand-mark {
-  width: 64px;
-  height: 64px;
-  margin-bottom: 8px;
-  filter: drop-shadow(0 0 22px rgba(69, 212, 232, 0.35));
+  width: 96px;
+  height: 96px;
+  margin-bottom: 16px;
+  color: var(--text-0);
+  filter: drop-shadow(0 0 26px rgba(236, 1, 1, 0.3));
   animation: loader-breathe 2.4s ease-in-out infinite;
 }
 .loader-title {
-  font-size: 22px;
+  font-family: 'Montserrat', var(--font-ui);
+  font-size: 40px;
   font-weight: 800;
-  letter-spacing: 0.32em;
+  letter-spacing: -0.015em;
+  line-height: 1.05;
   color: var(--text-0);
 }
 html[lang='ar'] .loader-title {
+  font-family: var(--font-ar);
+  font-weight: 600;
+  font-size: 34px;
   letter-spacing: 0;
+}
+.loader-tag {
+  font-family: 'Montserrat', var(--font-ui);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--text-1);
+  margin: 8px 0 6px;
+}
+html[lang='ar'] .loader-tag {
+  font-family: var(--font-ar);
+  font-size: 14px;
+  letter-spacing: 0;
+  text-transform: none;
 }
 .loader-sub {
   font-size: 13px;
@@ -425,4 +446,45 @@ html[lang='ar'] .loader-title {
   border-bottom-width: 2px;
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.04);
+}
+
+/* About page: the full lockup */
+.about-brand {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 8px;
+}
+.about-brand .brand-mark {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  color: var(--text-0);
+}
+.about-brand h1 {
+  font-family: 'Montserrat', var(--font-ui);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  margin: 0;
+  line-height: 1.05;
+}
+html[lang='ar'] .about-brand h1 {
+  font-family: var(--font-ar);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.about-tagline {
+  font-family: 'Montserrat', var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  margin-top: 6px;
+}
+html[lang='ar'] .about-tagline {
+  font-family: var(--font-ar);
+  font-size: 14px;
+  letter-spacing: 0;
+  text-transform: none;
 }

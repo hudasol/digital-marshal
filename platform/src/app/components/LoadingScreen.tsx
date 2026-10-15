@@ -25,6 +25,7 @@ export function LoadingScreen() {
       <div className="loader-inner">
         <BrandMark />
         <div className="loader-title">{t('brand.name')}</div>
+        <div className="loader-tag">{t('brand.tagline')}</div>
         <div className="loader-sub">{t('brand.sub')}</div>
         <div className="loader-bar" aria-hidden="true">
           <i style={{ width: `${building || ready ? 100 : Math.max(4, pct)}%` }} />

@@ -21,11 +21,11 @@ export function Header() {
 
   return (
     <header className="header" role="banner">
-      <div className="brand">
+      <div className="brand" title={t('brand.sub')}>
         <BrandMark />
         <div className="brand-text">
           <span className="brand-name">{t('brand.name')}</span>
-          <span className="brand-sub">{t('brand.sub')}</span>
+          <span className="brand-sub">{t('brand.tagline')}</span>
         </div>
       </div>
 

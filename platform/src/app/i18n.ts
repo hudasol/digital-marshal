@@ -3,8 +3,9 @@ import { useStore } from './store';
 /* English is the source; Arabic must define every key (the compiler enforces it).
    Values may contain {name} placeholders filled by fmt(). */
 const en = {
-  'brand.name': 'DIGITAL MARSHAL',
+  'brand.name': 'digital marshal',
   'brand.sub': 'Autonomous Mobility Intelligence Platform',
+  'brand.tagline': 'See the road before it happens',
   'chip.prototype': 'Synthetic research prototype',
   'chip.prototype.title':
     'Independent student prototype. Synthetic Dubai-inspired district; no RTA systems, data or endorsement.',
@@ -720,6 +721,7 @@ export type I18nKey = keyof typeof en;
 const ar: Record<I18nKey, string> = {
   'brand.name': 'المارشال الرقمي',
   'brand.sub': 'منصة ذكاء التنقل الذاتي',
+  'brand.tagline': 'شاهد الطريق قبل أن يحدث',
   'chip.prototype': 'نموذج بحثي اصطناعي',
   'chip.prototype.title':
     'نموذج طلابي مستقل. حي اصطناعي مستوحى من دبي؛ لا أنظمة ولا بيانات ولا اعتماد من هيئة الطرق والمواصلات.',

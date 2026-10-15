@@ -1,4 +1,5 @@
 import { useT, type I18nKey } from '../i18n';
+import { BrandMark } from '../components/Icons';
 
 /* About: the research question, the architecture, what is and is not claimed, and the roadmap.
    Written for judges and engineers; it states limits as plainly as results. */
@@ -91,7 +92,13 @@ export function AboutView() {
     <div className="view" role="main">
       <div className="view-inner stack">
         <div>
-          <h1>{t('brand.name')}</h1>
+          <div className="about-brand">
+            <BrandMark />
+            <div>
+              <h1>{t('brand.name')}</h1>
+              <div className="about-tagline">{t('brand.tagline')}</div>
+            </div>
+          </div>
           <p className="lede">{t('ab.lede')}</p>
         </div>
 

@@ -85,6 +85,14 @@ npm run preview    # serve the production build on http://localhost:4173
   balanced redraws shadows only when the view moves and grounds vehicles with contact shadows; performance
   drops shadows and bloom. Auto picks a tier and steps down if the frame rate stays low.
 
+## Brand
+
+The mark (red signal arcs over an arrow and a road), the lowercase "digital marshal" wordmark in
+Montserrat and the tagline "See the road before it happens" follow the team's logo sheet in
+`../docs/brand/`. The mark's geometry is one file, `src/app/brandMark.ts`, used by the interface and by
+`npx tsx scripts/brand-assets.ts`, which regenerates the favicon, the home-screen icon, the link preview
+image and the SVG masters in `public/brand/`.
+
 ## Scenarios
 
 All three run on the same incident, message, validation and exception-coordination core, under policy

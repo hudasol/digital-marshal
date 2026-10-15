@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import { BRAND, MARK } from '../brandMark';
 
 /* Small stroke icon set (24 px grid, currentColor) drawn for this project. */
 
@@ -258,20 +259,18 @@ export function Icon({ name, title, className }: { name: IconName; title?: strin
   );
 }
 
+/** The Digital Marshal mark (src/app/brandMark.ts): red signal arcs, the arrow and road in the
+    current text colour, the road's dashes cut out so the background shows through. */
 export function BrandMark() {
   return (
-    <svg className="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
-      <defs>
-        <linearGradient id="dm-g" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#5fe3f2" />
-          <stop offset="1" stopColor="#2a9fd0" />
-        </linearGradient>
-      </defs>
-      <rect x="2" y="2" width="60" height="60" rx="15" fill="#0e1622" stroke="rgba(148,163,184,0.25)" />
-      <path d="M32 10v44M10 32h44" stroke="#273445" strokeWidth="7" strokeLinecap="round" />
-      <circle cx="32" cy="32" r="12.5" fill="none" stroke="url(#dm-g)" strokeWidth="3.6" />
-      <circle cx="32" cy="32" r="4.2" fill="url(#dm-g)" />
-      <path d="M32 10v9M54 32h-9" stroke="url(#dm-g)" strokeWidth="3.6" strokeLinecap="round" />
+    <svg className="brand-mark" viewBox={MARK.viewBox} aria-hidden="true">
+      <g fill="none" stroke={BRAND.red} strokeWidth={MARK.arcWidth} strokeLinecap="round">
+        {MARK.arcs.map((d) => (
+          <path key={d} d={d} />
+        ))}
+      </g>
+      <path d={MARK.arrow} fill="currentColor" stroke="currentColor" strokeWidth={MARK.arrowRound} strokeLinejoin="round" />
+      <path d={MARK.road} fill="currentColor" fillRule="evenodd" />
     </svg>
   );
 }

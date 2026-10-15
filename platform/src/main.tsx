@@ -4,6 +4,9 @@ import '@fontsource-variable/inter';
 import '@fontsource-variable/jetbrains-mono';
 import '@fontsource/ibm-plex-sans-arabic/400.css';
 import '@fontsource/ibm-plex-sans-arabic/600.css';
+// the wordmark's typeface (lowercase "digital marshal" and the spaced tagline)
+import '@fontsource/montserrat/600.css';
+import '@fontsource/montserrat/800.css';
 import './styles/app.css';
 import { App } from './app/App';
 import { hasWebGL2 } from './render/quality';
