@@ -73,6 +73,23 @@ describe('Digital Marshal blackout coordination', () => {
     }
   });
 
+  it('releases a vehicle once, without re-raising requests, and keeps waiting AVs out of all-way-stop queues', () => {
+    // seed and timing where the release step used to re-stop the vehicle and file a new request every 0.1 s
+    for (const policy of ['A', 'C'] as Policy[]) {
+      const s = createSession(net, { seed: 20271005, dm: { policy } });
+      s.intervene('blackout', { junctions: CLUSTER }, 30);
+      while (s.t < 200) {
+        s.stepOnce();
+        const st = s.engine.state;
+        for (const q of Object.values(st.awsc)) for (const e of q) expect(st.vehicles[e.id]?.mode, `${policy} ${st.t}`).not.toBe('mrc');
+      }
+      const ex = Object.values(dmFor(s.engine).s.exceptions);
+      const perVehicle = new Map<number, number>();
+      for (const e of ex) perVehicle.set(e.veh, (perVehicle.get(e.veh) ?? 0) + 1);
+      expect(Math.max(0, ...perVehicle.values()), policy).toBeLessThanOrEqual(3);
+    }
+  });
+
   it('replays the coordinated run exactly', () => {
     const a = blackoutRun('C', 200, 51);
     const b = blackoutRun('C', 200, 51);

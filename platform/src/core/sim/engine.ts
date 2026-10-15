@@ -1042,19 +1042,23 @@ export class Engine {
 
       if (c && link.endsAtJunction) {
         const dark = this.isDark(c.junction);
-        // dark junction: join the all-way-stop queue once stopped at the line
-        if (dark && v.awscAt < 0 && D < 2.5 && v.v < STOP_V && v.stopT >= 0.8 && v.bind.kind !== 'mrc') {
+        // decided now, not from the constraint computed at the start of the step: an AV may not
+        // cross a dark junction wider than its operating domain without an authorisation
+        const outsideOdd =
+          dark && v.av && !v.committed && this.net.junctions[c.junction].maxApproachLanes > this.cfg.oddMaxLanes && !(this.hooks.authorized?.(v, c.junction) ?? false);
+        // dark junction: join the all-way-stop queue once stopped at the line. Only vehicles that may
+        // cross join; a vehicle waiting for assistance would otherwise hold up every conflicting movement.
+        if (dark && !outsideOdd && v.mode === 'drive' && v.awscAt < 0 && D < 2.5 && v.v < STOP_V && v.stopT >= 0.8) {
           v.awscAt = st.t;
           (st.awsc[c.junction] ??= []).push({ id: v.id, at: st.t });
           this.log(v, 'AWSC_STOP', { junction: c.junction });
         }
-        // leave the minimal risk condition once guidance is granted or the signals work again
-        if (v.mode === 'mrc' && !(dark && !(this.hooks.authorized?.(v, c.junction) ?? false))) {
+        if (v.mode === 'mrc' && !outsideOdd) {
+          // guidance granted or signals working again: leave the minimal risk condition
           v.mode = 'drive';
           this.log(v, 'ASSIST_GRANTED', { junction: c.junction, by: dark ? 'remote_assistance' : 'signals_restored' });
-        }
-        // MRC trigger for AVs outside their domain at a dark junction
-        if (v.bind.kind === 'mrc' && v.mode === 'drive' && D < 60) {
+        } else if (v.mode === 'drive' && outsideOdd && v.bind.kind === 'mrc' && D < 60) {
+          // stopping for that reason: minimal risk condition, and ask for remote assistance
           v.mode = 'mrc';
           this.log(v, 'MRC', { junction: c.junction, reason: 'odd_uncontrolled_junction', lanes: this.net.junctions[c.junction].maxApproachLanes });
           this.hooks.onMrc?.(v, c.junction);
