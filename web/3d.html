@@ -48,7 +48,7 @@ button,select,input{font:inherit;color:inherit}
 .hud .g .q b{color:var(--red)}
 
 /* results panel */
-#res{position:fixed;top:calc(var(--hdr) + 10px);inset-inline-end:10px;width:330px;max-height:calc(100% - var(--hdr) - 150px);overflow:auto;background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:8px;z-index:15;padding:12px 14px;transition:transform .25s,opacity .25s}
+#res{position:fixed;top:calc(var(--hdr) + 10px);inset-inline-end:10px;width:330px;max-height:calc(100% - var(--hdr) - 178px);overflow:auto;background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:8px;z-index:15;padding:12px 14px;transition:transform .25s,opacity .25s}
 #res.hide{transform:translateX(calc(100% + 24px));opacity:0;pointer-events:none}
 body.ar #res.hide{transform:translateX(calc(-100% - 24px))}
 #res h2{margin:0 0 2px;font-size:13px;font-weight:700}
@@ -78,7 +78,7 @@ body.ar #res.hide{transform:translateX(calc(-100% - 24px))}
 #cap .x:hover{opacity:1}
 
 /* dock */
-#dock{position:fixed;left:50%;transform:translateX(-50%);bottom:30px;width:min(1080px,calc(100% - 32px));background:#fff;border:1px solid var(--line);border-radius:8px;z-index:17;padding:8px 12px;display:grid;gap:7px}
+#dock{position:fixed;left:50%;transform:translateX(-50%);bottom:30px;width:min(1200px,calc(100% - 32px));background:#fff;border:1px solid var(--line);border-radius:8px;z-index:17;padding:8px 12px;display:grid;gap:7px}
 #dock .r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 #dock label{font-size:10.5px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
 #dock select{border:1px solid var(--line);border-radius:6px;padding:5px 8px;background:#fff;font-weight:600;font-size:12px;max-width:270px}
