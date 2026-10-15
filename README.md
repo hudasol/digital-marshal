@@ -35,6 +35,14 @@ PYTHONPATH=src python src/confirmatory.py --out ../../../scratch/check
 python src/raw_audit.py --results ../../../scratch/check
 ```
 
+## Web viewers
+
+Static pages, no build step. Open `web/index.html` (2D control room) or `web/3d.html` (3D corridor view) from a file, or serve the folder with `python -m http.server -d web`.
+
+The 3D view replays the same frozen point queue output on three corridors side by side (static, independent periodic, coordinated). Drag to orbit, scroll to zoom, click a vehicle to follow it, press space to play. The guided tour captions are generated from the run data, and the incident time control recomputes all three policies with `web/engine.js`, the JavaScript port checked against the frozen results. Models are drawn in code, so there are no external assets other than the supplied logo.
+
+Third party and assets: `web/vendor/three.min.js` is three.js r149 under the MIT licence (`web/vendor/three.LICENSE.txt`). `web/assets/rta-logo.png` is the logo file supplied by the team, shown for context only and never altered. This remains a student prototype and not an RTA system.
+
 ## Results so far
 
 Numbers are in `docs/CROSS_MODEL_RECONCILIATION.md`, generated from result files. In short, the coordinated advantage over independent periodic is small in both models and below the provisional target, and much of it comes from vehicles seeing their peers' commitments.
