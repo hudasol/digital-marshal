@@ -7,3 +7,4 @@ venv/
 /scratch/
 simulation/sumo/results/raw/
 *.tar.gz
+brag-output*/

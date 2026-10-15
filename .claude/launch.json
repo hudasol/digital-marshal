@@ -1,6 +1,7 @@
 {
   "version": "0.0.1",
   "configurations": [
+    { "name": "platform-dev", "runtimeExecutable": "npm", "runtimeArgs": ["--prefix", "platform", "run", "dev", "--", "--strictPort"], "port": 5173 },
     { "name": "platform-preview", "runtimeExecutable": "npm", "runtimeArgs": ["--prefix", "platform", "run", "preview", "--", "--strictPort"], "port": 4173 }
   ]
 }
