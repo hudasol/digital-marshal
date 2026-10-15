@@ -1,0 +1,9 @@
+# fixed audit on a freshly regenerated complete package (scratch folder; regeneration check, not a confirmatory run)
+{
+  "expected_runs": 15,
+  "runs_audited": 15,
+  "all_pass": true,
+  "events_checked": 1792,
+  "violations": []
+}
+exit_status: 0

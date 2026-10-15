@@ -1,0 +1,22 @@
+# command: python tools/mutation_check.py . python   (cwd models/point_queue/wp2_9)
+KILLED   closure_violation hard-coded False again                FAILED (failures=4)  e.g. ['test_closure_boundary_entry_exactly_at_closure_counts', 'test_every_vehicle_on_closed_critical_route_is_flagged', 'test_pipeline_gate_fails_end_to_end_when_a_policy_leaks']
+KILLED   closed_link_entries hard-coded 0 again                  FAILED (failures=3)  e.g. ['test_every_vehicle_on_closed_critical_route_is_flagged', 'test_pipeline_gate_fails_end_to_end_when_a_policy_leaks', 'test_single_leaking_vehicle_is_counted_once']
+KILLED   horizon back to 3600 s                                  FAILED (failures=5)  e.g. ['test_closure_horizon_routes_and_scaling_match_the_model', 'test_frozen_outputs_are_byte_identical_to_wp27_baseline', 'test_single_source_of_truth_is_7200']
+KILLED   horizon decoupled: confirmatory keeps its own 7200      FAILED (failures=3)  e.g. ['test_frozen_outputs_are_byte_identical_to_wp27_baseline', 'test_metric_spec_declares_the_horizon_that_is_enforced', 'test_single_source_of_truth_is_7200']
+KILLED   coordinated tie-break flipped                           FAILED (failures=6)  e.g. ['test_all_fifteen_frozen_runs_pass_from_csv', 'test_frozen_outputs_are_byte_identical_to_wp27_baseline', 'test_improvements_match_the_adr_table']
+KILLED   independent policy copies a different probe             FAILED (failures=1)  e.g. ['test_pinned_totals_under_shifted_epoch_grids']
+KILLED   audit: headway check disabled                           FAILED (failures=1)  e.g. ['test_headway_below_service_time']
+KILLED   audit: overtaking check disabled                        FAILED (failures=1)  e.g. ['test_overtaking']
+KILLED   audit: closed-link check disabled                       FAILED (failures=2)  e.g. ['test_closed_link_entry_detected_from_raw_events_only', 'test_every_vehicle_on_closed_critical_route_is_flagged']
+KILLED   audit: teleport check disabled                          FAILED (failures=1)  e.g. ['test_teleport_between_edges']
+KILLED   audit: work-conservation check disabled                 FAILED (failures=1)  e.g. ['test_server_idle_while_vehicle_waited']
+KILLED   audit: horizon completion check disabled                FAILED (failures=1)  e.g. ['test_completion_flag_contradicts_horizon']
+KILLED   audit B-01: missing run no longer flagged               FAILED (failures=22, errors=1)  e.g. ['test_audit_results_dir_returns_a_failing_entry_for_every_missing_run', 'test_empty_directory_fails', 'test_missing_group_in_each_other_file_fails_closed_and_names_the_file']
+KILLED   audit B-01: unexpected run no longer flagged            FAILED (failures=2, errors=2)  e.g. ['test_extra_exploratory_policy_in_a_frozen_package_fails', 'test_extra_unknown_scenario_fails', 'test_renamed_policy_in_metrics_only_fails']
+KILLED   audit B-01: duplicate metrics row no longer flagged     FAILED (failures=1)  e.g. ['test_duplicated_metrics_row_fails']
+KILLED   audit B-01: decision log count no longer checked        FAILED (failures=1)  e.g. ['test_missing_decision_rows_fail']
+KILLED   audit B-01: expected matrix derived from the metrics file again (original defect) FAILED (failures=16, errors=9)  e.g. ['test_empty_directory_fails', 'test_extra_exploratory_policy_in_a_frozen_package_fails', 'test_extra_unknown_scenario_fails']
+KILLED   FIFO headway wrong in model (cap*1.1)                   FAILED (failures=19, errors=1)  e.g. ['setUpClass', 'test_all_fifteen_frozen_runs_pass_from_csv', 'test_all_policy_runs_have_zero_fifo_violations']
+
+18/18 mutants killed
+exit_status: 0

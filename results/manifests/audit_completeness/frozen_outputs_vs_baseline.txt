@@ -1,0 +1,6 @@
+MATCH confirmatory_metrics.csv
+MATCH decision_log.csv
+MATCH batch_allocation_log.csv
+MATCH vehicle_records.csv
+MATCH edge_event_records.csv
+MATCH metric_spec.json
