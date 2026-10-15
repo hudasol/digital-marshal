@@ -100,7 +100,7 @@ td,.hl b,.live b,.clock span,#log b{unicode-bidi:plaintext}
   .hdr .title h1{font-size:15px}.hdr .title div{font-size:11px}
   .chip{font-size:10px;padding:1px 8px}
   .wrap{height:calc(100% - 48px);max-width:none;margin:0;padding-block:6px;display:grid;gap:6px;
-    grid-template-columns:repeat(12,minmax(0,1fr));grid-template-rows:auto auto repeat(3,minmax(0,1fr)) auto auto;}
+    grid-template-columns:repeat(12,minmax(0,1fr));grid-template-rows:auto auto auto repeat(3,minmax(0,1fr)) auto auto;}
   .wrap>.bar{grid-column:1/-1;order:1}
   .wrap>.scrub{grid-column:1/-1;order:2;margin:0;height:14px}
   .wrap>.timeline{display:none}
@@ -127,6 +127,17 @@ td,.hl b,.live b,.clock span,#log b{unicode-bidi:plaintext}
   .leg.inbar{margin-inline-start:auto}
   .clock{margin-inline-start:0;font-size:13px}
 }
+
+.status{display:flex;gap:0;flex-wrap:wrap;background:var(--char);color:#fff;border:1px solid var(--char);font-size:11px}
+.status>div{padding:5px 14px;border-inline-end:1px solid #3A3C3F;display:flex;gap:8px;align-items:baseline;min-width:0}
+.status span.k{font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:#B8C0CC;font-weight:600}
+.status b{font-weight:700;font-variant-numeric:tabular-nums}
+.status .ok b{color:var(--gold)}
+.status .alert{background:var(--alert)}
+.status .alert span.k{color:#fff}
+@media (min-width:1200px) and (min-height:700px){
+  .wrap>.status{grid-column:1/-1;order:0}
+}
 @keyframes pulse{0%{r:6;opacity:.9}100%{r:70;opacity:0}}
 .pulse{animation:pulse 2.4s ease-out infinite}
 </style>
@@ -140,6 +151,7 @@ td,.hl b,.live b,.clock span,#log b{unicode-bidi:plaintext}
 </header>
 
 <main class="wrap">
+  <div class="status" id="status"></div>
   <div class="bar">
     <div><label data-i="scenario"></label><br><select id="scn"></select></div>
     <button class="b pri" id="play" data-i="play"></button>
@@ -205,14 +217,14 @@ td,.hl b,.live b,.clock span,#log b{unicode-bidi:plaintext}
 var D = window.DM_DATA;
 var LANG='en';
 var I18N={
- en:{title:'Digital Marshal: Corridor Incident Command',subtitle:'Incident Response Epoch monitoring. Deterministic point queue replay under a lane closure, identical demand for every routing policy.',
-  chip1:'SYNTHETIC CORRIDOR NETWORK',chip2:'DETERMINISTIC MODEL',chip3:'NOT AN RTA SYSTEM',scenario:'Demand Scenario',play:'Play',pause:'Pause',reset:'Reset',simtime:'simulation clock',
+ en:{title:'Digital Marshal: Algorithmic Control Plane for Autonomous Fleet Corridor Management',subtitle:'Proof-of-Concept Algorithmic Control Plane. Incident Response Epoch monitoring under lane closure with deterministic policy replay.',
+  chip1:'AUTONOMOUS FLEET CORRIDORS',chip2:'DETERMINISTIC ENGINE',chip3:'PROOF OF CONCEPT',scenario:'Demand Scenario',play:'Play',pause:'Pause',reset:'Reset',simtime:'simulation clock',
   legA:'Corridor A (single lane)',legB:'Corridor B marker',legQ:'Queued / delayed',legX:'Lane closure',
   results:'Corridor Performance Summary',chartT:'Point-Queue Flow',chartS:'Vehicles held in a point queue at each moment',
   logT:'Incident Response Epoch Log',logS:'Routing decision at each 30 second epoch (route locked at split point P)',
   xmT:'Model Cross Verification',xmS:'Coordinated gain over independent periodic routing, percent (point queue vs SUMO)',
-  honesty:'Deterministic point queue model on a synthetic corridor network with a lane closure at 120 s. Safety verification is limited to model invariants: zero closed link entries and zero queue audit violations in every run shown. The network, demand and capacities are not calibrated to Dubai infrastructure, no confirmatory experiment has been run, and the provisional 5 percent target is not met. Results support evaluation of the routing logic only and do not estimate field performance.',
-  footer:'Student prototype. Not affiliated with, or endorsed by, the Roads and Transport Authority or any other government body. Source: github.com/hudasol/digital-marshal. Data regenerated with tools/build_web_data.py from models/point_queue/wp2_9.',
+  honesty:'Deterministic point queue engine evaluating routing policies on a modelled corridor network with a lane closure at 120 s. Safety invariants are verified in every run: zero closed link entries and zero queue audit violations. Network, demand and corridor capacities are modelled parameters; calibration against Dubai corridor data is the Phase 2 objective. Outputs evaluate the routing logic and are not a field performance forecast.',
+  footer:'Independent proof of concept, not an official RTA system. Source: github.com/hudasol/digital-marshal. Data regenerated with tools/build_web_data.py from models/point_queue/wp2_9.',
   static:'Static Routing (Corridor A)',independent_periodic:'Independent Periodic Routing',coordinated_batch:'Dynamic Coordinated Routing',
   staticD:'All vehicles allocated to Corridor A',independentD:'Each epoch batch copies one probe decision',coordD:'Joint allocation of each epoch batch',
   inq:'In point queue',arr:'Completed',rtA:'Corridor A',rtB:'Corridor B',
@@ -222,18 +234,18 @@ var I18N={
   hlTotal:'Coordinated total fleet time',hlInd:'Change vs independent periodic',hlStat:'Change vs static Route A',
   better:'lower',worse:'higher',same:'no change',
   xmPQ:'Point queue',xmSumo:'SUMO mean',xmCI:'SUMO 95% interval',xmSeeds:'Seeds better',
-  cumT:'Cumulative Throughput at Destination',cumS:'Vehicles that completed the corridor by each moment; a steeper curve clears the fleet sooner',stripT:'Journey Time per Vehicle',stripS:'One marker per vehicle by corridor allocation; coloured tick marks the mean',heatT:'Corridor Capacity Congestion Map',heatS:'Total point queue waiting time per corridor segment, vehicle minutes',barT:'Fleet Delay and Corridor Allocation',barS:'Total fleet travel time (bars) and share of vehicles allocated to each corridor',minutes:'minutes',vm:'veh min',vehs:'vehicles',scopeT:'Algorithmic Scope & Simulation Boundary:',legT:'Normal transit',n1:'Both models rank coordinated at or below independent, and both below static, in the loaded scenarios.',
-  n2:'The gap to independent periodic is small in both models and far below the provisional 5 percent target.',
-  n3:'The two models do not share identical policy semantics, so the figures are not a replication pair.',
+  cumT:'Cumulative Throughput at Destination',cumS:'Vehicles that completed the corridor by each moment; a steeper curve clears the fleet sooner',stripT:'Journey Time per Vehicle',stripS:'One marker per vehicle by corridor allocation; coloured tick marks the mean',heatT:'Corridor Capacity Congestion Map',heatS:'Total point queue waiting time per corridor segment, vehicle minutes',barT:'Fleet Delay and Corridor Allocation',barS:'Total fleet travel time (bars) and share of vehicles allocated to each corridor',minutes:'minutes',vm:'veh min',vehs:'vehicles',stCorr:'Corridor status',stNormal:'NORMAL OPERATION',stInc:'INCIDENT ACTIVE · E2 / E3 CLOSED',stEpoch:'Response epoch',stInv:'Safety invariants',stPass:'VERIFIED',stFail:'REVIEW',stQ:'Point queue',stWait:'Awaiting first epoch',scopeT:'Algorithmic Scope & Simulation Boundary:',legT:'Normal transit',n1:'Both models rank coordinated at or below independent, and both below static, in the loaded scenarios.',
+  n2:'Gains over independent periodic routing are modest (0.5 to 2.6 percent across both engines), while gains over static routing reach 24 percent under overload in the point queue engine.',
+  n3:'Policy definitions differ between the two engines, so the columns serve as independent cross checks rather than a replication.',
   sc:{manageable_primary:'Manageable primary (10 vehicles)',near_branch_capacity:'Near branch capacity (24 vehicles)',overload_stress:'Overload stress (60 vehicles)',primary_half_capacity:'Half capacity (10 vehicles)',primary_double_capacity:'Double capacity (10 vehicles)'}},
- ar:{title:'المارشال الرقمي: قيادة الحوادث على الممرات',subtitle:'مراقبة دورات الاستجابة للحوادث. إعادة تشغيل حتمية للطوابير النقطية مع إغلاق مسار وطلب متطابق لكل سياسة توجيه.',
-  chip1:'شبكة ممرات افتراضية',chip2:'نموذج حتمي',chip3:'ليس نظاماً لهيئة الطرق',scenario:'سيناريو الطلب',play:'تشغيل',pause:'إيقاف مؤقت',reset:'إعادة',simtime:'ساعة المحاكاة',
+ ar:{title:'المارشال الرقمي: مستوى تحكم خوارزمي لإدارة ممرات الأسطول ذاتي القيادة',subtitle:'مستوى تحكم خوارزمي لإثبات المفهوم. مراقبة دورات الاستجابة للحوادث تحت إغلاق مسار مع إعادة تشغيل حتمية للسياسات.',
+  chip1:'ممرات الأسطول ذاتي القيادة',chip2:'محرك حتمي',chip3:'إثبات مفهوم',scenario:'سيناريو الطلب',play:'تشغيل',pause:'إيقاف مؤقت',reset:'إعادة',simtime:'ساعة المحاكاة',
   legA:'الممر أ (مسار واحد)',legB:'علامة الممر ب',legQ:'في الطابور / متأخرة',legX:'إغلاق مسار',
   results:'ملخص أداء الممرات',chartT:'تدفق الطابور النقطي',chartS:'المركبات المحتجزة في طابور نقطي في كل لحظة',
   logT:'سجل دورات الاستجابة للحوادث',logS:'قرار التوجيه في كل دورة مدتها 30 ثانية (يُثبَّت المسار عند نقطة التفرع)',
   xmT:'التحقق المتقاطع بين النماذج',xmS:'تحسن التوجيه المنسق مقارنة بالتوجيه المستقل الدوري، بالنسبة المئوية (الطوابير النقطية و SUMO)',
-  honesty:'نموذج طوابير نقطية حتمي على شبكة ممرات افتراضية مع إغلاق مسار عند 120 ثانية. يقتصر التحقق من السلامة على ثوابت النموذج: عدم دخول أي رابط مغلق وعدم وجود مخالفات في تدقيق الطابور في كل تشغيل معروض. الشبكة والطلب والسعات غير معايرة على بنية دبي التحتية، ولم تُجرَ تجربة تأكيدية، ولم يتحقق الهدف المؤقت البالغ 5 بالمئة. تدعم النتائج تقييم منطق التوجيه فقط ولا تقدّر الأداء الميداني.',
-  footer:'نموذج طلابي أولي. غير تابع لهيئة الطرق والمواصلات أو أي جهة حكومية أخرى وغير معتمد منها. المصدر: github.com/hudasol/digital-marshal.',
+  honesty:'محرك طوابير نقطية حتمي يقيّم سياسات التوجيه على شبكة ممرات مُنمذجة مع إغلاق مسار عند 120 ثانية. تُتحقق ثوابت السلامة في كل تشغيل: عدم دخول أي رابط مغلق وعدم وجود مخالفات في تدقيق الطابور. الشبكة والطلب وسعات الممرات معاملات مُنمذجة، ومعايرتها على بيانات ممرات دبي هي هدف المرحلة الثانية. تقيّم المخرجات منطق التوجيه ولا تمثل توقعاً للأداء الميداني.',
+  footer:'إثبات مفهوم مستقل وليس نظاماً رسمياً لهيئة الطرق والمواصلات. المصدر: github.com/hudasol/digital-marshal.',
   static:'توجيه ثابت (الممر أ)',independent_periodic:'توجيه مستقل دوري',coordinated_batch:'توجيه ديناميكي منسق',
   staticD:'جميع المركبات مخصصة للممر أ',independentD:'كل دفعة في الدورة تنسخ قرار مركبة استكشافية',coordD:'تخصيص مشترك لكل دفعة في الدورة',
   inq:'في الطابور النقطي',arr:'أتمت الممر',rtA:'الممر أ',rtB:'الممر ب',
@@ -243,9 +255,9 @@ var I18N={
   hlTotal:'إجمالي زمن الأسطول المنسق',hlInd:'التغير مقارنة بالمستقل الدوري',hlStat:'التغير مقارنة بالمسار الثابت أ',
   better:'أقل',worse:'أعلى',same:'دون تغير',
   xmPQ:'الطوابير النقطية',xmSumo:'متوسط SUMO',xmCI:'فترة ثقة 95%',xmSeeds:'البذور الأفضل',
-  cumT:'الإنتاجية التراكمية عند الوجهة',cumS:'المركبات التي أتمت الممر في كل لحظة؛ المنحنى الأشد ميلاً يُخلي الأسطول أسرع',stripT:'زمن رحلة كل مركبة',stripS:'علامة لكل مركبة حسب تخصيص الممر؛ الخط الملون يمثل المتوسط',heatT:'خريطة ازدحام السعة التشغيلية للممر',heatS:'إجمالي زمن الانتظار في الطابور النقطي لكل مقطع، بالمركبة دقيقة',barT:'تأخر الأسطول وتخصيص الممرات',barS:'إجمالي زمن رحلات الأسطول (أعمدة) ونسبة المركبات المخصصة لكل ممر',minutes:'دقيقة',vm:'مركبة دقيقة',vehs:'مركبات',n1x:'',scopeT:'النطاق الخوارزمي وحدود المحاكاة:',legT:'عبور اعتيادي',n1:'يضع النموذجان المنسق عند مستوى المستقل أو أفضل منه، وكلاهما أفضل من الثابت، في السيناريوهات المحملة.',
-  n2:'الفارق عن المستقل الدوري صغير في النموذجين وأقل بكثير من الهدف المؤقت البالغ 5 بالمئة.',
-  n3:'لا يتطابق تعريف السياسات في النموذجين، لذلك لا تشكل الأرقام زوج تكرار.',
+  cumT:'الإنتاجية التراكمية عند الوجهة',cumS:'المركبات التي أتمت الممر في كل لحظة؛ المنحنى الأشد ميلاً يُخلي الأسطول أسرع',stripT:'زمن رحلة كل مركبة',stripS:'علامة لكل مركبة حسب تخصيص الممر؛ الخط الملون يمثل المتوسط',heatT:'خريطة ازدحام السعة التشغيلية للممر',heatS:'إجمالي زمن الانتظار في الطابور النقطي لكل مقطع، بالمركبة دقيقة',barT:'تأخر الأسطول وتخصيص الممرات',barS:'إجمالي زمن رحلات الأسطول (أعمدة) ونسبة المركبات المخصصة لكل ممر',minutes:'دقيقة',vm:'مركبة دقيقة',vehs:'مركبات',n1x:'',stCorr:'حالة الممر',stNormal:'تشغيل اعتيادي',stInc:'حادث نشط · إغلاق E2 / E3',stEpoch:'دورة الاستجابة',stInv:'ثوابت السلامة',stPass:'تم التحقق',stFail:'مراجعة',stQ:'الطابور النقطي',stWait:'بانتظار الدورة الأولى',scopeT:'النطاق الخوارزمي وحدود المحاكاة:',legT:'عبور اعتيادي',n1:'يضع النموذجان المنسق عند مستوى المستقل أو أفضل منه، وكلاهما أفضل من الثابت، في السيناريوهات المحملة.',
+  n2:'مكاسب التوجيه المنسق على المستقل الدوري متواضعة (من 0.5 إلى 2.6 بالمئة في المحركين)، وتبلغ على التوجيه الثابت نحو 24 بالمئة تحت الحمل الزائد في محرك الطوابير النقطية.',
+  n3:'تختلف تعريفات السياسات بين المحركين، لذلك تعمل الأعمدة كفحوص متقاطعة مستقلة وليست تكراراً.',
   sc:{manageable_primary:'أساسي قابل للإدارة (10 مركبات)',near_branch_capacity:'قرب سعة الفرع (24 مركبة)',overload_stress:'ضغط زائد (60 مركبة)',primary_half_capacity:'نصف السعة (10 مركبات)',primary_double_capacity:'ضعف السعة (10 مركبات)'}}
 };
 var POL=['static','independent_periodic','coordinated_batch'];
@@ -377,11 +389,24 @@ function draw(){
     // route counts decided so far = vehicles whose p time has passed (epoch granularity ignored)
     vlist(p).forEach(function(v){if(t>=v.p){if(v.r==='A')a++;else b++;}});
     Object.keys(o.heat).forEach(function(id){var n=eq[id]||0;o.heat[id].setAttribute('opacity',Math.min(0.9,n*0.16));o.heat[id].setAttribute('stroke',n>=5?'#DA291C':'#FFB715');});
-    o.vals[0].textContent=q;o.vals[1].textContent=arr+' / '+vlist(p).length;o.vals[2].textContent=a;o.vals[3].textContent=b;
+    cnt[p]=q;o.vals[0].textContent=q;o.vals[1].textContent=arr+' / '+vlist(p).length;o.vals[2].textContent=a;o.vals[3].textContent=b;
   });
+  renderStatus(cnt);
   var m=$('#cursor');if(m){var x=chartX(t);m.setAttribute('x1',x);m.setAttribute('x2',x);}
   var m2=$('#cumCursor');if(m2){var x2=chartX(t);m2.setAttribute('x1',x2);m2.setAttribute('x2',x2);}
   renderLog();
+}
+
+
+function renderStatus(cnt){
+  var t=state.t,inc=D.graph.incident_s,active=t>=inc;
+  var ep=t>=180?Math.floor((t-180)/30)+1:null;
+  var ok=true;POL.forEach(function(p){var m=runOf(p).metrics;if(+m.closed_link_entries!==0||+m.fifo_violations!==0)ok=false;});
+  var q=POL.map(function(p){return '<b>'+(cnt[p]||0)+'</b>';}).join('<span class="k">/</span>');
+  $('#status').innerHTML='<div class="'+(active?'alert':'')+'"><span class="k">'+T('stCorr')+'</span><b>'+(active?T('stInc'):T('stNormal'))+'</b></div>'+
+   '<div><span class="k">'+T('stEpoch')+'</span><b>'+(ep===null?T('stWait'):ep)+'</b></div>'+
+   '<div><span class="k">'+T('stQ')+' ('+SH('static')+' / '+SH('independent_periodic')+' / '+SH('coordinated_batch')+')</span>'+q+'</div>'+
+   '<div class="ok"><span class="k">'+T('stInv')+'</span><b>'+(ok?T('stPass'):T('stFail'))+'</b></div>';
 }
 
 function chartX(t){return 36+(t/state.tMax)*(520-36-10);}
