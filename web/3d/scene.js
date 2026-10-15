@@ -8,13 +8,13 @@ var THREE = root.THREE;
 
 /* ---------- layout ---------- */
 var SX = 0.25, SZ = 0.5, LANE_W = 3.4, ROAD_H = 0.4;
-var LEAD_IN = 45, LEAD_OUT = 70;
+var LEAD_IN = 30, LEAD_OUT = 70;
 var POL = ['static', 'independent_periodic', 'coordinated_batch'];
 var ZOFF = { static: -165, independent_periodic: 0, coordinated_batch: 165 };
 var POLCOL = { static: 0x64748B, independent_periodic: 0xFFB715, coordinated_batch: 0xDA291C };
 var LANES = { E1: 4, E2: 1, E3: 1, E4: 1, E5: 1, E6: 1, E7: 2, E8: 2, E9: 2, E10: 2, E11: 4 };
-var NODES = { O: [0, 0], P: [600, 0], C: [1200, 100], A1: [1100, -100], A2: [1700, -100], B1: [1100, 0], B2: [1700, 0], B3: [2000, 0], M: [2300, -50], D: [2900, -50] };
-var SLAB = { x0: -LEAD_IN - 20, x1: 2900 * SX + LEAD_OUT + 20, hz: 74 };
+var NODES = { O: [60, 0], P: [600, 0], C: [1200, 100], A1: [1100, -100], A2: [1700, -100], B1: [1100, 0], B2: [1700, 0], B3: [2000, 0], M: [2300, -50], D: [2900, -50] };
+var SLAB = { x0: 60 * SX - LEAD_IN - 20, x1: 2900 * SX + LEAD_OUT + 20, hz: 74 };
 var COL = { red: 0xDA291C, gold: 0xFFB715, char: 0x242526, asphalt: 0x3B3F45, slab: 0xE7E2D6, sand: 0xE9D9B8 };
 
 function smooth(a, b, x) { var t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); }
@@ -143,7 +143,7 @@ function Corridor(scene, D, pol, z0) {
     var a = self.W[e.src], b = self.W[e.dst], dx = b.x - a.x, dz = b.y - a.y, L = Math.hypot(dx, dz), ux = dx / L, uz = dz / L;
     self.E[e.id] = { id: e.id, a: a, b: b, ux: ux, uz: uz, px: -uz, pz: ux, len: L, n: LANES[e.id], w: LANES[e.id] * LANE_W, free: e.free_min * 60, cap: e.cap_vpm, ang: Math.atan2(dz, dx), src: e.src, dst: e.dst };
   });
-  this.lead = { a: new THREE.Vector2(-LEAD_IN, z0), b: this.W.O.clone(), ux: 1, uz: 0, px: 0, pz: 1, len: LEAD_IN, n: 4, w: 4 * LANE_W, ang: 0 };
+  this.lead = { a: new THREE.Vector2(this.W.O.x - LEAD_IN, z0), b: this.W.O.clone(), ux: 1, uz: 0, px: 0, pz: 1, len: LEAD_IN, n: 4, w: 4 * LANE_W, ang: 0 };
   this.out = { a: this.W.D.clone(), b: new THREE.Vector2(this.W.D.x + LEAD_OUT, this.W.D.y), ux: 1, uz: 0, px: 0, pz: 1, len: LEAD_OUT, n: 4, w: 4 * LANE_W, ang: 0 };
   this.build();
 }
