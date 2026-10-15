@@ -4,9 +4,12 @@ import {
   ALL_RED,
   AMBER,
   CROSSWALK,
-  GREEN_BY_CLASS,
+  GREEN_LEFT,
+  GREEN_SPLIT,
+  GREEN_THROUGH,
   LANE_W,
   NODES,
+  PROGRESSION_SPEED,
   PLACES,
   ROADS,
   X_EDGE,
@@ -62,7 +65,7 @@ export function halfWidth(r: RoadDef): number {
 /** Turns permitted from each lane of an approach with n lanes (driving on the right). */
 export function laneTurnsFor(n: number): Turn[][] {
   if (n === 1) return [['L', 'S', 'R']];
-  if (n === 2) return [['L', 'S'], ['S', 'R']];
+  if (n === 2) return [['L'], ['S', 'R']];
   const out: Turn[][] = [['L']];
   for (let i = 1; i < n - 1; i++) out.push(['S']);
   out.push(['S', 'R']);
@@ -280,16 +283,47 @@ export function buildNetwork(): Network {
       }
     }
 
-    // split-phase signal plan: one approach at a time, clockwise from north
+    // signal plan: per axis, either opposing throughs then protected opposing lefts (multi-lane
+    // approaches), or one approach at a time (single-lane approaches, which share one lane for all
+    // turns). Any phase whose movements conflict is split by approach, so every phase is conflict free.
+    const movesConflict = (moves: PhaseDef['moves']) => {
+      const ids = conns.filter((cid) => {
+        const c = connectors[cid];
+        return moves.some((m) => m.inLink === c.inLink && m.turns.includes(c.turn));
+      });
+      for (const a of ids) for (const b of ids) if (a !== b && connectors[a].conflicts.includes(b)) return true;
+      return false;
+    };
     const phases: PhaseDef[] = [];
-    for (const side of SIDES) {
-      const inId = inLinks[side];
-      if (!inId) continue;
-      phases.push({ approach: side, inLinks: [inId], green: GREEN_BY_CLASS[links[inId].cls] });
+    const pushPhase = (label: string, moves: PhaseDef['moves'], green: number) => {
+      if (moves.length > 1 && movesConflict(moves)) {
+        for (const m of moves) phases.push({ label: `${label} ${links[m.inLink].approachSide}`, moves: [m], green });
+      } else phases.push({ label, moves, green });
+    };
+    for (const [s1, s2] of [
+      ['E', 'W'],
+      ['N', 'S'],
+    ] as Array<[Side, Side]>) {
+      const a = inLinks[s1];
+      const b = inLinks[s2];
+      if (!a || !b) continue;
+      const cls = links[a].cls;
+      if (links[a].lanes >= 2 && links[b].lanes >= 2) {
+        pushPhase(`${s1}${s2} through`, [
+          { inLink: a, turns: ['S', 'R'] },
+          { inLink: b, turns: ['S', 'R'] },
+        ], GREEN_THROUGH[cls]);
+        pushPhase(`${s1}${s2} left`, [
+          { inLink: a, turns: ['L'] },
+          { inLink: b, turns: ['L'] },
+        ], GREEN_LEFT);
+      } else {
+        pushPhase(`${s1} all`, [{ inLink: a, turns: ['L', 'S', 'R'] }], GREEN_SPLIT);
+        pushPhase(`${s2} all`, [{ inLink: b, turns: ['L', 'S', 'R'] }], GREEN_SPLIT);
+      }
     }
     const cycle = phases.reduce((acc, p) => acc + p.green + AMBER + ALL_RED, 0);
-    // a simple deterministic offset that staggers neighbouring junctions
-    const offset = Math.round((j.x + X_EDGE) / 11 + (j.y + Y_EDGE) / 7) % cycle;
+    const offset = 0; // set below, once the common cycle is known
     const nsHalf = halfWidth(ns);
     const ewHalf = halfWidth(ew);
     junctions[jid] = {
@@ -311,6 +345,20 @@ export function buildNetwork(): Network {
     };
   }
 
+  // one common cycle so neighbouring junctions can be coordinated: pad the main through phase
+  const common = Math.max(...junctionIds.map((id) => junctions[id].plan.cycle));
+  for (const id of junctionIds) {
+    const plan = junctions[id].plan;
+    plan.phases[0].green += common - plan.cycle;
+    plan.cycle = common;
+    const j = junctions[id];
+    // eastbound green wave on the boulevard (phase 0 is the east-west through phase); other junctions
+    // are staggered by position so they do not all switch at once
+    const onBoulevard = Math.abs(j.y) < 1;
+    const shift = onBoulevard ? (j.x + X_EDGE) / PROGRESSION_SPEED : (j.x + X_EDGE) / PROGRESSION_SPEED + (j.y + Y_EDGE) / 9;
+    plan.offset = ((Math.round(-shift) % common) + common) % common;
+  }
+
   const gatewayIds = NODES.filter((n) => n.kind === 'gateway').map((n) => n.id);
   const gatewayIn: Record<string, string> = {};
   const gatewayOut: Record<string, string> = {};
@@ -324,7 +372,7 @@ export function buildNetwork(): Network {
   for (const p of PLACES) places[p.id] = { ...p };
 
   // map version: hash of the defining data, so messages can be checked against the map in use
-  const canon = JSON.stringify({ NODES, ROADS, LANE_W, CROSSWALK, GREEN_BY_CLASS, AMBER, ALL_RED });
+  const canon = JSON.stringify({ NODES, ROADS, LANE_W, CROSSWALK, GREEN_THROUGH, GREEN_LEFT, GREEN_SPLIT, AMBER, ALL_RED });
   const version = `DMD-1.${(hashString(canon) >>> 0).toString(16).padStart(8, '0')}`;
 
   return {

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { NetworkFrame, VehicleFrame } from './frames';
 
 export type View = 'twin' | 'compare' | 'engineering' | 'about';
 export type CamMode = 'overview' | 'topdown' | 'incident' | 'follow' | 'emergency' | 'street' | 'free';
@@ -29,6 +30,8 @@ export interface Overlays {
   routes: boolean; // planned routes of selected and affected vehicles
 }
 
+export type Selection = { kind: 'vehicle'; id: number } | { kind: 'incident'; id: string } | null;
+
 export interface Toast {
   id: number;
   text: string;
@@ -52,8 +55,15 @@ interface UIState {
   scenarioLabel: string;
   alertLevel: 'normal' | 'warn' | 'critical';
   overlays: Overlays;
+  selection: Selection;
+  network: NetworkFrame | null;
+  vehicle: VehicleFrame | null;
+  busy: { label: string; progress: number } | null;
 
   setView: (v: View) => void;
+  select: (s: Selection) => void;
+  setFrames: (network: NetworkFrame | null, vehicle: VehicleFrame | null) => void;
+  setBusy: (b: { label: string; progress: number } | null) => void;
   setOverlay: (k: keyof Overlays, on: boolean) => void;
   setLang: (l: 'en' | 'ar') => void;
   toggleLeft: () => void;
@@ -108,8 +118,15 @@ export const useStore = create<UIState>((set, get) => ({
   scenarioLabel: '',
   alertLevel: 'normal',
   overlays: { labels: false, v2x: true, routes: true },
+  selection: null,
+  network: null,
+  vehicle: null,
+  busy: null,
 
   setView: (view) => set({ view }),
+  select: (selection) => set({ selection, vehicle: selection?.kind === 'vehicle' ? get().vehicle : null }),
+  setFrames: (network, vehicle) => set({ network, vehicle }),
+  setBusy: (busy) => set({ busy }),
   setOverlay: (k, on) => set({ overlays: { ...get().overlays, [k]: on } }),
   setLang: (lang) => {
     try {

@@ -1,71 +1,64 @@
-import type { JunctionDef, Side } from '../network/types';
+import type { JunctionDef, Turn } from '../network/types';
 
-/* Fixed-time split-phase signal plans. Pure functions of simulation time, so the renderer and the
-   simulation always agree on what each signal shows. A failed controller shows nothing (DARK). */
+/* Fixed-time signal plans evaluated as pure functions of simulation time, so the renderer and the
+   simulation always agree on what each signal shows. A junction whose controller has failed shows
+   nothing (DARK). Aspects are per movement: an approach can show a green arrow for its left-turn
+   lane while its through lanes are red. */
 
 export type Aspect = 'G' | 'A' | 'R' | 'DARK';
 
 export interface SignalState {
-  aspects: Partial<Record<Side, Aspect>>;
-  /** index of the phase currently running (green, amber or the all-red that follows it) */
-  phase: number;
-  /** seconds until the current interval (green, amber, all-red) ends */
-  remaining: number;
+  phase: number; // index of the phase currently running (green, amber, or the all-red after it)
   interval: 'green' | 'amber' | 'allred';
+  remaining: number; // seconds left in the interval
+  dark: boolean;
 }
 
 export function signalState(j: JunctionDef, t: number, dark = false): SignalState {
+  if (dark) return { phase: -1, interval: 'allred', remaining: Infinity, dark: true };
   const plan = j.plan;
-  const aspects: Partial<Record<Side, Aspect>> = {};
-  if (dark) {
-    for (const p of plan.phases) aspects[p.approach] = 'DARK';
-    return { aspects, phase: -1, remaining: Infinity, interval: 'allred' };
-  }
   let local = (t + plan.offset) % plan.cycle;
   if (local < 0) local += plan.cycle;
-  let phase = 0;
-  let interval: SignalState['interval'] = 'green';
-  let remaining = 0;
   for (let i = 0; i < plan.phases.length; i++) {
     const p = plan.phases[i];
     const len = p.green + plan.amber + plan.allRed;
     if (local < len) {
-      phase = i;
-      if (local < p.green) {
-        interval = 'green';
-        remaining = p.green - local;
-      } else if (local < p.green + plan.amber) {
-        interval = 'amber';
-        remaining = p.green + plan.amber - local;
-      } else {
-        interval = 'allred';
-        remaining = len - local;
-      }
-      break;
+      if (local < p.green) return { phase: i, interval: 'green', remaining: p.green - local, dark: false };
+      if (local < p.green + plan.amber) return { phase: i, interval: 'amber', remaining: p.green + plan.amber - local, dark: false };
+      return { phase: i, interval: 'allred', remaining: len - local, dark: false };
     }
     local -= len;
   }
-  for (let i = 0; i < plan.phases.length; i++) {
-    const p = plan.phases[i];
-    if (i === phase && interval === 'green') aspects[p.approach] = 'G';
-    else if (i === phase && interval === 'amber') aspects[p.approach] = 'A';
-    else aspects[p.approach] = 'R';
-  }
-  return { aspects, phase, remaining, interval };
+  return { phase: 0, interval: 'green', remaining: 0, dark: false };
 }
 
-/** Seconds from time t until the given approach next shows green (0 if green now). */
-export function timeToGreen(j: JunctionDef, side: Side, t: number): number {
+function phaseServes(j: JunctionDef, phase: number, inLink: string, turn: Turn): boolean {
+  const p = j.plan.phases[phase];
+  return !!p && p.moves.some((m) => m.inLink === inLink && m.turns.includes(turn));
+}
+
+/** Aspect shown to a movement (incoming link and turn) in a given signal state. */
+export function aspectFor(j: JunctionDef, st: SignalState, inLink: string, turn: Turn): Aspect {
+  if (st.dark) return 'DARK';
+  if (!phaseServes(j, st.phase, inLink, turn)) return 'R';
+  return st.interval === 'green' ? 'G' : st.interval === 'amber' ? 'A' : 'R';
+}
+
+/** Seconds from time t until the movement next shows green (0 if green now). */
+export function timeToGreen(j: JunctionDef, inLink: string, turn: Turn, t: number): number {
   const plan = j.plan;
   let local = (t + plan.offset) % plan.cycle;
   if (local < 0) local += plan.cycle;
   let start = 0;
-  for (const p of plan.phases) {
-    if (p.approach === side) {
+  let best = Infinity;
+  for (let i = 0; i < plan.phases.length; i++) {
+    const p = plan.phases[i];
+    if (phaseServes(j, i, inLink, turn)) {
       if (local >= start && local < start + p.green) return 0;
-      return local < start ? start - local : plan.cycle - local + start;
+      const wait = local < start ? start - local : plan.cycle - local + start;
+      if (wait < best) best = wait;
     }
     start += p.green + plan.amber + plan.allRed;
   }
-  return Infinity;
+  return best;
 }

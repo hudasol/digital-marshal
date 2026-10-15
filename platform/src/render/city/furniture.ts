@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { Network, Side } from '../../core/network/types';
+import type { Network, Side, Turn } from '../../core/network/types';
 import type { Aspect } from '../../core/sim/signals';
 import { makeRng, rand, randRange } from '../../core/rng';
 import { GeoBuilder } from './builder';
@@ -18,7 +18,7 @@ export interface SignalHeadRef {
 
 export interface FurnitureLayer {
   group: THREE.Group;
-  setAspects(get: (junction: string, side: Side) => Aspect, blink: boolean): void;
+  setAspects(get: (junction: string, inLink: string, turn: Turn) => Aspect, blink: boolean): void;
   rsuLeds: THREE.InstancedMesh;
   rsuIndex: Record<string, number>;
   headPositions: Array<{ junction: string; side: Side; x: number; y: number; z: number }>;
@@ -53,6 +53,8 @@ export function buildFurniture(
   interface Head {
     junction: string;
     side: Side;
+    inLink: string;
+    turn: Turn; // the movement this head controls (left arrow heads over exclusive left lanes)
     x: number;
     y: number;
     z: number;
@@ -87,9 +89,11 @@ export function buildFurniture(
         const off = l.laneOffsets[lane];
         const hx = l.start.x + l.dir.x * s + l.right.x * off;
         const hy = l.start.y + l.dir.y * s + l.right.y * off;
-        heads.push({ junction: jid, side, x: hx, y: hy, z: CURB_H + poleH - 1.15, facing });
+        const turns = l.laneTurns[lane];
+        const turn: Turn = turns.includes('S') ? 'S' : turns[0];
+        heads.push({ junction: jid, side, inLink: inId, turn, x: hx, y: hy, z: CURB_H + poleH - 1.15, facing });
       }
-      heads.push({ junction: jid, side, x: px + l.dir.x * 0.2, y: py + l.dir.y * 0.2, z: CURB_H + 3.0, facing });
+      heads.push({ junction: jid, side, inLink: inId, turn: 'S', x: px + l.dir.x * 0.2, y: py + l.dir.y * 0.2, z: CURB_H + 3.0, facing });
     }
     // roadside unit: cabinet and antenna on its own short pole
     const ru = j.rsu;
@@ -267,7 +271,7 @@ export function buildFurniture(
 
   const indexByKey = new Map<string, number[]>();
   heads.forEach((h, i) => {
-    const key = `${h.junction}|${h.side}`;
+    const key = `${h.junction}|${h.inLink}|${h.turn}`;
     if (!indexByKey.has(key)) indexByKey.set(key, []);
     indexByKey.get(key)!.push(i);
   });
@@ -282,8 +286,8 @@ export function buildFurniture(
       // only touch GPU buffers when something changed
       const parts: string[] = [];
       for (const [key] of indexByKey) {
-        const [jid, side] = key.split('|');
-        parts.push(get(jid, side as Side));
+        const [jid, inLink, turn] = key.split('|');
+        parts.push(get(jid, inLink, turn as Turn));
       }
       const sig = parts.join('') + (blink ? '1' : '0');
       if (sig === lastKey) return;

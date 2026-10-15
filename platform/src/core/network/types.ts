@@ -75,9 +75,14 @@ export interface ConnectorDef {
   approach: Side;
 }
 
+export interface PhaseMove {
+  inLink: string;
+  turns: Turn[];
+}
+
 export interface PhaseDef {
-  approach: Side;
-  inLinks: string[];
+  label: string;
+  moves: PhaseMove[];
   green: number;
 }
 

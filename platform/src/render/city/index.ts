@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import type { Network, Side } from '../../core/network/types';
-import { signalState, type Aspect } from '../../core/sim/signals';
+import type { Network } from '../../core/network/types';
+import { aspectFor, signalState, type SignalState } from '../../core/sim/signals';
 import { buildRoads } from './roads';
 import { buildBlocks, type BlockOutput } from './blocks';
 import { buildFurniture, type FurnitureLayer } from './furniture';
@@ -110,11 +110,11 @@ export class CityRenderer {
 
   /** Update live elements for simulation time t. */
   update(t: number): void {
-    const states: Record<string, Partial<Record<Side, Aspect>>> = {};
+    const states: Record<string, SignalState> = {};
     for (const jid of this.net.junctionIds) {
-      states[jid] = signalState(this.net.junctions[jid], t, this.darkJunctions.has(jid)).aspects;
+      states[jid] = signalState(this.net.junctions[jid], t, this.darkJunctions.has(jid));
     }
-    this.furniture.setAspects((jid, side) => states[jid]?.[side] ?? 'R', false);
+    this.furniture.setAspects((jid, inLink, turn) => aspectFor(this.net.junctions[jid], states[jid], inLink, turn), false);
     // roadside units: a slow breathing glow, dark when their junction has lost power
     const k = 0.75 + 0.25 * Math.sin(t * 2.1);
     const c = new THREE.Color();

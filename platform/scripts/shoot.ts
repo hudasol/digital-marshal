@@ -73,9 +73,9 @@ async function main() {
     const stats = await page.evaluate(() => {
       const dm = (window as unknown as { digitalMarshal: any }).digitalMarshal;
       const i = dm.world.renderer.info;
-      return { calls: i.render.calls, tris: i.render.triangles, t: dm.clock.t };
+      return { calls: i.render.calls, tris: i.render.triangles, t: dm.renderT ?? 0, n: dm.engine?.state.order.length ?? 0 };
     });
-    console.log(`${shot.name}: ${file}  calls=${stats.calls} tris=${stats.tris} t=${stats.t.toFixed(1)}`);
+    console.log(`${shot.name}: ${file}  calls=${stats.calls} tris=${stats.tris} t=${stats.t.toFixed(1)} vehicles=${stats.n}`);
     await page.close();
   }
   await browser.close();

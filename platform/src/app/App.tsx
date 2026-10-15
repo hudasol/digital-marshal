@@ -1,13 +1,13 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useStore, type CamMode, type QualityChoice } from './store';
 import { useT } from './i18n';
-import { controller } from './controller';
+import { controller, TIMELINE_S } from './controller';
 import { Header } from './components/Header';
 import { PlaybackBar } from './components/PlaybackBar';
 import { CameraToolbar } from './components/CameraToolbar';
 import { SidePanel, Section } from './components/SidePanel';
 import { PerfOverlay, Toasts } from './components/Overlays';
-import { Icon } from './components/Icons';
+import { IntelPanel } from './components/Intel';
 import { EvidenceView } from './views/EvidenceView';
 import { EngineeringView } from './views/EngineeringView';
 import { AboutView } from './views/AboutView';
@@ -46,6 +46,46 @@ function GraphicsSection() {
   );
 }
 
+function SimulationSection() {
+  const t = useT();
+  const [density, setDensity] = useState(() => controller.engine.state.densityScale);
+  const committed = useRef(density);
+  const commit = () => {
+    if (Math.abs(density - committed.current) > 1e-6) {
+      committed.current = density;
+      controller.setDensity(density);
+    }
+  };
+  return (
+    <Section title={t('sim.title')}>
+      <div className="field">
+        <div className="field-row">
+          <span>{t('sim.density')}</span>
+          <b>{Math.round(density * 100)}%</b>
+        </div>
+        <input
+          type="range"
+          min={0.4}
+          max={1.3}
+          step={0.05}
+          value={density}
+          aria-label={t('sim.density')}
+          aria-valuetext={t('sim.densityValue', { pct: Math.round(density * 100) })}
+          onChange={(e) => setDensity(parseFloat(e.target.value))}
+          onPointerUp={commit}
+          onKeyUp={commit}
+          onBlur={commit}
+        />
+        <div className="note">{t('sim.densityNote')}</div>
+      </div>
+      <div className="field-row small">
+        <span className="muted">{t('sim.seed')}</span>
+        <b>{controller.engine.state.seed}</b>
+      </div>
+    </Section>
+  );
+}
+
 function DisplaySection() {
   const t = useT();
   const overlays = useStore((s) => s.overlays);
@@ -57,6 +97,19 @@ function DisplaySection() {
         <input type="checkbox" checked={overlays.labels} onChange={(e) => setOverlay('labels', e.target.checked)} />
       </label>
     </Section>
+  );
+}
+
+function BusyOverlay() {
+  const busy = useStore((s) => s.busy);
+  if (!busy) return null;
+  return (
+    <div className="busy glass" role="status" aria-live="polite">
+      {busy.label}
+      <div className="bar-line">
+        <i style={{ width: `${Math.round(busy.progress * 100)}%` }} />
+      </div>
+    </div>
   );
 }
 
@@ -111,6 +164,7 @@ export function App() {
   const lang = useStore((s) => s.lang);
   const leftOpen = useStore((s) => s.leftOpen);
   const rightOpen = useStore((s) => s.rightOpen);
+  const selection = useStore((s) => s.selection);
 
   // language and direction on the document element
   useEffect(() => {
@@ -139,6 +193,8 @@ export function App() {
       if (e.key === ' ' && st.view === 'twin' && (e.target as HTMLElement)?.tagName !== 'BUTTON') {
         e.preventDefault();
         controller.togglePlay();
+      } else if (e.key === 'Escape') {
+        st.select(null);
       } else if (e.key === 'Home') {
         controller.resetCamera();
       } else if (HOTKEY_MODES[e.key] && st.view === 'twin') {
@@ -164,21 +220,19 @@ export function App() {
       <Header />
       {view === 'twin' && (
         <>
-          <CameraToolbar available={{ incident: false, follow: false, emergency: false }} />
+          <CameraToolbar available={{ incident: false, follow: selection?.kind === 'vehicle', emergency: false }} />
           <SidePanel side="left" title={t('panel.ops')}>
             <div id="main-controls" />
+            <SimulationSection />
             <DisplaySection />
             <GraphicsSection />
           </SidePanel>
           <SidePanel side="right" title={t('panel.intel')}>
-            <Section title={t('intel.network')}>
-              <p className="note">
-                <Icon name="info" /> {t('intel.pending')}
-              </p>
-            </Section>
+            <IntelPanel />
           </SidePanel>
           <DistrictCaption />
-          <PlaybackBar length={900} />
+          <PlaybackBar length={TIMELINE_S} />
+          <BusyOverlay />
           <PerfOverlay />
         </>
       )}

@@ -61,15 +61,30 @@ describe('district network', () => {
     expect(net.connectors[nsStraight].conflicts).toContain(ewStraight);
   });
 
-  it('builds a signal plan whose phases cover every approach once', () => {
+  it('builds signal plans that serve every movement exactly once with conflict-free phases', () => {
     for (const jid of net.junctionIds) {
-      const p = net.junctions[jid].plan;
-      expect(p.phases).toHaveLength(4);
-      expect(new Set(p.phases.map((x) => x.approach)).size).toBe(4);
+      const j = net.junctions[jid];
+      const p = j.plan;
       expect(p.cycle).toBe(p.phases.reduce((a, x) => a + x.green + p.amber + p.allRed, 0));
       expect(p.offset).toBeGreaterThanOrEqual(0);
       expect(p.offset).toBeLessThan(p.cycle);
+      for (const cid of j.connectors) {
+        const c = net.connectors[cid];
+        const serving = p.phases.filter((ph) => ph.moves.some((m) => m.inLink === c.inLink && m.turns.includes(c.turn)));
+        expect(serving.length, `${cid} served once`).toBe(1);
+      }
+      for (const ph of p.phases) {
+        const ids = j.connectors.filter((cid) => ph.moves.some((m) => m.inLink === net.connectors[cid].inLink && m.turns.includes(net.connectors[cid].turn)));
+        for (const a of ids) for (const b of ids) if (a !== b) expect(net.connectors[a].conflicts, `${jid} ${ph.label}`).not.toContain(b);
+      }
     }
+  });
+
+  it('runs opposing throughs together on the boulevard (dual-ring) and keeps green arrows for exclusive left lanes', () => {
+    const j = net.junctions.J7;
+    const through = j.plan.phases.find((ph) => ph.label === 'EW through');
+    expect(through?.moves.map((m) => m.inLink).sort()).toEqual(['J6>J7', 'J8>J7']);
+    expect(net.links['J6>J7'].laneTurns[0]).toEqual(['L']);
   });
 
   it('keeps lanes on the right-hand side of travel', () => {

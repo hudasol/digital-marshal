@@ -590,7 +590,7 @@ export function buildBlocks(net: Network, tex: FacadeSet): BlockOutput {
       const inner = roundedRect(bx0 + SIDEWALK, by0 + SIDEWALK, bx1 - SIDEWALK, by1 - SIDEWALK, 3, 4);
       curb.setColor(0xffffff).prism(outer, 0, CURB_H, 1, 1, false);
       sidewalk.setColor(0xffffff).shapeH(outer, [inner], CURB_H, 4.8);
-      plot.setColor(0xffffff).capH(inner, CURB_H, 24);
+      plot.setColor(0xffffff).capH(inner, CURB_H, 9.6);
       const prog = PROGRAMS[ci]?.[ri];
       if (prog) build(prog, bx0 + SIDEWALK + 6, by0 + SIDEWALK + 6, bx1 - SIDEWALK - 6, by1 - SIDEWALK - 6, ci);
       // sidewalk trees every ~24 m along the inner edge of the sidewalk

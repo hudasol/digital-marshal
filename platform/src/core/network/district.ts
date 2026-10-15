@@ -54,8 +54,13 @@ export const ROADS: RoadDef[] = [
   { id: 'HR', name: 'Harbour Road (L2)', cls: 'local', lanesPerDir: 1, median: 0, speedKmh: 40, nodes: ['HR-N', 'J4', 'J8', 'J12', 'HR-S'] },
 ];
 
-/** Green time per approach by road class (split phasing: each approach runs alone). */
-export const GREEN_BY_CLASS = { arterial: 24, collector: 17, local: 11 };
+/** Green times. Multi-lane axes run opposing throughs together, then protected opposing lefts;
+    single-lane local approaches run one at a time (split phase). */
+export const GREEN_THROUGH = { arterial: 28, collector: 20, local: 12 };
+export const GREEN_LEFT = 10;
+export const GREEN_SPLIT = 14;
+/** Speed used to set offsets for an eastbound green wave along the boulevard, m/s. */
+export const PROGRESSION_SPEED = 14;
 export const AMBER = 3;
 export const ALL_RED = 2;
 
