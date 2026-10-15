@@ -1,5 +1,5 @@
 {
-  "provenance": "Hand-transcribed from FAIR_BASELINE_SPEC.md sections 2 and 3 (WP2.6/WP2.7 frozen graph and scenario table). Deliberately NOT imported from src/canonical_model.py so that src/raw_audit.py is an independent check. Drift between this file and the model is caught by tests/test_raw_audit.py, never silently absorbed.",
+  "provenance": "Nodes, edges, free flow times, capacities, branch scaled edges, closure edges and incident time (120 s) were hand transcribed from FAIR_BASELINE_SPEC.md section 2. The scenario table was transcribed from section 3 but uses the identifiers of the WP2.7 outputs (primary_half_capacity, primary_double_capacity), not the longer names in section 3. The horizon (7200 s) and the policy list come from the WP2.7 metric specification and documents, not from FAIR_BASELINE_SPEC.md; the horizon is a provisional value awaiting owner confirmation. allowed_paths adds the closed critical route E1,E2,E3, which section 2 implies but does not list as a route. Deliberately NOT imported from src/canonical_model.py so that src/raw_audit.py is an independent check. Drift between this file and the model is caught by tests/test_raw_audit.py. See docs/review/graph-spec-traceability.md.",
   "nodes": ["O", "P", "C", "A1", "A2", "B1", "B2", "B3", "M", "D"],
   "origin": "O",
   "destination": "D",
