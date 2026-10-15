@@ -1,0 +1,20 @@
+{
+  "variant": "cap0p5",
+  "driver_tau_s": 3.0,
+  "network_file": "dm.net.xml",
+  "mu_A": 0.24869516510935152,
+  "mu_A_runs": [
+    0.2488479262672811,
+    0.24861878453038674,
+    0.24861878453038674
+  ],
+  "mu_B": 0.4966304516660925,
+  "mu_B_runs": [
+    0.4963235294117647,
+    0.4954128440366973,
+    0.4981549815498155
+  ],
+  "ratio_to_base_A": 0.49769698270342483,
+  "ratio_to_base_B": 0.4874150816944082,
+  "note": "mu in veh/s measured at the P diverge under a standing queue (overload demand, 3 seeds, middle 60% of crossings); ratio_to_base is the achieved capacity scale"
+}
