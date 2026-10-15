@@ -26,6 +26,16 @@ MUTANTS = [
  ('audit B-01: expected matrix derived from the metrics file again (original defect)', 'src/raw_audit.py',
   "expected = [(s, p) for s in spec['scenarios'] for p in spec['policies']]\n    pkg = []",
   "expected = list(dict.fromkeys((r['scenario'], r['policy']) for r in csv.DictReader(open(Path(results_dir) / 'confirmatory_metrics.csv'))))\n    pkg = []"),
+ ('audit B-01: non finite numbers accepted', 'src/raw_audit.py', "if not _finite(r[c]): b(c, 'not a finite number')", "if False: b(c, 'not a finite number')"),
+ ('audit B-01: completion flag literal not validated', 'src/raw_audit.py', "if name == 'vehicle_records.csv' and r['complete'] not in ('True', 'False'): b(", 'if False: b('),
+ ('audit B-01: missing required columns not diagnosed', 'src/raw_audit.py', '    if miss:', '    if False:'),
+ ('audit B-01: metrics vehicle count not checked', 'src/raw_audit.py', "if int(float(m0['vehicles'])) != n:", 'if False:'),
+ ('audit B-01: metrics route counts sum not checked', 'src/raw_audit.py', "if int(float(m0['route_A_count'])) + int(float(m0['route_B_count'])) != n:", 'if False:'),
+ ('audit B-01: decision vehicle ids not compared with vehicle records', 'src/raw_audit.py', "if set(dids) != {r['vehicle'] for r in veh}:", 'if False:'),
+ ('audit B-01: duplicate decision rows not checked', 'src/raw_audit.py', 'if len(dids) != len(set(dids)):', 'if False:'),
+ ('audit B-01: batch row split not checked', 'src/raw_audit.py', "if key not in malformed and int(float(r['A_count'])) + int(float(r['B_count'])) != int(float(r['batch_size'])):", 'if False:'),
+ ('audit B-01: batch total not checked against the scenario', 'src/raw_audit.py', "sum(int(float(r['batch_size'])) for r in bl) != n:", 'False:'),
+ ('audit B-01: unexpected exceptions no longer reported as failures', 'src/raw_audit.py', '    except Exception as e:', '    except KeyboardInterrupt as e:'),
  ('FIFO headway wrong in model (cap*1.1)', 'src/canonical_model.py', "head=60/e['cap_vpm']", "head=60/(e['cap_vpm']*1.1)"),
 ]
 killed = 0
