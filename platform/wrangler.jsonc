@@ -1,0 +1,16 @@
+{
+  // Static deployment of the Vite build (npm run build → dist/) on Cloudflare
+  // Workers static assets, served at digitalmarshal.kanbanstudios.ae. No Worker
+  // script: the app is fully client side.
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "digital-marshal",
+  "account_id": "f8dc06dc6cc06ecfe499b2fdbcf45196",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  },
+  "routes": [{ "pattern": "digitalmarshal.kanbanstudios.ae", "custom_domain": true }],
+  "workers_dev": false,
+  "preview_urls": false
+}
