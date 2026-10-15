@@ -4,7 +4,12 @@ import { CityRenderer } from '../render/city';
 import { VehicleLayer } from '../render/vehicles';
 import { getNetwork } from '../core/network/build';
 import { QUALITY, guessTier, lowerTier } from '../render/quality';
-import { SimSession } from '../core/sim/session';
+import type { SimSession } from '../core/sim/session';
+import { createSession, dmFor } from '../core/scenarios';
+import { OverlayLayer } from '../render/overlays';
+import { dmFrame, incidentFrame, vehicleDmView } from './dmframes';
+import type { Policy } from '../core/dm/types';
+import type { Marker } from './store';
 import { DT } from '../core/sim/params';
 import { useStore, type CamMode, type QualityTier } from './store';
 import { translate } from './i18n';
@@ -37,17 +42,27 @@ export const TIMELINE_S = 900;
 const MAX_STEPS_PER_FRAME = 120;
 
 function makeSession(): SimSession {
-  const s = new SimSession(getNetwork(), {});
-  s.addApplier((engine, iv) => {
-    if (iv.kind === 'density') engine.state.densityScale = Number(iv.params.scale);
-  });
-  return s;
+  return createSession(getNetwork(), { dm: { policy: 'C' } });
 }
+
+/** Events that get a marker on the playback timeline. */
+const MARKER_KINDS: Record<string, Marker['tone']> = {
+  'power-loss': 'critical',
+  'outage-detected': 'critical',
+  'msg-published': 'info',
+  'assist-request': 'warn',
+  'junction-authorized': 'ok',
+  'power-restored': 'ok',
+  'incident-resolved': 'ok',
+  'inject-rejected': 'info',
+  'inject-accepted': 'critical',
+};
 
 class Controller {
   world: World | null = null;
   city: CityRenderer | null = null;
   vehicles: VehicleLayer | null = null;
+  overlays: OverlayLayer | null = null;
   readonly session = makeSession();
   playing = true;
   speed = 1;
@@ -91,7 +106,15 @@ class Controller {
     w.scene.add(this.city.group);
     this.vehicles = new VehicleLayer();
     this.vehicles.setParked(this.city.parkedSpots);
+    this.vehicles.statusOf = (v) => {
+      if (v.mode === 'mrc') return 'mrc';
+      const k = dmFor(this.engine).s.knowledge[v.id];
+      if (k) for (const id of Object.keys(k.incidents)) if (k.incidents[id].active) return 'advisory';
+      return 'normal';
+    };
     w.scene.add(this.vehicles.group);
+    this.overlays = new OverlayLayer(net);
+    w.scene.add(this.overlays.group);
     this.vehicles.refresh(this.engine, true);
     const b = net.bounds;
     w.rig.bounds = { minX: b.minX, maxX: b.maxX, minZ: -b.maxY, maxZ: -b.minY };
@@ -110,6 +133,7 @@ class Controller {
     this.city.setLabels(st.overlays.labels);
     useStore.subscribe((now, prev) => {
       if (now.overlays.labels !== prev.overlays.labels) this.city?.setLabels(now.overlays.labels);
+      if (now.overlays.v2x !== prev.overlays.v2x && this.overlays) this.overlays.enabled = now.overlays.v2x;
       if (now.selection !== prev.selection) this.onSelection();
     });
     this.start();
@@ -156,6 +180,10 @@ class Controller {
     }
     if (mode === 'follow') {
       rig.setMode('follow', () => this.followTarget());
+      return;
+    }
+    if (mode === 'incident') {
+      if (!this.focusIncident()) rig.setMode('overview');
       return;
     }
     rig.setMode(mode);
@@ -325,6 +353,113 @@ class Controller {
       this.lastVehicleFrame = vf;
     }
     st.setFrames(networkFrame(this.engine), vf);
+    const e = this.engine;
+    const dmf = dmFrame(e);
+    const inc = sel?.kind === 'incident' ? incidentFrame(e, sel.id) : null;
+    const vdm = sel?.kind === 'vehicle' ? vehicleDmView(e, sel.id) : null;
+    const events = e.state.events.slice(-40).reverse();
+    const markers: Marker[] = [];
+    for (const ev of this.session.knownEvents) {
+      const tone = MARKER_KINDS[ev.kind];
+      if (tone && (ev.kind !== 'msg-published' || ev.p?.policy !== 'A')) markers.push({ t: ev.t, tone, label: ev.kind });
+    }
+    st.setDmFrames(dmf, inc, vdm, events, markers.slice(-200));
+    // header status
+    const active = dmf.incidents.filter((i) => i.status === 'active');
+    const label = active.length ? active.map((i) => `${i.title.split(' at ')[0]} \u00b7 ${i.id}`).join(' | ') : dmf.dark.length ? 'Signal outage (not yet detected)' : '';
+    const level = dmf.dark.length || dmf.mrcNow ? 'critical' : dmf.exceptions.open || active.length ? 'warn' : 'normal';
+    if (st.scenarioLabel !== label || st.alertLevel !== level) useStore.setState({ scenarioLabel: label, alertLevel: level });
+  }
+
+  // ---------------------------------------------------------------- scenarios
+
+  /** Signal controllers lose power now; optionally power returns after `restoreAfter` seconds. */
+  triggerBlackout(junctions: string[], restoreAfter: number | null): void {
+    if (!junctions.length) return;
+    const t = this.session.t;
+    this.session.intervene('blackout', { junctions }, t);
+    if (restoreAfter) this.session.intervene('restore', { junctions }, t + restoreAfter);
+    this.afterIntervention();
+    const c = this.centroid(junctions);
+    this.focusSim(c.x, c.y, 520, 0.72);
+  }
+
+  restorePower(): void {
+    const dark = [...this.engine.state.road.dark];
+    if (!dark.length) return;
+    // a power return that was scheduled for later is superseded by restoring now
+    this.session.removeInterventions((iv) => iv.kind === 'restore' && iv.t > this.session.t);
+    this.session.intervene('restore', { junctions: dark }, this.session.t);
+    this.afterIntervention();
+  }
+
+  /** Remove every scenario trigger and start again from the beginning. */
+  resetScenario(): void {
+    this.session.removeInterventions((iv) => iv.kind !== 'density');
+    this.seek(0);
+    useStore.getState().select(null);
+  }
+
+  /** Replay the same run (same seed, same interventions) under another coordination policy. */
+  setPolicy(policy: Policy): void {
+    const cfg = this.session.cfg as { dm?: Record<string, unknown> };
+    if ((cfg.dm?.policy ?? 'C') === policy) return;
+    const t = this.renderT;
+    this.session.reset({ ...cfg, dm: { ...(cfg.dm ?? {}), policy } }, true);
+    this.renderT = 0;
+    this.vehicles?.refresh(this.engine, true);
+    if (t > 0) this.seekTarget = t;
+    this.publishClock();
+    this.publishFrames();
+  }
+
+  setComms(params: Record<string, unknown>): void {
+    this.session.intervene('comms', params, this.session.t);
+    this.afterIntervention();
+  }
+
+  private afterIntervention(): void {
+    this.session.stepOnce();
+    this.renderT = this.session.t;
+    this.vehicles?.refresh(this.engine, true);
+    this.publishClock();
+    this.publishFrames();
+  }
+
+  centroid(junctions: string[]): { x: number; y: number } {
+    const net = getNetwork();
+    let x = 0;
+    let y = 0;
+    for (const j of junctions) {
+      x += net.junctions[j].x;
+      y += net.junctions[j].y;
+    }
+    return { x: x / junctions.length, y: y / junctions.length };
+  }
+
+  selectIncident(id: string, focus = true): void {
+    useStore.getState().select({ kind: 'incident', id });
+    const st = useStore.getState();
+    if (!st.rightOpen) st.toggleRight();
+    if (!focus) return;
+    const inc = dmFor(this.engine).s.incidents[id];
+    const js = inc?.area.junctions ?? [];
+    if (js.length) {
+      const c = this.centroid(js);
+      this.focusSim(c.x, c.y, js.length > 1 ? 520 : 260, 0.72);
+    } else if (inc?.area.links?.length || inc?.area.lanes?.length) {
+      const l = getNetwork().links[inc.area.links?.[0] ?? inc.area.lanes![0].link];
+      this.focusSim((l.start.x + l.end.x) / 2, (l.start.y + l.end.y) / 2, 260, 0.7);
+    }
+  }
+
+  /** Incident focus camera: the most recent active incident, else the most recent one. */
+  focusIncident(): boolean {
+    const incs = Object.values(dmFor(this.engine).s.incidents);
+    const inc = [...incs].reverse().find((i) => i.status === 'active') ?? incs[incs.length - 1];
+    if (!inc) return false;
+    this.selectIncident(inc.id);
+    return true;
   }
 
   // ---------------------------------------------------------------- loop
@@ -364,6 +499,8 @@ class Controller {
     if (this.world && st.view === 'twin') {
       this.city?.setDark(this.engine.state.road.dark);
       this.city?.update(this.renderT);
+      this.overlays?.setCameraDistance(this.world.rig.pose.dist);
+      this.overlays?.update(this.engine.state.road.dark, dmFor(this.engine).s.pulses, this.renderT, wall);
       this.vehicles?.setCameraDistance(this.world.rig.pose.dist);
       this.vehicles?.draw(this.engine, this.alpha(), wall);
       stats = this.world.frame(dt);

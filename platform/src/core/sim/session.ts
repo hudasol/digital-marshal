@@ -16,6 +16,9 @@ export interface Intervention {
 
 export type Applier = (engine: Engine, iv: Intervention) => void;
 
+/** Engine configuration plus settings owned by layers above the engine (for example the DM policy). */
+export type SessionCfg = Partial<RunConfig> & { dm?: Record<string, unknown> };
+
 interface Snapshot {
   t: number;
   state: SimState;
@@ -32,7 +35,7 @@ export interface SessionLayer {
 export class SimSession {
   readonly net: Network;
   engine: Engine;
-  cfg: Partial<RunConfig>;
+  cfg: SessionCfg;
   interventions: Intervention[] = [];
   applied = new Set<number>();
   horizon = 0;
@@ -44,7 +47,7 @@ export class SimSession {
   private layers: SessionLayer[] = [];
   private onReset: Array<(e: Engine) => void> = [];
 
-  constructor(net: Network, cfg: Partial<RunConfig> = {}) {
+  constructor(net: Network, cfg: SessionCfg = {}) {
     this.net = net;
     this.cfg = cfg;
     this.engine = this.makeEngine();
@@ -72,7 +75,7 @@ export class SimSession {
   }
 
   /** Start from scratch with a (possibly different) configuration; keeps the interventions. */
-  reset(cfg: Partial<RunConfig> = this.cfg, keepInterventions = true): void {
+  reset(cfg: SessionCfg = this.cfg, keepInterventions = true): void {
     this.cfg = cfg;
     if (!keepInterventions) this.interventions = [];
     this.snapshots = [];

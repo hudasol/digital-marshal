@@ -1,4 +1,5 @@
 import type { RngState } from '../rng';
+import type { DmState } from '../dm/types';
 
 /* Simulation state. Everything that changes during a run lives in SimState and is plain data,
    so a snapshot is a structured clone and a replay from the same seed and interventions is exact. */
@@ -65,7 +66,9 @@ export type LogCode =
   | 'MSG_REJECT'
   | 'CLOSURE_SEEN'
   | 'ARRIVED'
-  | 'EXITED';
+  | 'EXITED'
+  | 'NO_ALTERNATIVE'
+  | 'ADVICE';
 
 export interface LogEntry {
   t: number;
@@ -184,4 +187,6 @@ export interface SimState {
   moveDelay: Record<string, number>; // smoothed observed delay per movement `${in}>${out}`, s
   linkEnter: Record<string, number>; // vehicle id -> time it entered its current link
   counters: { exits: number; delay: number; spawned: number; boxViolations: number; hardBrakes: number; unroutable: number };
+  /** Digital Marshal service state (incidents, messages, deliveries, exceptions); null when not attached */
+  dm: DmState | null;
 }

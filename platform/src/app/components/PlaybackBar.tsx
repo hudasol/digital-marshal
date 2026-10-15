@@ -2,14 +2,9 @@ import { useStore } from '../store';
 import { useT } from '../i18n';
 import { Icon } from './Icons';
 import { controller, formatClock, formatRel } from '../controller';
+import type { Marker as TimelineMarker } from '../store';
 
 const SPEEDS = [0.5, 1, 2, 4, 8, 16];
-
-export interface TimelineMarker {
-  t: number;
-  tone: 'info' | 'warn' | 'critical' | 'ok';
-  label: string;
-}
 
 export function PlaybackBar({ markers = [], length }: { markers?: TimelineMarker[]; length: number }) {
   const t = useT();
@@ -54,7 +49,7 @@ export function PlaybackBar({ markers = [], length }: { markers?: TimelineMarker
           <div className="timeline-fill" style={{ width: pct(clock.t) }} />
         </div>
         {markers.map((m, i) => (
-          <span key={i} className={`marker ${m.tone}`} style={{ insetInlineStart: pct(m.t) }} title={m.label} />
+          <span key={i} className={`marker ${m.tone}`} style={{ insetInlineStart: pct(m.t) }} />
         ))}
         <span className="timeline-thumb" style={{ insetInlineStart: pct(clock.t) }} />
         <input

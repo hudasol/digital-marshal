@@ -139,6 +139,8 @@ export class CityRenderer {
     for (const b of this.blocks.bounds) {
       box.min.set(b.x0, 0, -b.y1);
       box.max.set(b.x1, b.h, -b.y0);
+      // a focus point inside a footprint (for example the centroid of an incident area) is not an obstacle
+      if (box.containsPoint(from)) continue;
       if (ray.intersectBox(box, hit)) {
         const d = hit.distanceTo(from);
         if (d < len && (best === null || d < best)) best = d;

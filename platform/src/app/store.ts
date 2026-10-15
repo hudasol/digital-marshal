@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import type { NetworkFrame, VehicleFrame } from './frames';
+import type { DmFrame, IncidentFrame, VehicleDmView } from './dmframes';
+import type { SimEvent } from '../core/sim/types';
 
 export type View = 'twin' | 'compare' | 'engineering' | 'about';
 export type CamMode = 'overview' | 'topdown' | 'incident' | 'follow' | 'emergency' | 'street' | 'free';
@@ -31,6 +33,13 @@ export interface Overlays {
 }
 
 export type Selection = { kind: 'vehicle'; id: number } | { kind: 'incident'; id: string } | null;
+export type ScenarioKey = 'normal' | 'blackout' | 'emergency' | 'roadworks';
+
+export interface Marker {
+  t: number;
+  tone: 'info' | 'warn' | 'critical' | 'ok';
+  label: string;
+}
 
 export interface Toast {
   id: number;
@@ -59,8 +68,18 @@ interface UIState {
   network: NetworkFrame | null;
   vehicle: VehicleFrame | null;
   busy: { label: string; progress: number } | null;
+  dm: DmFrame | null;
+  incident: IncidentFrame | null;
+  vehicleDm: VehicleDmView | null;
+  events: SimEvent[];
+  markers: Marker[];
+  scenario: ScenarioKey;
+  engineering: boolean;
 
   setView: (v: View) => void;
+  setDmFrames: (dm: DmFrame | null, incident: IncidentFrame | null, vehicleDm: VehicleDmView | null, events: SimEvent[], markers: Marker[]) => void;
+  setScenario: (s: ScenarioKey) => void;
+  toggleEngineering: () => void;
   select: (s: Selection) => void;
   setFrames: (network: NetworkFrame | null, vehicle: VehicleFrame | null) => void;
   setBusy: (b: { label: string; progress: number } | null) => void;
@@ -122,11 +141,21 @@ export const useStore = create<UIState>((set, get) => ({
   network: null,
   vehicle: null,
   busy: null,
+  dm: null,
+  incident: null,
+  vehicleDm: null,
+  events: [],
+  markers: [],
+  scenario: 'normal',
+  engineering: false,
 
   setView: (view) => set({ view }),
   select: (selection) => set({ selection, vehicle: selection?.kind === 'vehicle' ? get().vehicle : null }),
   setFrames: (network, vehicle) => set({ network, vehicle }),
   setBusy: (busy) => set({ busy }),
+  setDmFrames: (dm, incident, vehicleDm, events, markers) => set({ dm, incident, vehicleDm, events, markers }),
+  setScenario: (scenario) => set({ scenario }),
+  toggleEngineering: () => set({ engineering: !get().engineering }),
   setOverlay: (k, on) => set({ overlays: { ...get().overlays, [k]: on } }),
   setLang: (lang) => {
     try {

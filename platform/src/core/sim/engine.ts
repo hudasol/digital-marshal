@@ -109,6 +109,7 @@ export class Engine {
       moveDelay: {},
       linkEnter: {},
       counters: { exits: 0, delay: 0, spawned: 0, boxViolations: 0, hardBrakes: 0, unroutable: 0 },
+      dm: null,
     };
     for (const id of net.linkIds) {
       const l = net.links[id];

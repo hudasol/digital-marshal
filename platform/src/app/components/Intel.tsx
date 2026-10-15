@@ -6,6 +6,7 @@ import { bindText, bindTone, fmtDuration, logText } from '../explain';
 import { controller, formatRel } from '../controller';
 import type { NetworkFrame, VehicleFrame } from '../frames';
 import type { VehicleClass } from '../../core/sim/types';
+import { DmOverview, IncidentInspector, VehicleDmSection } from './IncidentInspector';
 
 const CLASS_COLOR: Record<VehicleClass, string> = {
   robotaxi: '#45d4e8',
@@ -99,6 +100,7 @@ export function NetworkOverview({ n }: { n: NetworkFrame }) {
 export function VehicleInspector({ v }: { v: VehicleFrame }) {
   const t = useT();
   const select = useStore((s) => s.select);
+  const vdm = useStore((s) => s.vehicleDm);
   const camMode = useStore((s) => s.camMode);
   const tone = v.exited ? 'info' : bindTone(v.bind.kind);
   const junctionSteps = v.route.slice(0, -1);
@@ -131,6 +133,8 @@ export function VehicleInspector({ v }: { v: VehicleFrame }) {
         <div className="now-label">{t('veh.planning')}</div>
         <div className="now-text">{v.exited ? t('veh.exited') : bindText(t, v.bind, v.speedKmh)}</div>
       </div>
+
+      <VehicleDmSection d={vdm} connected={v.connected} />
 
       <Section title={t('veh.motion')}>
         <div className="kv">
@@ -198,7 +202,15 @@ export function VehicleInspector({ v }: { v: VehicleFrame }) {
 export function IntelPanel() {
   const network = useStore((s) => s.network);
   const vehicle = useStore((s) => s.vehicle);
+  const incident = useStore((s) => s.incident);
+  const dm = useStore((s) => s.dm);
   const selection = useStore((s) => s.selection);
   if (selection?.kind === 'vehicle' && vehicle) return <VehicleInspector v={vehicle} />;
-  return network ? <NetworkOverview n={network} /> : null;
+  if (selection?.kind === 'incident' && incident) return <IncidentInspector f={incident} />;
+  return (
+    <>
+      {dm && <DmOverview dm={dm} />}
+      {network ? <NetworkOverview n={network} /> : null}
+    </>
+  );
 }

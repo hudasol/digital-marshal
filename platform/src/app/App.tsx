@@ -8,6 +8,8 @@ import { CameraToolbar } from './components/CameraToolbar';
 import { SidePanel, Section } from './components/SidePanel';
 import { PerfOverlay, Toasts } from './components/Overlays';
 import { IntelPanel } from './components/Intel';
+import { ScenarioPanel } from './components/Scenario';
+import { EventFeed } from './components/EventFeed';
 import { EvidenceView } from './views/EvidenceView';
 import { EngineeringView } from './views/EngineeringView';
 import { AboutView } from './views/AboutView';
@@ -96,6 +98,10 @@ function DisplaySection() {
         <span>{t('display.labels')}</span>
         <input type="checkbox" checked={overlays.labels} onChange={(e) => setOverlay('labels', e.target.checked)} />
       </label>
+      <label className="toggle">
+        <span>{t('display.v2x')}</span>
+        <input type="checkbox" checked={overlays.v2x} onChange={(e) => setOverlay('v2x', e.target.checked)} />
+      </label>
     </Section>
   );
 }
@@ -165,6 +171,8 @@ export function App() {
   const leftOpen = useStore((s) => s.leftOpen);
   const rightOpen = useStore((s) => s.rightOpen);
   const selection = useStore((s) => s.selection);
+  const hasIncidents = useStore((s) => (s.dm?.incidents.length ?? 0) > 0);
+  const markers = useStore((s) => s.markers);
 
   // language and direction on the document element
   useEffect(() => {
@@ -220,9 +228,10 @@ export function App() {
       <Header />
       {view === 'twin' && (
         <>
-          <CameraToolbar available={{ incident: false, follow: selection?.kind === 'vehicle', emergency: false }} />
+          <CameraToolbar available={{ incident: hasIncidents, follow: selection?.kind === 'vehicle', emergency: false }} />
           <SidePanel side="left" title={t('panel.ops')}>
             <div id="main-controls" />
+            <ScenarioPanel />
             <SimulationSection />
             <DisplaySection />
             <GraphicsSection />
@@ -231,7 +240,8 @@ export function App() {
             <IntelPanel />
           </SidePanel>
           <DistrictCaption />
-          <PlaybackBar length={TIMELINE_S} />
+          <EventFeed />
+          <PlaybackBar length={TIMELINE_S} markers={markers} />
           <BusyOverlay />
           <PerfOverlay />
         </>
