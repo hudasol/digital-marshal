@@ -83,6 +83,8 @@ export interface RunMetrics {
   meanDelayAV: number;
   meanDelayOther: number;
   /* safety invariants: expected 0 in every run */
+  /** AVs entering a dark junction outside their domain without an authorisation, other than vehicles
+      already in the junction or committed to it (moving, too close to stop) when the power failed */
   unauthorisedCrossings: number;
   restrictedEntries: number;
   /** pairs of vehicles seen in conflicting movements of the same junction box at once */
@@ -101,6 +103,8 @@ export interface RunMetrics {
   rejected: number;
   reroutes: number;
   /* emergency vehicle: null when no run or not arrived within the horizon */
+  /** 1 if the ambulance arrived within the horizon, 0 if not, null if there was no emergency run */
+  evArrived: number | null;
   evDelay: number | null;
   evTravel: number | null;
   evFreeFlow: number | null;
@@ -123,6 +127,8 @@ export function runOne(net: Network, exp: ExperimentDef, variant: VariantDef, se
   for (const iv of exp.interventions) s.intervene(iv.kind, iv.params, iv.at);
   const crossings = new Set<string>();
   const conflicts = new Set<string>();
+  const atOnset = new Set<number>();
+  let dark: string[] = [];
   let vehSteps = 0;
   const odd = s.engine.cfg.oddMaxLanes;
   while (s.t < exp.horizon - 1e-9) {
@@ -139,11 +145,21 @@ export function runOne(net: Network, exp: ExperimentDef, variant: VariantDef, se
         for (const a of occ) for (const b of st.conns[other]) conflicts.add(a < b ? `${a}|${b}` : `${b}|${a}`);
       }
     }
+    // vehicles already in, or committed to, a junction at the moment its signals fail cannot stop
+    for (const j of st.road.dark) {
+      if (dark.includes(j)) continue;
+      for (const id of st.order) {
+        const v = st.vehicles[id];
+        const c = v.seg.k === 'C' ? net.connectors[v.seg.id] : v.committed && v.conn ? net.connectors[v.conn] : null;
+        if (c && c.junction === j) atOnset.add(v.id);
+      }
+    }
+    dark = [...st.road.dark];
     if (st.road.dark.length) {
       const dm = dmFor(s.engine);
       for (const id of st.order) {
         const v = st.vehicles[id];
-        if (!v.av || v.seg.k !== 'C' || v.s > 2) continue;
+        if (!v.av || v.seg.k !== 'C' || v.s > 2 || atOnset.has(v.id)) continue;
         const j = net.connectors[v.seg.id].junction;
         if (!st.road.dark.includes(j) || net.junctions[j].maxApproachLanes <= odd) continue;
         if (!dm.authorized(v, j)) crossings.add(`${v.id}|${v.seg.id}`);
@@ -179,6 +195,7 @@ export function runOne(net: Network, exp: ExperimentDef, variant: VariantDef, se
     delivered: dm.stats.delivered,
     rejected: dm.stats.rejected,
     reroutes: dm.stats.reroutes,
+    evArrived: ev ? (arrived ? 1 : 0) : null,
     evDelay: arrived ? ev!.arrivedAt! - ev!.dispatchedAt - ev!.ffT : null,
     evTravel: arrived ? ev!.arrivedAt! - ev!.dispatchedAt : null,
     evFreeFlow: ev ? ev.ffT : null,

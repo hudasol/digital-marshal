@@ -1066,10 +1066,11 @@ export class Engine {
           v.lastGate = gateKey;
           this.log(v, stopping ? 'STOP_SIGNAL' : 'GO_SIGNAL', { junction: c.junction });
         }
-        // commitment: too close to stop comfortably
+        // commitment: moving and too close to stop comfortably. A vehicle at rest is never committed;
+        // it can always stay where it is if the situation changes before it moves off.
         if (!v.committed && v.mode === 'drive') {
           const stopDist = (v.v * v.v) / (2 * v.p.b) + 1.5;
-          if (D < stopDist && this.gate(v, c, D) === null) {
+          if (D < stopDist && v.v > 1 && this.gate(v, c, D) === null) {
             v.committed = true;
             const sig = dark ? null : aspectFor(this.net.junctions[c.junction], this.signal(c.junction), link.id, c.turn);
             if (sig === 'A') this.log(v, 'AMBER_COMMIT', { junction: c.junction });
