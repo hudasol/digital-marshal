@@ -188,10 +188,12 @@ function buildBeats() {
   var P = { overview: SHOT.overview };
   b.push({ t: 0, i: 0, o: { n: nveh, sp: sc.spacing_s }, cam: SHOT.overview });
   if (inc >= 40) b.push({ t: Math.max(10, inc - 60), i: 1, o: {}, cam: { tx: 125, ty: 0, tz: 165, yaw: -0.32, pit: 0.42, dist: 230 } });
-  b.push({ t: inc, i: 2, o: { inc: inc }, cam: { tx: 200, ty: 0, tz: 0, yaw: -0.4, pit: 0.62, dist: 600 } });
+  var ip = world && world.corr ? world.corr.independent_periodic.incidentPos() : null;
+  b.push({ t: Math.max(0, inc - 3), i: 2, o: { inc: inc }, cam: ip ? { tx: ip.x, ty: 0, tz: ip.z, yaw: -0.5, pit: 0.5, dist: 300 } : { tx: 200, ty: 0, tz: 0, yaw: -0.4, pit: 0.62, dist: 600 } });
   b.push({ t: inc + 14, i: 3, o: {}, cam: { tx: 160, ty: 0, tz: 90, yaw: -0.18, pit: 0.5, dist: 420 } });
   b.push({ t: ep || inc + 60, i: 4, o: {}, cam: { tx: 220, ty: 0, tz: 80, yaw: 0.0, pit: 0.5, dist: 480 } });
-  if (pk >= 3 && pt > inc + 20) b.push({ t: pt, i: 5, o: { t: Math.round(pt), q: pk }, cam: { tx: 55, ty: 0, tz: -165, yaw: -0.16, pit: 0.38, dist: 210 } });
+  var sq = fs; for (k = Math.round(pt / 5); k < series.static.length; k++) if (series.static[k] === 0) { sq = k * 5 + 5; break; }
+  if (pk >= 3 && pt > inc + 20) b.push({ t: pt, i: 5, o: { t: Math.round(pt), q: pk }, cam: { tx: 55, ty: 0, tz: -165, yaw: -0.16, pit: 0.38, dist: 210 }, out: { t: sq, cam: SHOT.overview } });
   if (cb) b.push({ t: cb[0] + 10, i: 6, o: { t: Math.round(cb[0]), a: cb[2], b: cb[3] }, cam: { tx: 230, ty: 0, tz: 165, yaw: -0.08, pit: 0.5, dist: 330 } });
   if (tEnd - fc > 40) b.push({ t: fc + 5, i: 7, o: { fc: Math.round(fc), fi: Math.round(fi), fs: Math.round(fs) }, cam: { tx: 520, ty: 0, tz: 80, yaw: 0.05, pit: 0.52, dist: 560 } });
   b.push({ t: tEnd, i: 8, o: { s: n2(s), i: n2(i), c: n2(c), d: d }, cam: SHOT.overview });
@@ -213,7 +215,7 @@ function tourFrame() {
     $('#capK').textContent = fmt(T('step'), { i: idx + 1, n: beats.length }); $('#capT').textContent = bt.txt();
     if (state.capOpen) $('#cap').classList.remove('off');
   }
-  if (!state.userCam && !state.follow) setShot(beats[idx].cam);
+  if (!state.userCam && !state.follow) setShot(beats[idx].out && state.t >= beats[idx].out.t ? beats[idx].out.cam : beats[idx].cam);
 }
 
 /* ---------- summary, HUD, chart ---------- */

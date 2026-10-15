@@ -8,7 +8,7 @@ var THREE = root.THREE;
 
 /* ---------- layout ---------- */
 var SX = 0.25, SZ = 0.5, LANE_W = 3.4, ROAD_H = 0.4;
-var LEAD_IN = 110, LEAD_OUT = 70;
+var LEAD_IN = 45, LEAD_OUT = 70;
 var POL = ['static', 'independent_periodic', 'coordinated_batch'];
 var ZOFF = { static: -165, independent_periodic: 0, coordinated_batch: 165 };
 var POLCOL = { static: 0x64748B, independent_periodic: 0xFFB715, coordinated_batch: 0xDA291C };
@@ -238,6 +238,31 @@ Corridor.prototype.build = function () {
   var cones = []; for (var i = 0; i < 5; i++) { cones.push(part(new THREE.ConeGeometry(0.55, 1.5, 8), 0, 0.75, (i - 2) * 1.9, i % 2 ? COL.red : 0xFFFFFF)); }
   this.cones = new THREE.Mesh(merge(cones), MAT.lam); this.cones.position.set(bx - e2.ux * 4, ROAD_H, bz - e2.uz * 4); this.cones.rotation.y = -e2.ang; this.cones.visible = false; G.add(this.cones);
 
+  // incident scene on E2: a stalled car is hit from behind; flash, debris, smoke, flashing lights (all a function of sim time)
+  (function () {
+    function glow(rgb) { return textTex(64, 64, function (x, W, H) { var g = x.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, W / 2); g.addColorStop(0, 'rgba(' + rgb + ',1)'); g.addColorStop(0.4, 'rgba(' + rgb + ',0.45)'); g.addColorStop(1, 'rgba(' + rgb + ',0)'); x.fillStyle = g; x.fillRect(0, 0, W, H); }); }
+    var I = self.inc = { g: new THREE.Group(), cars: [], debris: [], smoke: [] };
+    I.mid = new THREE.Vector3((e2.a.x + e2.b.x) / 2, ROAD_H, (e2.a.y + e2.b.y) / 2);
+    I.g.position.copy(I.mid); I.g.rotation.y = -e2.ang; I.g.visible = false; G.add(I.g);
+    var sp = function (tex, add) { var m = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, blending: add ? THREE.AdditiveBlending : THREE.NormalBlending, fog: false })); m.visible = false; I.g.add(m); return m; };
+    ['critical', 'A'].forEach(function (r, k) { var c = new THREE.Group(), b = new THREE.Mesh(vehicleGeo(r === 'A' ? 'critical' : r), MAT.lam); b.castShadow = true; c.add(b);
+      var l1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.3, 0.5), new THREE.MeshBasicMaterial({ color: 0xFF2A2A })), l2 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.3, 0.5), new THREE.MeshBasicMaterial({ color: 0x2A6BFF }));
+      l1.position.set(-0.25, 2.5, 0.45); l2.position.set(-0.25, 2.5, -0.45); c.add(l1); c.add(l2); I.g.add(c); I.cars.push({ g: c, l1: l1, l2: l2 }); });
+    I.flash = sp(glow('255,214,120'), true); I.fire = sp(glow('255,120,30'), true);
+    I.gR = sp(glow('255,40,40'), true); I.gB = sp(glow('40,110,255'), true);
+    I.ring = new THREE.Mesh(new THREE.RingGeometry(0.9, 1, 48), new THREE.MeshBasicMaterial({ color: 0xFF8A1E, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
+    I.ring.rotation.x = -Math.PI / 2; I.ring.position.y = 0.4; I.ring.visible = false; I.g.add(I.ring);
+    I.beam = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 70, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0xFF3B30, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
+    I.beam.position.y = 35; I.beam.visible = false; I.g.add(I.beam);
+    var smk = glow('70,70,74'), rr = rnd(99), dm = [0xFFFFFF, 0x1B1D21, COL.red, 0x94A3B8];
+    for (var i = 0; i < 12; i++) I.smoke.push({ s: sp(smk, false), ph: i * 0.8, dx: (rr() - 0.5) * 2.5, dz: (rr() - 0.5) * 2.5 });
+    var dg = new THREE.BoxGeometry(0.5, 0.25, 0.4);
+    for (var j = 0; j < 16; j++) { var dmesh = new THREE.Mesh(dg, new THREE.MeshBasicMaterial({ color: dm[j % 4] })); dmesh.visible = false; I.g.add(dmesh);
+      var a = rr() * 6.283, v = 5 + rr() * 11; I.debris.push({ m: dmesh, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: 9 + rr() * 9, sp: (rr() - 0.5) * 14 }); }
+    var lab = textTex(512, 128, function (x, W, H) { x.fillStyle = '#DA291C'; x.fillRect(0, 0, W, H); x.fillStyle = '#FFB715'; x.fillRect(0, 0, W, 10); x.fillRect(0, H - 10, W, 10); x.fillStyle = '#fff'; x.font = font(64); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('INCIDENT · E2', W / 2, H / 2 + 2); });
+    I.label = new THREE.Sprite(new THREE.SpriteMaterial({ map: lab, transparent: true, depthWrite: false, fog: false })); I.label.scale.set(30, 7.5, 1); I.label.position.y = 22; I.label.visible = false; I.g.add(I.label);
+  })();
+
   // policy name painted on the slab
   var NAMES = { static: 'STATIC ROUTING', independent_periodic: 'INDEPENDENT PERIODIC ROUTING', coordinated_batch: 'DYNAMIC COORDINATED ROUTING' }, pc = '#' + ('000000' + POLCOL[this.pol].toString(16)).slice(-6);
   var ptx = textTex(2048, 128, function (x, W, H) { x.fillStyle = pc; x.fillRect(0, 10, 26, H - 20); x.font = font(78); x.textBaseline = 'middle'; x.textAlign = 'left'; x.fillStyle = '#242526'; x.fillText(NAMES[self.pol], 44, H / 2 + 4); });
@@ -363,7 +388,44 @@ Corridor.prototype.signals = function (v, wait, advise) {
   v.bea.material = (wait || advise) ? MAT.beaconOn : MAT.beaconOff;
 };
 
+Corridor.prototype.updateIncident = function (tau, now) {
+  var I = this.inc, vis = tau > -4; I.g.visible = vis; if (!vis) return;
+  var pre = tau < 0, ease = function (x) { return 1 - Math.exp(-x); };
+  var s = pre ? 0 : ease(tau * 2.6), R = I.cars[1], F = I.cars[0], blink = (Math.floor(now * 5) % 2 === 0);
+  // F is the stalled car (hazards on), R closes from behind and hits it at tau = 0
+  F.g.position.set(pre ? 0 : 3.6 * s, 0, 0); F.g.rotation.y = pre ? 0 : -0.55 * s;
+  R.g.position.set(pre ? -4.15 + 12 * tau : -4.15 + 1.3 * s, 0, pre ? 0 : 0.5 * s); R.g.rotation.y = pre ? 0 : 0.4 * s;
+  F.l1.visible = F.l2.visible = true; R.l1.visible = R.l2.visible = !pre;
+  F.l1.material.color.setHex(pre ? (blink ? 0xFFB715 : 0x5A4510) : (blink ? 0xFF2A2A : 0x4A1010)); F.l2.material.color.setHex(pre ? (blink ? 0xFFB715 : 0x5A4510) : (blink ? 0x2A6BFF : 0x10204A));
+  R.l1.material.color.setHex(blink ? 0x2A6BFF : 0x10204A); R.l2.material.color.setHex(blink ? 0xFF2A2A : 0x4A1010);
+  var post = !pre;
+  // impact flash, shock ring, fire glow
+  var f = post ? Math.max(0, 1 - tau / 0.7) : 0;
+  I.flash.visible = f > 0; I.flash.material.opacity = f; I.flash.scale.set(14 + (1 - f) * 46, 14 + (1 - f) * 46, 1); I.flash.position.set(0, 3, 0);
+  var rg = post && tau < 2.2; I.ring.visible = rg; if (rg) { var q = tau / 2.2, sc = 3 + q * 52; I.ring.scale.set(sc, sc, sc); I.ring.material.opacity = (1 - q) * 0.9; }
+  var fi = post && tau < 14, fl = fi ? (0.55 + 0.35 * Math.sin(now * 17) + 0.1 * Math.sin(now * 29)) * (1 - smooth(8, 14, tau)) : 0;
+  I.fire.visible = fi; I.fire.material.opacity = fl; I.fire.scale.set(11, 11, 1); I.fire.position.set(3.2, 2.2, 0);
+  // flashing emergency glow on the ground
+  I.gR.visible = I.gB.visible = post; if (post) { var gs = Math.min(1, tau / 1.5) * 20; I.gR.scale.set(gs, gs, 1); I.gB.scale.set(gs, gs, 1); I.gR.position.set(0.5, 1.2, 1.6); I.gB.position.set(2.5, 1.2, -1.6); I.gR.material.opacity = blink ? 0.85 : 0.15; I.gB.material.opacity = blink ? 0.15 : 0.85; }
+  // debris thrown out and landing
+  I.debris.forEach(function (d) {
+    var tt = Math.max(0, tau), y = d.vy * tt - 15 * tt * tt; if (!post) { d.m.visible = false; return; }
+    var land = 2 * d.vy / 15; if (tt > land) { tt = land; y = 0; } d.m.visible = true;
+    d.m.position.set(1.5 + d.vx * tt, 0.2 + Math.max(0, y), d.vz * tt); d.m.rotation.set(d.sp * tt * 0.4, d.sp * tt, 0);
+  });
+  // smoke plume, loops while the incident lasts
+  I.smoke.forEach(function (p) {
+    var a = tau - p.ph, ok = post && a >= 0; if (!ok) { p.s.visible = false; return; }
+    a = a % 10; var q = a / 10; p.s.visible = true;
+    p.s.position.set(2 + p.dx + a * 1.1, 2 + a * 2.6, p.dz + a * 0.4); var sc2 = 4 + a * 2.4; p.s.scale.set(sc2, sc2, 1);
+    p.s.material.opacity = 0.62 * Math.pow(1 - q, 1.3) * Math.min(1, a * 1.5);
+  });
+  // warning beam and label
+  I.beam.visible = I.label.visible = post; if (post) { I.beam.material.opacity = 0.22 + 0.14 * Math.sin(now * 6); I.label.material.opacity = Math.min(1, tau * 2); I.label.position.y = 24 + Math.sin(now * 2) * 0.8; }
+};
+
 /* per frame update for one corridor */
+Corridor.prototype.incidentPos = function () { return this.inc.mid; };
 Corridor.prototype.update = function (t, incT, hasMarshal, now) {
   var info = this.rankWaiting(t), counts = { inq: 0, arr: 0, A: 0, B: 0, wait: 0 }, self = this, adv = hasMarshal;
   var closed = t >= incT;
@@ -383,6 +445,7 @@ Corridor.prototype.update = function (t, incT, hasMarshal, now) {
   var cl = closed ? smooth(0, 6, t - incT) : 0;
   this.hatchMats.forEach(function (m) { m.opacity = 0.88 * cl; });
   this.barrier.visible = closed; this.cones.visible = closed;
+  this.updateIncident(t - incT, now);
   // sign state
   if (this.pol !== 'static') this.setSign(closed ? 'advisory' : 'normal'); else this.setSign(closed ? 'dim' : 'normal');
   // pulses
