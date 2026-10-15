@@ -14,7 +14,7 @@ var LANG = 'en';
 var I18N = {
 en: {
   title: 'Digital Marshal 3D', subtitle: 'Corridor incident response replayed from the frozen point queue model',
-  chip1: 'Synthetic network', chip2: 'Exploratory results', chip3: 'Not an RTA system', resBtn: 'Results', view2d: '2D view',
+  chip1: 'Synthetic network', chip2: 'Exploratory results', chip3: 'Simulation proposal for the hackathon', resBtn: 'Results', dataBtn: 'Data', dataClose: '3D view', view2d: '2D view',
   resT: 'Corridor Performance Summary', resNote: 'Fleet time is the sum of every vehicle journey. Queue wait is time spent held at the head of a segment. Both come straight from the model output.',
   chartT: 'Vehicles waiting over time', scn: 'Scenario', play: 'Play', pause: 'Pause', restart: 'Restart', incT: 'Incident time', injNow: 'Inject incident now', injReset: 'Baseline',
   labels: 'Labels', tour: 'Guided tour', tourOff: 'Exit tour',
@@ -24,7 +24,7 @@ en: {
   hud: ['Queued', 'Done', 'Route A', 'Route B', 'Wait vm'],
   total: 'Fleet travel time', unit: 'vehicle min', mean: 'Mean journey', p95: 'P95 journey', split: 'Allocation A / B', qwait: 'Queue wait', closed: 'Closed link entries', audit: 'Queue audit violations',
   vsStat: 'vs static', vsInd: 'vs independent', min: 'min', vm: 'vehicle min', second: 's',
-  ft1: 'SYNTHETIC NETWORK', ft2: 'Exploratory results, no confirmatory experiment run, provisional 5 percent target not met. Student prototype, not an RTA system; the RTA logo is shown for context only. Every number comes from the frozen model output.',
+  ft1: 'SYNTHETIC NETWORK', ft2: 'Exploratory results, no confirmatory experiment run, provisional 5 percent target not met. Simulation proposal for the hackathon; the RTA logo is shown for context only. Every number comes from the frozen model output.',
   iEye: 'One corridor · one incident · three routing policies', iH: 'A closure at 120 seconds. <em>Three ways to respond.</em>',
   iP: 'The same autonomous fleet, the same network and the same incident. Only the routing logic differs. Watch where the queues form.',
   kpT: 'Fleet travel time, {s}', goTour: 'Watch the three policies', goFree: 'Explore freely',
@@ -48,7 +48,7 @@ en: {
 },
 ar: {
   title: 'المارشال الرقمي ثلاثي الأبعاد', subtitle: 'الاستجابة لحادث الممر، إعادة تشغيل من نموذج الطوابير النقطية المجمد',
-  chip1: 'شبكة اصطناعية', chip2: 'نتائج استكشافية', chip3: 'ليس نظاماً لهيئة الطرق', resBtn: 'النتائج', view2d: 'العرض الثنائي',
+  chip1: 'شبكة اصطناعية', chip2: 'نتائج استكشافية', chip3: 'مقترح محاكاة للهاكاثون', resBtn: 'النتائج', dataBtn: 'البيانات', dataClose: 'العرض ثلاثي الأبعاد', view2d: 'العرض الثنائي',
   resT: 'ملخص أداء الممر', resNote: 'زمن الأسطول هو مجموع زمن رحلات كل المركبات. انتظار الطابور هو الزمن المحتجز عند مقدمة المقطع. كلاهما مأخوذ مباشرة من مخرجات النموذج.',
   chartT: 'المركبات المنتظرة عبر الزمن', scn: 'السيناريو', play: 'تشغيل', pause: 'إيقاف مؤقت', restart: 'إعادة', incT: 'وقت الحادث', injNow: 'حقن حادث الآن', injReset: 'الأساس',
   labels: 'التسميات', tour: 'جولة موجهة', tourOff: 'إنهاء الجولة',
@@ -58,7 +58,7 @@ ar: {
   hud: ['في الطابور', 'أتمت', 'المسار أ', 'المسار ب', 'انتظار'],
   total: 'زمن رحلات الأسطول', unit: 'مركبة دقيقة', mean: 'متوسط الرحلة', p95: 'الرحلة P95', split: 'التخصيص أ / ب', qwait: 'انتظار الطابور', closed: 'دخول الروابط المغلقة', audit: 'مخالفات تدقيق الطابور',
   vsStat: 'مقارنة بالثابت', vsInd: 'مقارنة بالمستقل', min: 'دقيقة', vm: 'مركبة دقيقة', second: 'ث',
-  ft1: 'شبكة اصطناعية', ft2: 'نتائج استكشافية ولم يُجرَ تجربة تأكيدية والهدف المبدئي 5 بالمئة لم يتحقق. نموذج أولي طلابي وليس نظاماً لهيئة الطرق والمواصلات، وشعار الهيئة معروض للسياق فقط. كل رقم مأخوذ من مخرجات النموذج المجمدة.',
+  ft1: 'شبكة اصطناعية', ft2: 'نتائج استكشافية ولم يُجرَ تجربة تأكيدية والهدف المبدئي 5 بالمئة لم يتحقق. مقترح محاكاة للهاكاثون، وشعار الهيئة معروض للسياق فقط. كل رقم مأخوذ من مخرجات النموذج المجمدة.',
   iEye: 'ممر واحد · حادث واحد · ثلاث سياسات توجيه', iH: 'إغلاق عند 120 ثانية. <em>ثلاث طرق للاستجابة.</em>',
   iP: 'الأسطول ذاتي القيادة نفسه والشبكة نفسها والحادث نفسه. يختلف منطق التوجيه فقط. راقب أين تتشكل الطوابير.',
   kpT: 'زمن رحلات الأسطول، {s}', goTour: 'شاهد السياسات الثلاث', goFree: 'استكشف بحرية',
@@ -185,7 +185,7 @@ function buildBeats() {
   function txt(i2, o) { return fmt(cap[i2].replace(/^c\d:\s*/, ''), o); }
   var P = { overview: SHOT.overview };
   b.push({ t: 0, i: 0, o: { n: nveh, sp: sc.spacing_s }, cam: SHOT.overview });
-  if (inc >= 40) b.push({ t: Math.max(10, inc - 35), i: 1, o: {}, cam: { tx: 125, ty: 0, tz: 165, yaw: -0.32, pit: 0.42, dist: 230 } });
+  if (inc >= 40) b.push({ t: Math.max(10, inc - 60), i: 1, o: {}, cam: { tx: 125, ty: 0, tz: 165, yaw: -0.32, pit: 0.42, dist: 230 } });
   b.push({ t: inc, i: 2, o: { inc: inc }, cam: { tx: 200, ty: 0, tz: 0, yaw: -0.4, pit: 0.62, dist: 600 } });
   b.push({ t: inc + 14, i: 3, o: {}, cam: { tx: 160, ty: 0, tz: 90, yaw: -0.18, pit: 0.5, dist: 420 } });
   b.push({ t: ep || inc + 60, i: 4, o: {}, cam: { tx: 220, ty: 0, tz: 80, yaw: 0.0, pit: 0.5, dist: 480 } });
@@ -284,14 +284,20 @@ function applyLang() {
   document.documentElement.lang = LANG; document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr'; document.body.className = LANG === 'ar' ? 'ar' : '';
   Array.prototype.forEach.call(document.querySelectorAll('[data-i]'), function (n) { var k = n.getAttribute('data-i'), v = T(k); if (k === 'iH') n.innerHTML = v; else n.textContent = v; });
   $('#langBtn').textContent = LANG === 'ar' ? 'English' : 'العربية'; labelDock(); labelHud(); renderResults(); renderIntro(); drawChart();
-  beats = buildBeats(); state.beat = -1;
+  beats = buildBeats(); state.beat = -1; openData(!!state.dataOpen);
   if (state.tour) tourFrame();
 }
+
+/* ---------- data tab ---------- */
+function renderData() {
+  window.DM3D_DATA.render($('#data'), { lang: LANG, runs: runs, scn: state.scn, inc: state.inc, tMax: state.tMax, D: D, scnName: I18N[LANG].sc[state.scn], scNames: I18N[LANG].sc, lanes: S.LANES, incLabel: T('incT') + ' ' + state.inc + ' ' + T('second') });
+}
+function openData(on) { state.dataOpen = on; $('#data').hidden = !on; $('#dataBtn').textContent = on ? T('dataClose') : T('dataBtn'); $('#dataBtn').classList.toggle('on', on); if (on) { hideTip(); renderData(); } }
 
 /* ---------- apply scenario or incident ---------- */
 function applyRuns(keepT) {
   runs = runsFor(state.scn, state.inc); world.setRuns(runs, state.inc); computeTMax(); if (!keepT) state.t = 0; if (state.t > state.tMax) state.t = state.tMax; state.follow = null;
-  buildSeries(); renderResults(); renderIntro(); beats = buildBeats(); state.beat = -1; $('#incT').value = state.inc; $('#incV').textContent = state.inc + ' ' + T('second'); placeMark();
+  buildSeries(); renderResults(); renderIntro(); beats = buildBeats(); state.beat = -1; $('#incT').value = state.inc; $('#incV').textContent = state.inc + ' ' + T('second'); placeMark(); if (state.dataOpen) renderData();
 }
 function placeMark() { var m = $('#mk'); m.style.insetInlineStart = (state.inc / state.tMax * 100) + '%'; m.style.left = ''; if (LANG === 'en') m.style.left = 'calc(' + (state.inc / state.tMax * 100) + '% - 1px)'; }
 
@@ -299,7 +305,7 @@ function placeMark() { var m = $('#mk'); m.style.insetInlineStart = (state.inc /
 function frame(ms) {
   var now = ms / 1000, dt = Math.min(0.1, now - lastNow); lastNow = now;
   var sp = state.speed;
-  if (state.tour && state.beat >= 0) { var nb = beats[state.beat + 1], gap = (nb ? nb.t : state.tMax) - state.t; if (gap > 90 && state.t - beats[state.beat].t > 40) sp *= 3; }
+  if (state.tour && state.beat >= 0) { var nb = beats[state.beat + 1], gap = (nb ? nb.t : state.tMax) - state.t; if (gap > 90 && state.t - beats[state.beat].t > 40) sp *= 3; if (beats[1] && state.t < beats[1].t) sp *= 2.6; }
   if (state.playing) { state.t = Math.min(state.tMax, state.t + dt * sp); if (state.t >= state.tMax) { state.playing = false; syncPlay(); } }
   tourFrame();
   var counts = world.update(state.t, state.inc, now), c = stepCam(dt, now);
@@ -322,6 +328,7 @@ function boot() {
   $('#incT').onchange = function () { state.inc = parseInt(this.value, 10); applyRuns(true); };
   $('#injNow').onclick = function () { state.inc = Math.max(0, Math.min(300, Math.round(state.t / 5) * 5)); applyRuns(true); };
   $('#injReset').onclick = function () { state.inc = BASE; applyRuns(true); };
+  $('#dataBtn').onclick = function () { openData(!state.dataOpen); };
   $('#resBtn').onclick = function () { state.resOpen = !state.resOpen; $('#res').classList.toggle('hide', !state.resOpen); };
   $('#lblBtn').onclick = function () { state.labels = !state.labels; world.setEdgeLabels(state.labels); this.classList.toggle('on', !state.labels); };
   $('#langBtn').onclick = function () { LANG = LANG === 'en' ? 'ar' : 'en'; applyLang(); placeMark(); };
@@ -332,7 +339,7 @@ function boot() {
     if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName) && e.key !== ' ') return;
     if (e.key === ' ') { e.preventDefault(); $('#play').click(); }
     else if (e.key === 'r' || e.key === 'R') $('#restart').click();
-    else if (e.key === 'Escape') { state.follow = null; if (state.tour) stopTour(); }
+    else if (e.key === 'Escape') { if (state.dataOpen) { openData(false); return; } state.follow = null; if (state.tour) stopTour(); }
     else if ('1234'.indexOf(e.key) >= 0 && e.key) { var k = ['overview'].concat(POL)[parseInt(e.key, 10) - 1]; state.follow = null; setShot(SHOT[k]); state.userCam = true; }
     else if (e.key === 'l' || e.key === 'L') $('#lblBtn').click();
   });
