@@ -1,15 +1,14 @@
 import * as THREE from 'three';
-import { Sky } from 'three/addons/objects/Sky.js';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { CameraRig } from './CameraRig';
 import { QUALITY, type QualityProfile } from './quality';
 import type { QualityTier } from '../app/store';
+import { Atmosphere } from './env/atmosphere';
+import { buildTerrain } from './env/terrain';
+import { PostFX } from './post';
 
-/* The render host: renderer, lighting, sky, post-processing, input and per-frame statistics.
-   It draws whatever layers are attached to `scene`; it knows nothing about traffic. */
+/* The render host: renderer, atmosphere (sky, sun, haze, time of day), terrain, post-processing,
+   input and per-frame statistics. It draws whatever layers are attached to `scene`; it knows
+   nothing about traffic. */
 
 export interface FrameStats {
   calls: number;
@@ -23,26 +22,13 @@ export interface PickHandler {
   (ndc: THREE.Vector2, ray: THREE.Raycaster, ev: PointerEvent): boolean;
 }
 
-/** Late-afternoon sun over the district: west-south-west, low in the sky. */
-export const SUN = { azimuthDeg: 246, elevationDeg: 19 };
-
-export function sunDirection(): THREE.Vector3 {
-  const az = THREE.MathUtils.degToRad(SUN.azimuthDeg);
-  const el = THREE.MathUtils.degToRad(SUN.elevationDeg);
-  // x east, y up, z south
-  return new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el)).normalize();
-}
-
 export class World {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene = new THREE.Scene();
   readonly rig: CameraRig;
-  readonly sun: THREE.DirectionalLight;
-  readonly hemi: THREE.HemisphereLight;
+  readonly atmosphere: Atmosphere;
   readonly host: HTMLElement;
-  private sky: Sky;
-  private composer: EffectComposer | null = null;
-  private bloom: UnrealBloomPass | null = null;
+  private post: PostFX | null = null;
   private profile: QualityProfile = QUALITY.balanced;
   private width = 1;
   private height = 1;
@@ -51,19 +37,19 @@ export class World {
   private raycaster = new THREE.Raycaster();
   private ndc = new THREE.Vector2();
   private groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-  // per-frame scratch values (the shadow frustum follows the camera every frame)
-  private readonly sunDir = sunDirection();
   private readonly frameTarget = new THREE.Vector3();
   private disposers: Array<() => void> = [];
   pickHandler: PickHandler | null = null;
   hoverHandler: ((ndc: THREE.Vector2, ray: THREE.Raycaster) => void) | null = null;
   onDragState: ((dragging: boolean) => void) | null = null;
-  private envTarget: THREE.WebGLRenderTarget | null = null;
+  /** called every frame after the camera moved, before drawing (screen-space labels follow it) */
+  onCamera: (() => void) | null = null;
 
   constructor(host: HTMLElement) {
     this.host = host;
     const r = new THREE.WebGLRenderer({
-      antialias: true,
+      // the scene renders into a multisampled target; the canvas itself needs no antialiasing
+      antialias: false,
       powerPreference: 'high-performance',
       alpha: false,
       stencil: false,
@@ -74,102 +60,23 @@ export class World {
     r.toneMappingExposure = 1.0;
     r.shadowMap.enabled = true;
     r.shadowMap.type = THREE.PCFShadowMap;
-    r.shadowMap.autoUpdate = true;
+    // redrawn on demand (see frame): the city is static, so a still view reuses the last map
+    r.shadowMap.autoUpdate = false;
     r.domElement.setAttribute('aria-hidden', 'true');
     host.appendChild(r.domElement);
     this.renderer = r;
 
     this.rig = new CameraRig(1);
+    this.atmosphere = new Atmosphere(r, this.scene);
+    this.atmosphere.sun.shadow.radius = 1.6;
+    this.scene.add(buildTerrain());
 
-    // atmosphere
-    const fogColor = new THREE.Color(0xcfc8bd);
-    this.scene.fog = new THREE.FogExp2(fogColor, 0.000165);
-    this.scene.background = fogColor.clone();
-
-    // sky box follows the camera and is drawn first; everything else draws over it
-    this.sky = new Sky();
-    this.sky.scale.setScalar(6000);
-    this.sky.renderOrder = -10;
-    this.sky.frustumCulled = false;
-    const u = this.sky.material.uniforms;
-    u['turbidity'].value = 7.5;
-    u['rayleigh'].value = 1.6;
-    u['mieCoefficient'].value = 0.0055;
-    u['mieDirectionalG'].value = 0.82;
-    u['cloudCoverage'].value = 0.14;
-    u['cloudDensity'].value = 0.3;
-    const sd = sunDirection();
-    u['sunPosition'].value.copy(sd);
-    scaleSky(this.sky, SKY_SCALE);
-    this.scene.add(this.sky);
-
-    // lights
-    this.hemi = new THREE.HemisphereLight(0xbfd3f0, 0x8f7a60, 0.5);
-    this.scene.add(this.hemi);
-    this.sun = new THREE.DirectionalLight(0xffd3a2, 3.35);
-    this.sun.position.copy(sd).multiplyScalar(1200);
-    this.sun.castShadow = true;
-    this.sun.shadow.bias = -0.00035;
-    this.sun.shadow.normalBias = 0.6;
-    this.scene.add(this.sun);
-    this.scene.add(this.sun.target);
-
-    this.buildEnvironment();
-    this.buildGround();
     this.attachInput();
     this.resize();
 
     const ro = new ResizeObserver(() => this.resize());
     ro.observe(host);
     this.disposers.push(() => ro.disconnect());
-  }
-
-  /** Image based lighting from the same sky, so glass and car paint reflect the sunset. */
-  private buildEnvironment(): void {
-    const pmrem = new THREE.PMREMGenerator(this.renderer);
-    const envScene = new THREE.Scene();
-    const sky = new Sky();
-    sky.scale.setScalar(1000);
-    const su = sky.material.uniforms;
-    const u = this.sky.material.uniforms;
-    for (const k of ['turbidity', 'rayleigh', 'mieCoefficient', 'mieDirectionalG', 'cloudCoverage', 'cloudDensity'])
-      su[k].value = u[k].value;
-    su['sunPosition'].value.copy(u['sunPosition'].value);
-    su['showSunDisc'].value = 0;
-    scaleSky(sky, SKY_SCALE);
-    envScene.add(sky);
-    // a warm ground bounce in the lower hemisphere of the environment
-    const ground = new THREE.Mesh(
-      new THREE.SphereGeometry(400, 32, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
-      new THREE.MeshBasicMaterial({ color: 0x6f5f4b, side: THREE.BackSide }),
-    );
-    envScene.add(ground);
-    this.envTarget = pmrem.fromScene(envScene, 0.02, 1, 2000);
-    this.scene.environment = this.envTarget.texture;
-    this.scene.environmentIntensity = 0.5;
-    pmrem.dispose();
-    sky.geometry.dispose();
-    sky.material.dispose();
-    ground.geometry.dispose();
-    (ground.material as THREE.Material).dispose();
-  }
-
-  /** Desert ground that the district sits on; the city layer draws its own paved base. */
-  private buildGround(): void {
-    const size = 14000;
-    const tex = makeSandTexture();
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(size / 90, size / 90);
-    tex.anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy());
-    tex.colorSpace = THREE.SRGBColorSpace;
-    const mat = new THREE.MeshStandardMaterial({ color: 0xd9c3a0, map: tex, roughness: 0.97, metalness: 0 });
-    const geo = new THREE.PlaneGeometry(size, size, 1, 1);
-    geo.rotateX(-Math.PI / 2);
-    const m = new THREE.Mesh(geo, mat);
-    m.position.y = -0.06;
-    m.receiveShadow = true;
-    m.name = 'ground';
-    this.scene.add(m);
   }
 
   // ---------------------------------------------------------------- quality
@@ -180,44 +87,31 @@ export class World {
     const pr = Math.min(window.devicePixelRatio || 1, p.maxPixelRatio);
     this.renderer.setPixelRatio(pr);
     this.renderer.shadowMap.enabled = p.shadows;
-    this.sun.castShadow = p.shadows;
+    const sun = this.atmosphere.sun;
+    sun.castShadow = p.shadows;
     if (p.shadows) {
-      this.sun.shadow.mapSize.set(p.shadowMapSize, p.shadowMapSize);
-      this.sun.shadow.map?.dispose();
-      this.sun.shadow.map = null;
+      sun.shadow.mapSize.set(p.shadowMapSize, p.shadowMapSize);
+      sun.shadow.map?.dispose();
+      sun.shadow.map = null;
     }
     this.scene.traverse((o) => {
       const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
       if (!m) return;
       (Array.isArray(m) ? m : [m]).forEach((mm) => (mm.needsUpdate = true));
     });
-    this.rebuildComposer();
+    this.post?.dispose();
+    this.post = new PostFX(this.renderer, this.scene, this.rig.camera, p);
+    this.renderer.shadowMap.needsUpdate = true;
     this.resize();
+  }
+
+  /** Ask for the shadow map to be drawn again on the next frame (scene content changed). */
+  refreshShadows(): void {
+    this.renderer.shadowMap.needsUpdate = true;
   }
 
   get quality(): QualityProfile {
     return this.profile;
-  }
-
-  private rebuildComposer(): void {
-    this.composer?.dispose();
-    this.composer = null;
-    this.bloom = null;
-    if (!this.profile.postprocessing) return;
-    const size = this.renderer.getDrawingBufferSize(new THREE.Vector2());
-    const rt = new THREE.WebGLRenderTarget(Math.max(1, size.x), Math.max(1, size.y), {
-      type: THREE.HalfFloatType,
-      samples: this.profile.msaaSamples,
-    });
-    const c = new EffectComposer(this.renderer, rt);
-    c.addPass(new RenderPass(this.scene, this.rig.camera));
-    if (this.profile.bloom) {
-      // only genuinely emissive things (lamps, beacons, the sun) exceed the threshold
-      this.bloom = new UnrealBloomPass(new THREE.Vector2(size.x, size.y), 0.42, 0.34, 3.4);
-      c.addPass(this.bloom);
-    }
-    c.addPass(new OutputPass());
-    this.composer = c;
   }
 
   // ---------------------------------------------------------------- layout
@@ -236,10 +130,7 @@ export class World {
     this.renderer.setSize(w, h, false);
     this.rig.camera.aspect = w / h;
     this.applyViewOffset();
-    if (this.composer) {
-      this.composer.setPixelRatio(this.renderer.getPixelRatio());
-      this.composer.setSize(w, h);
-    }
+    this.post?.setSize(w, h, this.renderer.getPixelRatio());
   }
 
   private applyViewOffset(): void {
@@ -385,9 +276,10 @@ export class World {
     return this.raycaster.ray.intersectPlane(this.groundPlane, hit) ? hit : null;
   }
 
+  private readonly projTmp = new THREE.Vector3();
   /** Screen position (CSS px) of a world point, or null when behind the camera. */
   project(v: THREE.Vector3): { x: number; y: number } | null {
-    const p = v.clone().project(this.rig.camera);
+    const p = this.projTmp.copy(v).project(this.rig.camera);
     if (p.z > 1 || p.z < -1) return null;
     return { x: (p.x * 0.5 + 0.5) * this.width, y: (-p.y * 0.5 + 0.5) * this.height };
   }
@@ -406,37 +298,19 @@ export class World {
     }
     this.rig.update(dt);
     const cam = this.rig.camera;
-    this.sky.position.copy(cam.position);
-
-    // shadow frustum follows the camera target and scales with zoom, snapped to texels to avoid shimmer
-    if (this.profile.shadows) {
-      const t = this.rig.targetInto(this.frameTarget);
-      const half = THREE.MathUtils.clamp(this.rig.pose.dist * 0.75, 90, 1100);
-      const sc = this.sun.shadow.camera;
-      const texel = (half * 2) / this.sun.shadow.mapSize.x;
-      const sd = this.sunDir;
-      // snap target in light space
-      const snapX = Math.round(t.x / texel) * texel;
-      const snapZ = Math.round(t.z / texel) * texel;
-      this.sun.target.position.set(snapX, 0, snapZ);
-      this.sun.position.set(snapX + sd.x * 1500, sd.y * 1500, snapZ + sd.z * 1500);
-      if (sc.right !== half) {
-        sc.left = -half;
-        sc.right = half;
-        sc.top = half;
-        sc.bottom = -half;
-        sc.near = 200;
-        sc.far = 3400;
-        sc.updateProjectionMatrix();
-      }
-      this.sun.target.updateMatrixWorld();
-    }
+    const half = THREE.MathUtils.clamp(this.rig.pose.dist * 0.75, 90, 1150);
+    const moved = this.atmosphere.update(cam, this.rig.targetInto(this.frameTarget), half, this.atmosphere.sun.shadow.mapSize.x);
+    // moving casters (vehicles) need a fresh map every frame on tiers that draw their shadows
+    if (moved || this.profile.dynamicShadows) this.renderer.shadowMap.needsUpdate = true;
+    this.onCamera?.();
 
     const info = this.renderer.info;
     info.autoReset = false;
     info.reset();
-    if (this.composer) this.composer.render(dt);
-    else this.renderer.render(this.scene, cam);
+    if (this.post) {
+      this.post.setBloom(this.profile.bloom ? this.atmosphere.bloom : 0);
+      this.post.render(dt);
+    } else this.renderer.render(this.scene, cam);
 
     return {
       calls: info.render.calls,
@@ -449,48 +323,9 @@ export class World {
 
   dispose(): void {
     this.disposers.forEach((d) => d());
-    this.composer?.dispose();
-    this.envTarget?.dispose();
+    this.post?.dispose();
+    this.atmosphere.dispose();
     this.renderer.dispose();
     this.renderer.domElement.remove();
   }
-}
-
-/** The Preetham sky is in a much brighter range than the lit city; scale it in the shader so the
-    whole frame can use one physical exposure (and bloom only sees emissive light). */
-const SKY_SCALE = 0.42;
-function scaleSky(sky: Sky, k: number): void {
-  const m = sky.material as THREE.ShaderMaterial;
-  m.onBeforeCompile = (sh) => {
-    sh.fragmentShader = sh.fragmentShader.replace('#include <tonemapping_fragment>', `gl_FragColor.rgb *= ${k.toFixed(3)};
-#include <tonemapping_fragment>`);
-  };
-  m.needsUpdate = true;
-}
-
-/** Procedural fine sand with soft ripples, generated once on a canvas (no external assets). */
-function makeSandTexture(): THREE.CanvasTexture {
-  const n = 256;
-  const c = document.createElement('canvas');
-  c.width = c.height = n;
-  const g = c.getContext('2d')!;
-  const img = g.createImageData(n, n);
-  let s = 1234567;
-  const rnd = () => {
-    s = (s * 1664525 + 1013904223) >>> 0;
-    return s / 4294967296;
-  };
-  for (let y = 0; y < n; y++) {
-    for (let x = 0; x < n; x++) {
-      const ripple = Math.sin((x * 0.11 + y * 0.045) * Math.PI) * 0.5 + 0.5;
-      const v = 0.86 + ripple * 0.06 + (rnd() - 0.5) * 0.1;
-      const i = (y * n + x) * 4;
-      img.data[i] = Math.min(255, 255 * v);
-      img.data[i + 1] = Math.min(255, 238 * v);
-      img.data[i + 2] = Math.min(255, 214 * v);
-      img.data[i + 3] = 255;
-    }
-  }
-  g.putImageData(img, 0, 0);
-  return new THREE.CanvasTexture(c);
 }

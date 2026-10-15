@@ -29,7 +29,8 @@ npm run preview    # serve the production build on http://localhost:4173
 | Path | Contents |
 |---|---|
 | `src/core` | Simulation and Digital Marshal services. Pure TypeScript, no DOM, deterministic from a seed. |
-| `src/render` | Three.js renderer: lighting, sky, post-processing, camera rig, quality tiers. Draws simulation state only. |
+| `src/render` | Three.js renderer: the city built from the 3D kit, vehicles, overlays, sky and time of day, post-processing, camera rig, quality tiers. Draws simulation state only. |
+| `public/models` | The 3D asset kit (buildings, landmarks, palms, street lights) from the Encirra kit, with its manifest; see its README. |
 | `src/app` | React interface: header, operations and intelligence panels, playback bar, views, i18n (English and Arabic). |
 | `src/data` | Generated data bundled into the app (for example the preserved corridor study). |
 | `scripts` | Node scripts: data import and the experiment runner. |
@@ -47,7 +48,42 @@ npm run preview    # serve the production build on http://localhost:4173
 | Home | Reset camera |
 | `[` and `]` | Collapse the operations and intelligence panels |
 | Shift + P | Performance monitor |
+| District map (top right) | Click to move the camera there; the sun and moon buttons switch the lighting |
 | Judge mode (header) | Guided tour of about five minutes that drives the live simulation; Esc leaves it |
+
+## The 3D view
+
+* **City.** Buildings are kit models (curtain-wall and residential towers, mid-rise, villas, podiums,
+  the hospital, the mall, an office campus, the two landmarks) placed on art-directed blocks and batched
+  per material and map tile, so the district draws in a few dozen calls. Taller towers get extra storeys
+  in their shaft, keeping the lobby and crown in proportion. Windows are lit by a shader from the kit's
+  window grid, so rooms light up at dusk. Kit palms, street lights and benches are instanced; shade trees
+  are leaf clouds with cut-out shadows; the boulevard has bilingual overhead signs and enclosed bus shelters.
+* **The city around the district.** Scenery, not simulated: an invented street grid carries the
+  district's roads on to the horizon, with a coast road behind the beach. Superblocks get a land use
+  (towers along the coast and the boulevard, mid-rise blocks, villa neighbourhoods with gardens and pools,
+  parks, warehouses) and thin out toward the desert. Streets, plots, gardens and lamp light are painted by
+  the terrain shader from the same layout the buildings are placed from (`src/render/city/metro.ts`);
+  buildings are instanced boxes whose facades, roofs and night windows come from a shader, with a few
+  landmark towers from the kit on the coast. Traffic on its main roads is positioned on the GPU from the
+  simulation clock and never enters the district, where every vehicle is the simulation's own.
+* **Vehicles.** Procedural models lofted from designed profiles (saloon, SUV, robotaxi with a sensor dome,
+  van, bus, ambulance with corner beacons), two levels of detail, clear-coated paint, lamps that follow
+  braking and the light level. Automated vehicles carry a status ring (cyan normal, amber advisory, red
+  minimal risk stop).
+* **Atmosphere.** Procedural sky (sun, clouds, stars, moon), haze that takes the colour of the horizon,
+  desert dunes, a beach and a sea with waves, image-based lighting captured from the sky. Four lighting
+  keys (midday, golden hour, dusk, night) blend smoothly; lighting never changes the simulation.
+* **Overlays and callouts.** The ambulance's corridor (a glowing lane with chevrons), pulsing zones and
+  "Signal offline" callouts at dark junctions, roadworks, message pulses at roadside units, and the
+  ambulance's live constraint ("Corridor clear", "Vehicle ahead", "Signal ahead"). All switch off with
+  the information overlays.
+* **Camera.** Presets (overview, top-down, incident, follow, ambulance, street, free), mouse orbit, pan
+  and zoom, and keyboard flight: hold W A S D to move, Q E to turn, R F to zoom, Shift to go faster (single-key
+  shortcuts can be turned off in Display).
+* **Quality tiers.** High adds ambient occlusion, 4K shadows redrawn every frame and wider detail radii;
+  balanced redraws shadows only when the view moves and grounds vehicles with contact shadows; performance
+  drops shadows and bloom. Auto picks a tier and steps down if the frame rate stays low.
 
 ## Scenarios
 
@@ -57,7 +93,7 @@ A (no shared city information), B (validated broadcast, independent responses) o
 | Scenario | What happens |
 |---|---|
 | 01 Signal blackout | Controllers lose power. Vehicles treat dark junctions as all-way stops; AVs stop in a minimal risk condition at junctions outside their operating domain and ask for remote assistance. |
-| 02 Emergency vehicle | An ambulance crosses the district. Vehicles yield only when their own gap check passes; infeasible yields are recorded with a reason. Policy C adds signal priority. |
+| 02 Emergency vehicle | An ambulance crosses the district. Vehicles yield only when their own gap check passes; infeasible yields are recorded with a reason. Policy C adds signal priority. Nearing the call it moves to the kerb lane and pulls in at the kerb, where it stays on scene with its beacons on. |
 | 05 Roadworks | A contractor submits a signed lane closure, then a full closure. The node validates the submission against the contractor's permit before republishing it ahead of time. An audit counts any entry into a closed lane (expected 0). |
 
 The roadworks panel also runs 13 message security tests (tampered, forged, unknown sender, retired key,

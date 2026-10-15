@@ -2,37 +2,35 @@ import * as THREE from 'three';
 import type { Network } from '../../core/network/types';
 import { aspectFor, signalState, type SignalState } from '../../core/sim/signals';
 import { buildRoads } from './roads';
-import { buildBlocks, type BlockOutput } from './blocks';
+import { buildBlocks, type Bound, type BlockOutput } from './blocks';
+import { buildBuildings, type Placed } from './buildings';
 import { buildFurniture, type FurnitureLayer } from './furniture';
-import { buildSkyline, type SkylineLayer } from './skyline';
-import {
-  asphaltTexture,
-  decalTexture,
-  glassFacade,
-  grassTexture,
-  labelTexture,
-  pavingTexture,
-  plotTexture,
-  podiumFacade,
-  stoneFacade,
-} from './textures';
+import { buildContext, type ContextLayer } from './context';
+import { TRAFFIC_CLOCK } from './traffic';
+import { buildStreetDetails } from './streetDetails';
+import { asphaltTexture, grassTexture, groundTexture, labelTexture, pavingTexture, plazaTexture } from './textures';
 import type { QualityProfile } from '../quality';
+import type { Kit } from '../kit/kit';
 
-/* The whole static city plus the live signal lamps. Built once from the network. */
+/* The whole static city plus the live signal lamps. Built once from the network and the kit. */
 
 export class CityRenderer {
   readonly group = new THREE.Group();
   readonly labels = new THREE.Group();
   readonly net: Network;
+  readonly placed: Placed[];
   private furniture: FurnitureLayer;
-  private skyline: SkylineLayer;
+  private context: ContextLayer;
   private blocks: BlockOutput;
+  private details: { group: THREE.Group; update: () => void };
+  private bounds: Bound[];
   private darkJunctions = new Set<string>();
+  private lodRadius = 520;
   private readonly obsRay = new THREE.Ray();
   private readonly obsBox = new THREE.Box3();
   private readonly obsHit = new THREE.Vector3();
 
-  constructor(net: Network, maxAnisotropy: number, quality: QualityProfile) {
+  constructor(net: Network, maxAnisotropy: number, quality: QualityProfile, kit: Kit | null) {
     this.net = net;
     this.group.name = 'city';
     const an = Math.min(8, maxAnisotropy);
@@ -40,45 +38,38 @@ export class CityRenderer {
       t.anisotropy = an;
       return t;
     };
-    const glass = glassFacade(31, [70, 98, 118]);
-    const stone = stoneFacade(32, [222, 206, 178], true);
-    const office = stoneFacade(33, [214, 210, 202], false);
-    const podium = podiumFacade(34);
-    [glass, stone, office, podium].forEach((f) => {
-      tile(f.map);
-      tile(f.emissive);
-    });
 
     const roads = buildRoads(net, an);
     this.group.add(roads.group);
 
     this.blocks = buildBlocks(net, {
-      glass,
-      stone,
-      office,
-      podium,
       paving: tile(pavingTexture()),
-      plot: tile(plotTexture()),
+      plaza: tile(plazaTexture()),
+      ground: tile(groundTexture()),
       grass: tile(grassTexture()),
       asphalt: tile(asphaltTexture()),
-      helipad: decalTexture('helipad'),
-      hospital: decalTexture('hospital'),
     });
     this.group.add(this.blocks.group);
 
-    this.furniture = buildFurniture(net, this.blocks.trees, this.blocks.palms, quality.propDensity);
+    const fallback = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7, metalness: 0.1 });
+    const buildings = buildBuildings(this.blocks.specs, kit, fallback);
+    this.group.add(buildings.group);
+    this.placed = buildings.placed;
+    this.bounds = [...this.blocks.bounds, ...buildings.bounds];
+
+    this.details = buildStreetDetails(net);
+    this.group.add(this.details.group);
+
+    this.furniture = buildFurniture(net, this.blocks.trees, this.blocks.palms, this.blocks.benches, buildings.roofs, quality.propDensity, kit);
     this.group.add(this.furniture.group);
 
-    this.skyline = buildSkyline(this.blocks.materials.glass, this.blocks.materials.office, this.blocks.materials.roof, [
-      glass.tileW,
-      glass.tileH,
-    ]);
-    this.skyline.far.visible = quality.farBuildings;
-    this.group.add(this.skyline.group);
+    this.context = buildContext(kit);
+    this.group.add(this.context.group);
 
     this.buildLabels();
     this.labels.visible = false;
     this.group.add(this.labels);
+    this.setQuality(quality);
   }
 
   private buildLabels(): void {
@@ -104,7 +95,9 @@ export class CityRenderer {
   }
 
   setQuality(q: QualityProfile): void {
-    this.skyline.far.visible = q.farBuildings;
+    this.context.setDetail(q.farBuildings);
+    this.lodRadius = q.tier === 'high' ? 620 : q.tier === 'balanced' ? 420 : 0;
+    this.furniture.setPools(q.lightPools);
   }
 
   setDark(junctions: Iterable<string>): void {
@@ -112,7 +105,8 @@ export class CityRenderer {
   }
 
   /** Update live elements for simulation time t; `stateOf` supplies the simulation's own signal state. */
-  update(t: number, stateOf?: (jid: string) => SignalState): void {
+  update(t: number, camera: THREE.Camera, stateOf?: (jid: string) => SignalState): void {
+    TRAFFIC_CLOCK.value = t;
     const states: Record<string, SignalState> = {};
     for (const jid of this.net.junctionIds) {
       states[jid] = stateOf ? stateOf(jid) : signalState(this.net.junctions[jid], t, this.darkJunctions.has(jid));
@@ -128,6 +122,8 @@ export class CityRenderer {
       this.furniture.rsuLeds.setColorAt(i, c);
     }
     if (this.furniture.rsuLeds.instanceColor) this.furniture.rsuLeds.instanceColor.needsUpdate = true;
+    this.furniture.update(camera, this.lodRadius);
+    this.details.update();
   }
 
   /** Distance from `from` toward `to` until a building is hit, for the camera; null when clear. */
@@ -148,7 +144,7 @@ export class CityRenderer {
     const maxZ = Math.max(from.z, to.z);
     const minY = Math.min(from.y, to.y);
     let best: number | null = null;
-    for (const b of this.blocks.bounds) {
+    for (const b of this.bounds) {
       if (b.x1 < minX || b.x0 > maxX || -b.y0 < minZ || -b.y1 > maxZ || b.h < minY) continue;
       box.min.set(b.x0, 0, -b.y1);
       box.max.set(b.x1, b.h, -b.y0);

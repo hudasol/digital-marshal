@@ -102,6 +102,55 @@ export function plotTexture(): THREE.CanvasTexture {
   return finish(c);
 }
 
+/** Plaza paving: large cream slabs in a running bond with darker banding. One repeat = 9.6 m. */
+export function plazaTexture(): THREE.CanvasTexture {
+  const n = 512;
+  const [c, g] = canvas(n, n);
+  const r = makeRng(15, 'tex-plaza');
+  noise(g, n, n, r, 10, [226, 216, 198]);
+  const rows = 8;
+  const rh = n / rows;
+  for (let y = 0; y < rows; y++) {
+    const off = (y % 2) * (rh * 0.75);
+    for (let x = -1; x < 5; x++) {
+      const v = (rand(r) - 0.5) * 18;
+      const band = y % 4 === 3;
+      g.fillStyle = band ? `rgba(${200 + v},${188 + v},${168 + v},0.35)` : `rgba(${232 + v},${222 + v},${204 + v},0.3)`;
+      g.fillRect(x * rh * 1.5 + off + 2, y * rh + 2, rh * 1.5 - 4, rh - 4);
+    }
+  }
+  g.strokeStyle = 'rgba(150,136,116,0.28)';
+  g.lineWidth = 2;
+  for (let y = 0; y <= rows; y++) {
+    g.beginPath();
+    g.moveTo(0, y * rh);
+    g.lineTo(n, y * rh);
+    g.stroke();
+  }
+  return finish(c);
+}
+
+/** Landscaped ground between buildings: raked sand and gravel. One repeat = 12 m. */
+export function groundTexture(): THREE.CanvasTexture {
+  const n = 256;
+  const [c, g] = canvas(n, n);
+  const r = makeRng(16, 'tex-ground');
+  noise(g, n, n, r, 22, [204, 184, 150]);
+  g.globalAlpha = 0.08;
+  for (let i = 0; i < 40; i++) {
+    const x = rand(r) * n;
+    const y = rand(r) * n;
+    const rad = 8 + rand(r) * 30;
+    const grd = g.createRadialGradient(x, y, 0, x, y, rad);
+    grd.addColorStop(0, rand(r) > 0.5 ? '#8f7a5a' : '#f2e3c4');
+    grd.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grd;
+    g.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+  }
+  g.globalAlpha = 1;
+  return finish(c);
+}
+
 /** Irrigated planting: grass with soil gaps. One repeat = 6 m. */
 export function grassTexture(): THREE.CanvasTexture {
   const n = 256;

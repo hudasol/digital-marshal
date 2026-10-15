@@ -115,7 +115,8 @@ export function vehicleFrame(e: Engine, id: number, last: VehicleFrame | null): 
     connected: v.connected,
     mode: v.mode,
     speedKmh: v.v * 3.6,
-    acc: v.acc,
+    // a vehicle parked at its destination holds a braking command but is not decelerating
+    acc: v.mode === 'arrived' && v.v === 0 ? 0 : v.acc,
     road,
     segment: v.seg.id,
     lane: v.seg.lane,

@@ -5,11 +5,14 @@ export interface QualityProfile {
   maxPixelRatio: number;
   shadows: boolean;
   shadowMapSize: number;
-  msaaSamples: number; // samples of the post-processing render target (0 = composer off)
+  msaaSamples: number; // samples of the scene render target (0 = FXAA instead)
   bloom: boolean;
-  postprocessing: boolean;
+  ao: boolean; // screen-space ambient occlusion (GTAO)
   propDensity: number; // 0..1 share of decorative props drawn (trees, lamps, parked cars)
   farBuildings: boolean; // distant skyline ring
+  lightPools: boolean; // light cast on the road by street lamps and headlights at night
+  vehicleLod: number; // vehicles within this distance of the camera use the detailed model, m
+  dynamicShadows: boolean; // vehicles cast sun shadows (shadow map redrawn every frame); otherwise contact shadows
 }
 
 export const QUALITY: Record<QualityTier, QualityProfile> = {
@@ -20,20 +23,26 @@ export const QUALITY: Record<QualityTier, QualityProfile> = {
     shadowMapSize: 4096,
     msaaSamples: 4,
     bloom: true,
-    postprocessing: true,
+    ao: true,
     propDensity: 1,
     farBuildings: true,
+    lightPools: true,
+    vehicleLod: 230,
+    dynamicShadows: true,
   },
   balanced: {
     tier: 'balanced',
-    maxPixelRatio: 1.5,
+    maxPixelRatio: 1.25,
     shadows: true,
     shadowMapSize: 2048,
     msaaSamples: 4,
     bloom: true,
-    postprocessing: true,
+    ao: false,
     propDensity: 0.75,
     farBuildings: true,
+    lightPools: true,
+    vehicleLod: 150,
+    dynamicShadows: false,
   },
   performance: {
     tier: 'performance',
@@ -42,9 +51,12 @@ export const QUALITY: Record<QualityTier, QualityProfile> = {
     shadowMapSize: 1024,
     msaaSamples: 0,
     bloom: false,
-    postprocessing: false,
+    ao: false,
     propDensity: 0.4,
     farBuildings: false,
+    lightPools: false,
+    vehicleLod: 60,
+    dynamicShadows: false,
   },
 };
 
@@ -58,7 +70,7 @@ export function lowerTier(t: QualityTier): QualityTier | null {
 /** Adaptive quality: step down a tier after this much net time below the frame-rate floor. */
 export const AUTO_QUALITY = {
   windowS: 0.5, // length of one sampling window
-  lowFps: 34, // frame rate below which a window counts as slow
+  lowFps: 27, // frame rate below which a window counts as slow
   triggerS: 4, // net slow time that triggers a downgrade
   settleS: 1, // windows within this long after a disturbance are not sampled
 };

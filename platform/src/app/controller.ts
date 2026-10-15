@@ -2,7 +2,11 @@ import * as THREE from 'three';
 import { World } from '../render/World';
 import { CityRenderer } from '../render/city';
 import { VehicleLayer } from '../render/vehicles';
+import { loadKit, type Kit } from '../render/kit/kit';
+import type { TodKey } from '../render/env/tod';
 import { getNetwork } from '../core/network/build';
+import { connectorPose } from '../core/network/geometry';
+import type { ConnectorDef } from '../core/network/types';
 import { QUALITY, FrameMonitor, guessTier, lowerTier } from '../render/quality';
 import type { SimSession } from '../core/sim/session';
 import { createSession, dmFor } from '../core/scenarios';
@@ -91,6 +95,9 @@ class Controller {
   private lastVehicleFrame: VehicleFrame | null = null;
   private simMs = 0;
   private disposers: Array<() => void> = [];
+  /** container of the screen-space callouts (ambulance, dark junctions, works); positioned every frame */
+  labelHost: HTMLElement | null = null;
+  private readonly anchorTmp = new THREE.Vector3();
 
   get engine() {
     return this.session.engine;
@@ -119,9 +126,24 @@ class Controller {
     }
     w.rig.onUserTakeover = () => useStore.getState().setCamMode('free');
     w.onDragState = (d) => host.classList.toggle('dragging', d);
+    w.onCamera = () => this.positionLabels();
+    w.atmosphere.setKey(st.tod, true);
+    // the 3D kit streams in first; the city is built once it has arrived (or without it, if it fails)
+    loadKit((k) => useStore.getState().setLoadProgress(k))
+      .catch(() => null)
+      .then((kit) => this.buildScene(kit));
+    return true;
+  }
+
+  /** Build the city and the live layers, then start the clock. */
+  private buildScene(kit: Kit | null): void {
+    const w = this.world;
+    if (!w || this.city) return;
+    const st = useStore.getState();
+    if (!kit) console.warn('3D kit unavailable: the city is drawn with plain massing.');
     const tier = st.quality === 'auto' ? guessTier() : st.quality;
     const net = getNetwork();
-    this.city = new CityRenderer(net, w.renderer.capabilities.getMaxAnisotropy(), QUALITY[tier]);
+    this.city = new CityRenderer(net, w.renderer.capabilities.getMaxAnisotropy(), QUALITY[tier], kit);
     w.scene.add(this.city.group);
     this.vehicles = new VehicleLayer();
     this.vehicles.setParked(this.city.parkedSpots);
@@ -146,21 +168,88 @@ class Controller {
     this.autoQuality = st.quality === 'auto';
     this.installPresets();
     w.rig.setMode('overview');
-    // opening shot: start further out and settle in
-    const ov = w.rig.getPreset('overview');
-    if (ov) {
-      w.rig.pose = { ...ov, dist: ov.dist * 1.5, pitch: ov.pitch + 0.2, yaw: ov.yaw - 0.35 };
-      w.rig.flyTo(ov, { duration: w.rig.reducedMotion ? 0.001 : 3.4, hop: false });
-    }
+    this.introFlight(6);
     this.city.setLabels(st.overlays.labels);
     useStore.subscribe((now, prev) => {
       if (now.overlays.labels !== prev.overlays.labels) this.city?.setLabels(now.overlays.labels);
       if (now.overlays.v2x !== prev.overlays.v2x && this.overlays) this.overlays.enabled = now.overlays.v2x;
       if (now.overlays.v2x !== prev.overlays.v2x && this.works) this.works.enabled = now.overlays.v2x;
       if (now.selection !== prev.selection) this.onSelection();
+      if (now.tod !== prev.tod) this.world?.atmosphere.setKey(now.tod);
     });
     this.start();
-    return true;
+  }
+
+  /** Move each callout to the screen position of its anchor (hidden when off screen or behind the camera). */
+  private positionLabels(): void {
+    const host = this.labelHost;
+    const w = this.world;
+    if (!host || !w) return;
+    const { w: W, h: H } = w.size;
+    for (const el of Array.from(host.children) as HTMLElement[]) {
+      const id = el.dataset.anchor;
+      const p = id && this.anchorOf(id, this.anchorTmp) ? w.project(this.anchorTmp) : null;
+      if (!p || p.x < -80 || p.x > W + 80 || p.y < -40 || p.y > H + 120) {
+        if (el.style.visibility !== 'hidden') el.style.visibility = 'hidden';
+        continue;
+      }
+      el.style.visibility = 'visible';
+      el.style.transform = `translate3d(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px, 0)`;
+    }
+  }
+
+  /** World position a callout points at: `ev`, `j:<junction>`, `works`, `v:<vehicle id>`. */
+  private anchorOf(id: string, out: THREE.Vector3): boolean {
+    const net = getNetwork();
+    if (id === 'ev') {
+      const t = this.evTarget();
+      if (!t) return false;
+      out.set(t.x, 5.5, t.z);
+      return true;
+    }
+    if (id.startsWith('j:')) {
+      const j = net.junctions[id.slice(2)];
+      if (!j) return false;
+      out.set(j.x, 9, -j.y);
+      return true;
+    }
+    if (id === 'works') {
+      const wf = useStore.getState().dm?.works;
+      const l = wf ? net.links[wf.link] : null;
+      if (!wf || !l) return false;
+      const s = (wf.s0 + wf.s1) / 2;
+      const off = wf.lanes.length ? wf.lanes.reduce((a, k) => a + l.laneOffsets[k], 0) / wf.lanes.length : 0;
+      out.set(l.start.x + l.dir.x * s + l.right.x * off, 3, -(l.start.y + l.dir.y * s + l.right.y * off));
+      return true;
+    }
+    if (id.startsWith('v:') && this.vehicles) {
+      const p = this.vehicles.pose(Number(id.slice(2)), this.alpha());
+      if (!p) return false;
+      out.set(p.x, 4, -p.y);
+      return true;
+    }
+    return false;
+  }
+
+  /** Lighting: midday, golden hour, dusk or night (presentation only; the simulation is unchanged). */
+  setTimeOfDay(key: TodKey): void {
+    useStore.getState().setTod(key);
+  }
+
+  /** Opening shot: from low beside the landmark spire, pull back over the district to the overview. */
+  introFlight(duration: number): void {
+    const rig = this.world?.rig;
+    const ov = rig?.getPreset('overview');
+    if (!rig || !ov) return;
+    useStore.getState().setCamMode('overview');
+    rig.mode = 'overview';
+    rig.follow = null;
+    if (rig.reducedMotion) {
+      rig.flyTo(ov, { duration: 0.001 });
+      return;
+    }
+    rig.pose = { tx: 300, ty: 150, tz: -520, yaw: -0.95, pitch: 0.1, dist: 560, fov: 34 };
+    rig.flyTo(ov, { duration, hop: false });
   }
 
   /** No WebGL: run the simulation and publish frames without the 3D world; the 2D map draws the state. */
@@ -172,11 +261,12 @@ class Controller {
   installPresets(): void {
     const rig = this.world?.rig;
     if (!rig) return;
-    rig.setPreset('overview', { tx: 20, ty: 0, tz: -40, yaw: 0.34, pitch: 0.54, dist: 1720, fov: 40 });
+    // looking north-north-east: the coast to the left, the landmark spire centre right, the park in front
+    rig.setPreset('overview', { tx: 70, ty: 0, tz: -120, yaw: -0.2, pitch: 0.5, dist: 1640, fov: 40 });
     rig.setPreset('topdown', { tx: 0, ty: 0, tz: 0, yaw: 0, pitch: 1.53, dist: 2150, fov: 30 });
     rig.setPreset('street', { tx: 25, ty: 0, tz: 6, yaw: -1.36, pitch: 0.07, dist: 38, fov: 52 });
     rig.setPreset('incident', { tx: 5, ty: 0, tz: 120, yaw: 0.45, pitch: 0.66, dist: 360, fov: 40 });
-    rig.setPreset('free', { tx: 20, ty: 0, tz: -40, yaw: 0.34, pitch: 0.54, dist: 1720, fov: 40 });
+    rig.setPreset('free', { tx: 70, ty: 0, tz: -120, yaw: -0.2, pitch: 0.5, dist: 1640, fov: 40 });
   }
 
   applyQuality(tier: QualityTier): void {
@@ -184,6 +274,10 @@ class Controller {
     this.meter.disturb();
     this.world?.setQuality(tier);
     this.city?.setQuality(QUALITY[tier]);
+    if (this.vehicles) {
+      this.vehicles.lodRadius = QUALITY[tier].vehicleLod;
+      this.vehicles.setShadowMode(QUALITY[tier].dynamicShadows);
+    }
     useStore.getState().setEffectiveQuality(tier);
   }
 
@@ -229,6 +323,15 @@ class Controller {
 
   resetCamera(): void {
     this.setCamMode('overview');
+  }
+
+  /** Keyboard flight: a key went down or up (KeyboardEvent.code); true when the camera uses it. */
+  flyKey(code: string, down: boolean): boolean {
+    return this.world?.rig.key(code, down) ?? false;
+  }
+
+  releaseFlyKeys(): void {
+    this.world?.rig.releaseKeys();
   }
 
   /** Interpolated world position of the selected vehicle for the follow camera. */
@@ -409,6 +512,10 @@ class Controller {
       if (tone && (ev.kind !== 'msg-published' || ev.p?.policy !== 'A')) markers.push({ t: ev.t, tone, label: ev.kind });
     }
     st.setDmFrames(dmf, inc, vdm, events, markers.slice(-200));
+    // what limits the ambulance right now, for its callout in the 3D view
+    const evRec = dmFor(e).s.ev;
+    const evV = evRec && evRec.arrivedAt === null ? e.state.vehicles[evRec.id] : null;
+    st.setEvLive(evV ? { kind: evV.bind.kind, speedKmh: evV.v * 3.6 } : null);
     // header status
     const active = dmf.incidents.filter((i) => i.status === 'active');
     const label = active.length
@@ -534,7 +641,8 @@ class Controller {
     this.publishFrames();
   }
 
-  /** Points along the ambulance's remaining route, ahead of it, for the corridor ribbon. */
+  /** Points along the ambulance's remaining route, ahead of it, for the corridor ribbon: the rest of
+      the turn it is in, its lane, and the movement it will take through each junction ahead. */
   private corridorPath(): Array<{ x: number; y: number }> | null {
     const rec = dmFor(this.engine).s.ev;
     if (!rec || rec.arrivedAt !== null || !useStore.getState().overlays.v2x) return null;
@@ -545,17 +653,58 @@ class Controller {
     const p0 = this.vehicles.pose(rec.id, this.alpha());
     if (p0) pts.push({ x: p0.x, y: p0.y });
     let budget = 360;
-    const cur = v.seg.k === 'L' ? v.seg.id : net.connectors[v.seg.id].outLink;
-    const start = Math.max(0, v.route.indexOf(cur));
-    for (let i = start; i < v.route.length && budget > 0; i++) {
-      const l = net.links[v.route[i]];
-      const from = i === start && v.seg.k === 'L' ? v.s : 0;
-      const to = Math.min(l.length, from + budget);
-      const off = l.laneOffsets[0];
-      for (let s = from; s <= to; s += 6) pts.push({ x: l.start.x + l.dir.x * s + l.right.x * off, y: l.start.y + l.dir.y * s + l.right.y * off });
-      budget -= to - from;
+    const turn = (c: ConnectorDef, from: number) => {
+      for (let s = from; s < c.length && budget > 0; s += 3, budget -= 3) pts.push(connectorPose(c, s));
+    };
+    let i: number;
+    let lane: number;
+    let from: number;
+    if (v.seg.k === 'C') {
+      const c = net.connectors[v.seg.id];
+      turn(c, v.s);
+      i = v.route.indexOf(c.outLink);
+      lane = c.outLane;
+      from = 0;
+    } else {
+      i = v.route.indexOf(v.seg.id);
+      lane = v.seg.lane;
+      from = v.s;
     }
-    return pts;
+    for (; i >= 0 && i < v.route.length && budget > 0; i++) {
+      const l = net.links[v.route[i]];
+      const last = i === v.route.length - 1;
+      const end = last && Number.isFinite(v.destS) ? Math.min(l.length, v.destS) : l.length;
+      // the movement into the next link: the ambulance's own plan on the link it is on, else the
+      // movement from the lane nearest the one the ribbon is in
+      let c: ConnectorDef | null = null;
+      if (!last) {
+        const next = v.route[i + 1];
+        const planned = v.conn ? net.connectors[v.conn] : undefined;
+        if (planned && planned.inLink === l.id && planned.outLink === next) c = planned;
+        else {
+          for (let k = 0; k < l.lanes; k++) {
+            for (const id of net.fromLane[`${l.id}#${k}`] ?? []) {
+              const cc = net.connectors[id];
+              if (cc.outLink === next && (!c || Math.abs(cc.inLane - lane) < Math.abs(c.inLane - lane))) c = cc;
+            }
+          }
+        }
+      }
+      const offA = l.laneOffsets[lane] ?? l.laneOffsets[0];
+      const offB = c ? l.laneOffsets[c.inLane] : offA;
+      const to = Math.min(end, from + budget);
+      for (let s = from; s <= to; s += 6) {
+        // across to the lane of the next movement over the last stretch before the stop line
+        const off = offA + (offB - offA) * THREE.MathUtils.smoothstep(s, l.length - 45, l.length - 12);
+        pts.push({ x: l.start.x + l.dir.x * s + l.right.x * off, y: l.start.y + l.dir.y * s + l.right.y * off });
+      }
+      budget -= to - from;
+      if (!c || to < l.length - 0.5) break;
+      turn(c, 0);
+      lane = c.outLane;
+      from = 0;
+    }
+    return pts.length > 1 ? pts : null;
   }
 
   centroid(junctions: string[]): { x: number; y: number } {
@@ -636,12 +785,13 @@ class Controller {
     let stats = null;
     if (this.world && st.view === 'twin') {
       this.city?.setDark(this.engine.state.road.dark);
-      this.city?.update(this.renderT, (j) => this.engine.signal(j));
+      this.city?.update(this.renderT, this.world.rig.camera, (j) => this.engine.signal(j));
       this.overlays?.setCameraDistance(this.world.rig.pose.dist);
       this.overlays?.update(this.engine.state.road.dark, dmFor(this.engine).s.pulses, this.renderT, wall);
       this.overlays?.updateCorridor(this.corridorPath());
       this.works?.update(this.engine.state.road.closures, this.plannedWorks(), wall);
       this.vehicles?.setCameraDistance(this.world.rig.pose.dist);
+      this.vehicles?.setCamera(this.world.rig.camera.position);
       this.vehicles?.draw(this.engine, this.alpha(), wall);
       stats = this.world.frame(dt);
     }

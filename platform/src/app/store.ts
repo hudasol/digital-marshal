@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import type { NetworkFrame, VehicleFrame } from './frames';
 import type { DmFrame, IncidentFrame, VehicleDmView } from './dmframes';
-import type { SimEvent } from '../core/sim/types';
+import type { BindKind, SimEvent } from '../core/sim/types';
+import type { TodKey } from '../render/env/tod';
 
 export type View = 'twin' | 'compare' | 'engineering' | 'about';
 export type CamMode = 'overview' | 'topdown' | 'incident' | 'follow' | 'emergency' | 'street' | 'free';
@@ -84,10 +85,19 @@ interface UIState {
   scenario: ScenarioKey;
   engineering: boolean;
   tour: TourState | null;
-  /** Single-key shortcuts (1–7, [ ], Space, Shift+P); they can be turned off (WCAG 2.1.4). */
+  /** Single-key shortcuts (1–7, W A S D camera flight, [ ], Space, Shift+P); they can be turned off (WCAG 2.1.4). */
   shortcuts: boolean;
+  /** Lighting of the 3D view (presentation only). */
+  tod: TodKey;
+  /** Share of the 3D kit loaded, 0..1, for the loading screen. */
+  loadProgress: number;
+  /** What currently limits the active ambulance (its binding constraint) and its speed, for the 3D callout. */
+  evLive: { kind: BindKind; speedKmh: number } | null;
 
   setView: (v: View) => void;
+  setTod: (t: TodKey) => void;
+  setLoadProgress: (k: number) => void;
+  setEvLive: (e: { kind: BindKind; speedKmh: number } | null) => void;
   setTour: (t: TourState | null) => void;
   setShortcuts: (on: boolean) => void;
   setDmFrames: (dm: DmFrame | null, incident: IncidentFrame | null, vehicleDm: VehicleDmView | null, events: SimEvent[], markers: Marker[]) => void;
@@ -172,8 +182,19 @@ export const useStore = create<UIState>((set, get) => ({
   engineering: false,
   tour: null,
   shortcuts: initialShortcuts(),
+  tod: 'golden',
+  loadProgress: 0,
+  evLive: null,
 
   setView: (view) => set({ view }),
+  setTod: (tod) => set({ tod }),
+  setLoadProgress: (loadProgress) => set({ loadProgress }),
+  setEvLive: (evLive) => {
+    const cur = get().evLive;
+    // only publish changes a reader can see: the constraint or the rounded speed
+    if (cur === evLive || (cur && evLive && cur.kind === evLive.kind && Math.round(cur.speedKmh) === Math.round(evLive.speedKmh))) return;
+    set({ evLive });
+  },
   setTour: (tour) => set({ tour }),
   setShortcuts: (shortcuts) => {
     try {

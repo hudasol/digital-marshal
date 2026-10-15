@@ -1,6 +1,7 @@
 import { controller } from './controller';
 import { useStore, type ScenarioKey } from './store';
 import { BLACKOUT_JUNCTIONS } from '../core/network/district';
+import type { TodKey } from '../render/env/tod';
 
 /* Judge mode: a guided tour of about five minutes that drives the real simulation. Every scene
    starts from a clean run (same seed, policy C) and triggers its scenario through the same controller
@@ -20,11 +21,12 @@ export interface TourStep {
   beats: Beat[];
 }
 
-/** Start a scene from a clean run in the twin view. */
-function scene(scenario: ScenarioKey): void {
+/** Start a scene from a clean run in the twin view, under the scene's lighting (presentation only). */
+function scene(scenario: ScenarioKey, tod: TodKey = 'golden'): void {
   const st = useStore.getState();
   st.setView('twin');
   st.setScenario(scenario);
+  controller.setTimeOfDay(tod);
   if (!st.leftOpen) st.toggleLeft();
   controller.resetScenario();
   controller.setSpeed(1);
@@ -76,14 +78,8 @@ export const TOUR: TourStep[] = [
         at: 0,
         run: () => {
           controller.setPolicy('C');
-          scene('normal');
-          const rig = controller.world?.rig;
-          const ov = rig?.getPreset('overview');
-          if (rig && ov) {
-            rig.pose = { ...ov, dist: ov.dist * 1.45, pitch: ov.pitch + 0.18, yaw: ov.yaw - 0.4 };
-            rig.flyTo(ov, { duration: rig.reducedMotion ? 0.001 : 6, hop: false });
-            useStore.getState().setCamMode('overview');
-          }
+          scene('normal', 'golden');
+          controller.introFlight(7);
         },
       },
       { at: 13, run: () => controller.world?.rig.flyTo({ tx: -40, ty: 0, tz: 20, yaw: 0.62, pitch: 0.46, dist: 760, fov: 40 }, { duration: 5 }) },
@@ -115,7 +111,7 @@ export const TOUR: TourStep[] = [
       {
         at: 0,
         run: () => {
-          scene('blackout');
+          scene('blackout', 'dusk');
           controller.triggerBlackout([...BLACKOUT_JUNCTIONS], 420);
         },
       },
@@ -131,7 +127,7 @@ export const TOUR: TourStep[] = [
       {
         at: 0,
         run: () => {
-          scene('emergency');
+          scene('emergency', 'night');
           controller.dispatchAmbulance();
         },
       },
@@ -145,7 +141,7 @@ export const TOUR: TourStep[] = [
       {
         at: 0,
         run: () => {
-          scene('roadworks');
+          scene('roadworks', 'day');
           controller.planWorks('lane');
           controller.setSpeed(2);
         },
@@ -161,7 +157,7 @@ export const TOUR: TourStep[] = [
       {
         at: 0,
         run: () => {
-          scene('roadworks');
+          scene('roadworks', 'day');
           controller.planWorks('lane');
         },
       },
@@ -195,6 +191,8 @@ class TourRunner {
   private timer = 0;
   private last = 0;
   private paused = false;
+  /** the viewer's lighting before the tour, restored when it ends */
+  private todBefore: TodKey | null = null;
 
   get active(): boolean {
     return useStore.getState().tour !== null;
@@ -202,6 +200,7 @@ class TourRunner {
 
   start(from = 0): void {
     this.stopTimer();
+    if (this.todBefore === null) this.todBefore = useStore.getState().tod;
     this.paused = false;
     this.last = performance.now();
     this.timer = window.setInterval(() => this.tick(), 100);
@@ -235,6 +234,8 @@ class TourRunner {
   stop(): void {
     this.stopTimer();
     useStore.getState().setTour(null);
+    if (this.todBefore !== null) controller.setTimeOfDay(this.todBefore);
+    this.todBefore = null;
   }
 
   private finish(): void {

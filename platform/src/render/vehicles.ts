@@ -4,10 +4,15 @@ import type { Vehicle, VehicleClass } from '../core/sim/types';
 import { CLASSES, PAINT } from '../core/sim/params';
 import { connectorPose, lanePose } from '../core/network/geometry';
 import { GeoBuilder } from './city/builder';
+import { ENV } from './env/uniforms';
+import { BODY_STYLES, vehicleModel, type BodyStyle, type VehicleGeo } from './vehicleModels';
 
-/* Vehicles drawn from simulation state. One instanced mesh per class body plus instanced lamps;
-   poses are interpolated between the last two simulation steps so motion is smooth at any speed.
-   Nothing here decides where a vehicle is: positions come only from the engine state. */
+/* Vehicles drawn from simulation state. Each body style is a set of instanced meshes (clear-coated
+   paint, glass, trim and tyres, head and tail lamps) in two levels of detail: the full model near
+   the camera and a light one further out. Poses are interpolated between the last two simulation
+   steps so motion is smooth at any speed. Ground effects are instanced too: the status ring under
+   every automated vehicle, headlight beams after dusk, and the ambulance's flashing light on the
+   road. Nothing here decides where a vehicle is: positions come only from the engine state. */
 
 export interface Pose {
   x: number;
@@ -15,18 +20,16 @@ export interface Pose {
   h: number; // heading, rad (0 = east, counter-clockwise)
 }
 
-const CLASS_LIST: VehicleClass[] = ['robotaxi', 'car', 'van', 'bus', 'ambulance'];
+export const CLASS_LIST: VehicleClass[] = ['robotaxi', 'car', 'van', 'bus', 'ambulance'];
 const MAX = 900;
 
 /** Centre position and heading of a vehicle, from its front bumper position and the rear point. */
 export function vehiclePose(engine: Engine, v: Vehicle): Pose {
-  const net = engine.net;
   const front = pointAt(engine, v, v.s);
   const rear = pointAt(engine, v, v.s - v.len);
   const dx = front.x - rear.x;
   const dy = front.y - rear.y;
   const h = dx * dx + dy * dy > 1e-6 ? Math.atan2(dy, dx) : front.h;
-  void net;
   return { x: (front.x + rear.x) / 2, y: (front.y + rear.y) / 2, h };
 }
 
@@ -45,137 +48,104 @@ function pointAt(engine: Engine, v: Vehicle, s: number): Pose {
   return lanePose(pl, v.prev.lane, v.prevLen + s);
 }
 
-// ------------------------------------------------------------------ geometry
-
-function profileShape(len: number, pts: Array<[number, number]>): THREE.Shape {
-  const sh = new THREE.Shape();
-  pts.forEach(([x, y], i) => (i === 0 ? sh.moveTo(x * len, y) : sh.lineTo(x * len, y)));
-  sh.closePath();
-  return sh;
-}
-
-function extrude(shape: THREE.Shape, width: number, bevel = 0.06): THREE.BufferGeometry {
-  const g = new THREE.ExtrudeGeometry(shape, {
-    depth: width - bevel * 2,
-    bevelEnabled: true,
-    bevelThickness: bevel,
-    bevelSize: bevel,
-    bevelSegments: 1,
-    curveSegments: 1,
-  });
-  g.translate(0, 0, -(width - bevel * 2) / 2);
-  return g;
-}
-
-function wheels(b: GeoBuilder, len: number, width: number, r: number, axles: number[]) {
-  const w = new THREE.CylinderGeometry(r, r, 0.26, 10);
-  w.rotateX(Math.PI / 2);
-  b.setColor(0x141518);
-  for (const ax of axles) {
-    for (const side of [-1, 1]) {
-      b.addGeometry(w, new THREE.Matrix4().makeTranslation(ax * len, r, side * (width / 2 - 0.1)));
-    }
+/** Body style of a simulated vehicle (private cars are a mix of saloons and SUVs). */
+function styleOf(v: Vehicle): BodyStyle {
+  switch (v.cls) {
+    case 'robotaxi':
+      return 'robotaxi';
+    case 'car':
+      return v.id % 3 === 0 ? 'suv' : 'sedan';
+    case 'van':
+      return 'van';
+    case 'bus':
+      return 'bus';
+    case 'ambulance':
+      return 'ambulance';
   }
-  const hub = new THREE.CylinderGeometry(r * 0.55, r * 0.55, 0.28, 6);
-  hub.rotateX(Math.PI / 2);
-  b.setColor(0x8b9097);
-  for (const ax of axles) for (const side of [-1, 1]) b.addGeometry(hub, new THREE.Matrix4().makeTranslation(ax * len, r, side * (width / 2 - 0.09)));
 }
 
-/** Body geometry in local coordinates: +x forward, +y up, centred on the vehicle centre. */
-function bodyGeometry(cls: VehicleClass): THREE.BufferGeometry {
-  const spec = CLASSES[cls];
-  const L = spec.len;
-  const W = spec.width;
+// ------------------------------------------------------------------ light geometry for parked cars
+
+const M = (x: number, y: number, z: number) => new THREE.Matrix4().makeTranslation(x, y, z);
+
+/** Parked car for the lots: body, darker cabin and tyres in one mesh (about 60 triangles). */
+function parkedGeometry(): THREE.BufferGeometry {
+  const L = 4.5;
+  const W = 1.82;
   const b = new GeoBuilder();
-  const id = new THREE.Matrix4();
-  if (cls === 'car' || cls === 'robotaxi') {
-    // sedan silhouette (x as a fraction of the length, y in metres)
-    const body = profileShape(L, [
-      [-0.5, 0.32],
-      [-0.5, 0.82],
-      [-0.44, 0.96],
-      [-0.25, 1.0],
-      [0.27, 1.0],
-      [0.46, 0.86],
-      [0.5, 0.66],
-      [0.5, 0.32],
-    ]);
-    b.setColor(0xffffff).addGeometry(extrude(body, W), id);
-    const cabin = profileShape(L, [
-      [-0.27, 0.98],
-      [-0.15, 1.42],
-      [0.12, 1.45],
-      [0.25, 1.0],
-    ]);
-    b.setColor(0x1a222b).addGeometry(extrude(cabin, W - 0.16, 0.05), id);
-    // roof panel over the glass (body colour)
-    b.setColor(0xffffff).addGeometry(new THREE.BoxGeometry(L * 0.24, 0.05, W - 0.3), new THREE.Matrix4().makeTranslation(-0.01 * L, 1.46, 0));
-    if (cls === 'robotaxi') {
-      // sensor pod with a lidar puck
-      b.setColor(0xe6e9ec).addGeometry(new THREE.BoxGeometry(0.9, 0.12, 1.0), new THREE.Matrix4().makeTranslation(-0.02 * L, 1.53, 0));
-      b.setColor(0x262b31).addGeometry(new THREE.CylinderGeometry(0.21, 0.23, 0.2, 16), new THREE.Matrix4().makeTranslation(-0.02 * L, 1.68, 0));
-      // side livery stripe
-      b.setColor(0x2aa6bb).addGeometry(new THREE.BoxGeometry(L * 0.62, 0.06, W + 0.02), new THREE.Matrix4().makeTranslation(0, 0.72, 0));
-    }
-    wheels(b, L, W, 0.33, [-0.31, 0.31]);
-  } else if (cls === 'van' || cls === 'ambulance') {
-    const H = cls === 'ambulance' ? 2.55 : 2.25;
-    const body = profileShape(L, [
-      [-0.5, 0.34],
-      [-0.5, H],
-      [0.22, H],
-      [0.33, H - 0.2],
-      [0.44, 1.2],
-      [0.5, 1.0],
-      [0.5, 0.34],
-    ]);
-    b.setColor(0xffffff).addGeometry(extrude(body, W), id);
-    const glass = profileShape(L, [
-      [0.25, H - 0.25],
-      [0.32, H - 0.36],
-      [0.43, 1.25],
-      [0.3, 1.2],
-    ]);
-    b.setColor(0x1a222b).addGeometry(extrude(glass, W + 0.02, 0.02), id);
-    if (cls === 'ambulance') {
-      // high-visibility side bands (red and yellow), roof light bar housing
-      b.setColor(0xd11f2a).addGeometry(new THREE.BoxGeometry(L * 0.74, 0.32, W + 0.03), new THREE.Matrix4().makeTranslation(-0.1 * L, 1.15, 0));
-      b.setColor(0xf2c230).addGeometry(new THREE.BoxGeometry(L * 0.74, 0.16, W + 0.03), new THREE.Matrix4().makeTranslation(-0.1 * L, 0.88, 0));
-      b.setColor(0x30353c).addGeometry(new THREE.BoxGeometry(0.5, 0.12, W - 0.4), new THREE.Matrix4().makeTranslation(0.18 * L, H + 0.06, 0));
-    }
-    wheels(b, L, W, 0.36, [-0.32, 0.3]);
-  } else {
-    // bus
-    const H = 3.1;
-    b.setColor(0xffffff).addGeometry(new THREE.BoxGeometry(L, H - 0.35, W), new THREE.Matrix4().makeTranslation(0, 0.35 + (H - 0.35) / 2, 0));
-    b.setColor(0x1a222b).addGeometry(new THREE.BoxGeometry(L - 0.6, 1.0, W + 0.03), new THREE.Matrix4().makeTranslation(0.1, 1.95, 0));
-    b.setColor(0x1a222b).addGeometry(new THREE.BoxGeometry(0.06, 1.5, W - 0.3), new THREE.Matrix4().makeTranslation(L / 2 + 0.01, 1.85, 0));
-    b.setColor(0xe9edf0).addGeometry(new THREE.BoxGeometry(L - 0.4, 0.12, W - 0.2), new THREE.Matrix4().makeTranslation(0, H + 0.06, 0));
-    wheels(b, L, W, 0.48, [-0.3, 0.32]);
-  }
+  const body = new THREE.BoxGeometry(L, 0.6, W);
+  b.setColor(0xffffff).addGeometry(body, M(0, 0.62, 0));
+  const hood = new THREE.BoxGeometry(L * 0.3, 0.1, W - 0.1);
+  b.addGeometry(hood, new THREE.Matrix4().makeRotationZ(-0.12).setPosition(L * 0.33, 0.93, 0));
+  const cabin = new THREE.CylinderGeometry(0.62, 0.86, 0.46, 4, 1);
+  cabin.rotateY(Math.PI / 4);
+  cabin.scale(1.75, 1, 0.97);
+  b.setColor(0x262c34).addGeometry(cabin, M(-0.1 * L, 1.15, 0));
+  b.setColor(0x15161a).addGeometry(new THREE.BoxGeometry(L - 0.6, 0.3, W - 0.04), M(0, 0.22, 0));
   const g = b.build();
   g.computeVertexNormals();
   return g;
 }
 
-function lampGeometry(cls: VehicleClass, which: 'head' | 'tail'): THREE.BufferGeometry {
-  const spec = CLASSES[cls];
-  const L = spec.len;
-  const W = spec.width;
-  const x = which === 'head' ? L / 2 + 0.005 : -L / 2 - 0.005;
-  const y = cls === 'bus' ? 0.85 : which === 'head' ? 0.74 : 0.86;
-  const b = new GeoBuilder();
-  b.setColor(0xffffff);
-  const box = new THREE.BoxGeometry(0.06, which === 'head' ? 0.13 : 0.16, cls === 'bus' ? 0.32 : 0.36);
-  for (const side of [-1, 1]) b.addGeometry(box, new THREE.Matrix4().makeTranslation(x, y, side * (W / 2 - 0.3)));
-  return b.build();
+// ------------------------------------------------------------------ ground effect textures
+
+function radial(stops: Array<[number, string]>, n = 128): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = c.height = n;
+  const g = c.getContext('2d')!;
+  const grd = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2);
+  for (const [k, col] of stops) grd.addColorStop(k, col);
+  g.fillStyle = grd;
+  g.fillRect(0, 0, n, n);
+  return new THREE.CanvasTexture(c);
+}
+
+/** Headlight beam on the road: bright near the car, fading forward and to the sides. */
+function beamTexture(): THREE.CanvasTexture {
+  const w = 64;
+  const h = 128;
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const g = c.getContext('2d')!;
+  const img = g.createImageData(w, h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const u = (x + 0.5) / w - 0.5;
+      // canvas rows run top-down while texture v runs bottom-up: v = 0 (the car) is the last row
+      const v = 1 - (y + 0.5) / h;
+      const spread = 0.18 + v * 0.32;
+      const across = Math.max(0, 1 - Math.abs(u) / spread);
+      const along = Math.pow(1 - v, 1.4) * Math.min(1, v * 9);
+      const k = Math.min(1, across * across * along * 1.4);
+      const i = (y * w + x) * 4;
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = 255;
+      img.data[i + 3] = Math.round(k * 255);
+    }
+  }
+  g.putImageData(img, 0, 0);
+  return new THREE.CanvasTexture(c);
+}
+
+function additive(map: THREE.Texture): THREE.MeshBasicMaterial {
+  return new THREE.MeshBasicMaterial({
+    map,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -8,
+    polygonOffsetUnits: -16,
+    toneMapped: true,
+  });
 }
 
 // ------------------------------------------------------------------ layer
 
-interface ClassMeshes {
-  body: THREE.InstancedMesh;
+interface StyleMeshes {
+  paint: THREE.InstancedMesh;
+  glass: THREE.InstancedMesh;
+  trim: THREE.InstancedMesh;
   head: THREE.InstancedMesh;
   tail: THREE.InstancedMesh;
   ids: number[];
@@ -193,23 +163,37 @@ const MARK: Record<string, THREE.Color> = {
 };
 
 const TAIL_ON = new THREE.Color(7, 0.35, 0.25);
-const TAIL_OFF = new THREE.Color(0.9, 0.06, 0.05);
-const HEAD = new THREE.Color(2.2, 2.0, 1.7);
+const TAIL_DAY = new THREE.Color(0.9, 0.06, 0.05);
+const TAIL_NIGHT = new THREE.Color(2.6, 0.12, 0.08);
+const HEAD_DAY = new THREE.Color(1.6, 1.6, 1.55);
+const HEAD_NIGHT = new THREE.Color(6, 5.7, 5);
 const STATUS: Record<string, THREE.Color> = {
   normal: new THREE.Color(0.25, 2.2, 2.8),
   advisory: new THREE.Color(4.2, 2.6, 0.3),
   mrc: new THREE.Color(5.5, 0.4, 0.3),
   selected: new THREE.Color(4, 4, 4),
 };
+/** ring colours on the road (additive, so kept modest) */
+const RING: Record<string, THREE.Color> = {
+  normal: new THREE.Color(0.1, 0.62, 0.78),
+  advisory: new THREE.Color(0.95, 0.6, 0.08),
+  mrc: new THREE.Color(1.1, 0.12, 0.08),
+  selected: new THREE.Color(0.9, 0.95, 1.0),
+};
 
 export class VehicleLayer {
   readonly group = new THREE.Group();
-  private classes = {} as Record<VehicleClass, ClassMeshes>;
+  private styles = {} as Record<BodyStyle, { hi: StyleMeshes; lo: StyleMeshes }>;
   private status: THREE.InstancedMesh;
-  private statusIds: number[] = [];
   private beaconR: THREE.InstancedMesh;
   private beaconB: THREE.InstancedMesh;
   private ring: THREE.Mesh;
+  private rings: THREE.InstancedMesh;
+  private beams: THREE.InstancedMesh;
+  private glows: THREE.InstancedMesh;
+  /** soft contact shadows; the only shadow vehicles get when they do not cast sun shadows */
+  private blobs: THREE.InstancedMesh;
+  private evGlow: THREE.Mesh;
   private prev = new Map<number, Pose>();
   private curr = new Map<number, Pose>();
   private tmp = new THREE.Matrix4();
@@ -218,10 +202,16 @@ export class VehicleLayer {
   private one = new THREE.Vector3(1, 1, 1);
   private pos = new THREE.Vector3();
   private col = new THREE.Color();
+  private scl = new THREE.Vector3();
+  private local = new THREE.Vector3();
+  private camPos = new THREE.Vector3();
   /** screen-size markers that keep traffic readable from the overview */
   private markers: THREE.Points;
   private markerPos: Float32Array;
   private markerCol: Float32Array;
+  private camDist = 1000;
+  /** vehicles closer than this to the camera use the detailed model, m */
+  lodRadius = 220;
   markerOpacity = 0;
   selected: number | null = null;
   /** per-vehicle status override from the Digital Marshal layer (advisory, mrc ...) */
@@ -229,30 +219,57 @@ export class VehicleLayer {
 
   constructor() {
     this.group.name = 'vehicles';
-    const bodyMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.32, metalness: 0.45, envMapIntensity: 1.1 });
-    const lampMat = new THREE.MeshBasicMaterial({ vertexColors: false });
-    for (const cls of CLASS_LIST) {
-      const body = new THREE.InstancedMesh(bodyGeometry(cls), bodyMat, MAX);
-      body.count = 0;
-      body.castShadow = true;
-      body.receiveShadow = false;
-      body.frustumCulled = false;
-      body.name = `veh-${cls}`;
-      const head = new THREE.InstancedMesh(lampGeometry(cls, 'head'), lampMat, MAX);
-      const tail = new THREE.InstancedMesh(lampGeometry(cls, 'tail'), lampMat, MAX);
-      for (const m of [head, tail]) {
-        m.count = 0;
-        m.frustumCulled = false;
-      }
-      // allocate instance colour buffers
-      body.setColorAt(0, new THREE.Color(1, 1, 1));
-      head.setColorAt(0, HEAD);
-      tail.setColorAt(0, TAIL_OFF);
-      this.group.add(body, head, tail);
-      this.classes[cls] = { body, head, tail, ids: [] };
+    const paintMat = new THREE.MeshPhysicalMaterial({
+      name: 'vehicle-paint',
+      vertexColors: true,
+      roughness: 0.3,
+      metalness: 0.5,
+      clearcoat: 1,
+      clearcoatRoughness: 0.08,
+      envMapIntensity: 1.35,
+    });
+    const glassMat = new THREE.MeshPhysicalMaterial({
+      name: 'vehicle-glass',
+      color: 0x10161d,
+      roughness: 0.04,
+      metalness: 0.2,
+      clearcoat: 1,
+      clearcoatRoughness: 0.02,
+      envMapIntensity: 1.8,
+    });
+    const trimMat = new THREE.MeshStandardMaterial({ name: 'vehicle-trim', vertexColors: true, roughness: 0.5, metalness: 0.35, side: THREE.DoubleSide });
+    const lampMat = new THREE.MeshBasicMaterial({ name: 'vehicle-lamps' });
+    for (const style of BODY_STYLES) {
+      const make = (g: VehicleGeo, lod: string): StyleMeshes => {
+        const mk = (geo: THREE.BufferGeometry, mat: THREE.Material, name: string, shadow: boolean, colored: boolean) => {
+          const m = new THREE.InstancedMesh(geo, mat, MAX);
+          m.count = 0;
+          m.visible = false;
+          m.castShadow = shadow;
+          m.receiveShadow = !colored || name === 'paint';
+          m.frustumCulled = false;
+          m.name = `veh-${style}-${lod}-${name}`;
+          // only meshes that are tinted per vehicle get an instance colour buffer
+          if (colored) m.setColorAt(0, new THREE.Color(1, 1, 1));
+          this.group.add(m);
+          return m;
+        };
+        const set: StyleMeshes = {
+          paint: mk(g.paint, paintMat, 'paint', true, true),
+          glass: mk(g.glass, glassMat, 'glass', lod === 'hi', false),
+          trim: mk(g.trim, trimMat, 'trim', true, false),
+          head: mk(g.head, lampMat, 'head', false, true),
+          tail: mk(g.tail, lampMat, 'tail', false, true),
+          ids: [],
+        };
+        set.head.userData.noAO = true;
+        set.tail.userData.noAO = true;
+        return set;
+      };
+      this.styles[style] = { hi: make(vehicleModel(style, true), 'hi'), lo: make(vehicleModel(style, false), 'lo') };
     }
-    // robotaxi status ring around the lidar puck
-    const ringGeo = new THREE.TorusGeometry(0.27, 0.035, 6, 20);
+    // robotaxi status light around the lidar dome
+    const ringGeo = new THREE.TorusGeometry(0.29, 0.03, 6, 24);
     ringGeo.rotateX(Math.PI / 2);
     this.status = new THREE.InstancedMesh(ringGeo, new THREE.MeshBasicMaterial(), MAX);
     this.status.count = 0;
@@ -260,24 +277,84 @@ export class VehicleLayer {
     this.status.setColorAt(0, STATUS.normal);
     this.group.add(this.status);
     // ambulance light bar halves
-    const half = new THREE.BoxGeometry(0.42, 0.14, 0.62);
-    this.beaconR = new THREE.InstancedMesh(half, new THREE.MeshBasicMaterial(), 8);
-    this.beaconB = new THREE.InstancedMesh(half, new THREE.MeshBasicMaterial(), 8);
+    const lamp = new THREE.BoxGeometry(0.34, 0.16, 0.34);
+    this.beaconR = new THREE.InstancedMesh(lamp, new THREE.MeshBasicMaterial(), 16);
+    this.beaconB = new THREE.InstancedMesh(lamp, new THREE.MeshBasicMaterial(), 16);
     for (const m of [this.beaconR, this.beaconB]) {
       m.count = 0;
       m.frustumCulled = false;
       m.setColorAt(0, new THREE.Color(1, 1, 1));
       this.group.add(m);
     }
+    // ground effects: status rings under automated vehicles, headlight beams, tail glows
+    const flat = new THREE.PlaneGeometry(1, 1);
+    flat.rotateX(-Math.PI / 2);
+    const ringTex = radial([
+      [0, 'rgba(255,255,255,0)'],
+      [0.62, 'rgba(255,255,255,0.05)'],
+      [0.8, 'rgba(255,255,255,0.9)'],
+      [0.86, 'rgba(255,255,255,0.55)'],
+      [1, 'rgba(255,255,255,0)'],
+    ]);
+    this.rings = new THREE.InstancedMesh(flat, additive(ringTex), MAX);
+    const beamGeo = new THREE.PlaneGeometry(1, 1);
+    beamGeo.rotateX(-Math.PI / 2);
+    beamGeo.rotateY(-Math.PI / 2); // texture v runs along +x (forward)
+    this.beams = new THREE.InstancedMesh(beamGeo, additive(beamTexture()), MAX);
+    const glowTex = radial([
+      [0, 'rgba(255,255,255,1)'],
+      [0.4, 'rgba(255,255,255,0.35)'],
+      [1, 'rgba(255,255,255,0)'],
+    ]);
+    this.glows = new THREE.InstancedMesh(flat, additive(glowTex), MAX);
+    for (const m of [this.rings, this.beams, this.glows]) {
+      m.count = 0;
+      m.frustumCulled = false;
+      m.renderOrder = 6;
+      m.userData.noAO = true;
+      m.setColorAt(0, new THREE.Color(1, 1, 1));
+      this.group.add(m);
+    }
+    // soft contact shadow under every vehicle (darkens: normal blending, black with a radial alpha)
+    const blobTex = radial([
+      [0, 'rgba(255,255,255,1)'],
+      [0.55, 'rgba(255,255,255,0.75)'],
+      [1, 'rgba(255,255,255,0)'],
+    ]);
+    this.blobs = new THREE.InstancedMesh(
+      flat,
+      new THREE.MeshBasicMaterial({
+        color: 0x000000,
+        alphaMap: blobTex,
+        transparent: true,
+        opacity: 0.6,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -6,
+        polygonOffsetUnits: -12,
+      }),
+      MAX,
+    );
+    this.blobs.count = 0;
+    this.blobs.frustumCulled = false;
+    this.blobs.renderOrder = 4;
+    this.blobs.userData.noAO = true;
+    this.group.add(this.blobs);
+    this.evGlow = new THREE.Mesh(flat, additive(glowTex));
+    this.evGlow.renderOrder = 6;
+    this.evGlow.visible = false;
+    this.evGlow.userData.noAO = true;
+    this.group.add(this.evGlow);
     // selection ring on the ground
-    const sel = new THREE.RingGeometry(3.4, 3.9, 48);
+    const sel = new THREE.RingGeometry(3.6, 3.85, 64);
     sel.rotateX(-Math.PI / 2);
     this.ring = new THREE.Mesh(
       sel,
-      new THREE.MeshBasicMaterial({ color: new THREE.Color(0.4, 2.4, 3.0), transparent: true, opacity: 0.9, depthWrite: false }),
+      new THREE.MeshBasicMaterial({ color: new THREE.Color(0.16, 0.7, 0.88), transparent: true, opacity: 0.6, depthWrite: false }),
     );
     this.ring.visible = false;
     this.ring.renderOrder = 5;
+    this.ring.userData.noAO = true;
     this.group.add(this.ring);
 
     // operations markers: one dot per vehicle, constant on-screen size, faded in from afar
@@ -287,17 +364,15 @@ export class VehicleLayer {
     mg.setAttribute('position', new THREE.BufferAttribute(this.markerPos, 3).setUsage(THREE.DynamicDrawUsage));
     mg.setAttribute('color', new THREE.BufferAttribute(this.markerCol, 3).setUsage(THREE.DynamicDrawUsage));
     mg.setDrawRange(0, 0);
-    const dot = document.createElement('canvas');
-    dot.width = dot.height = 64;
-    const g = dot.getContext('2d')!;
-    const grd = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-    grd.addColorStop(0, 'rgba(255,255,255,1)');
-    grd.addColorStop(0.45, 'rgba(255,255,255,0.95)');
-    grd.addColorStop(0.62, 'rgba(255,255,255,0.35)');
-    grd.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = grd;
-    g.fillRect(0, 0, 64, 64);
-    const tex = new THREE.CanvasTexture(dot);
+    const tex = radial(
+      [
+        [0, 'rgba(255,255,255,1)'],
+        [0.45, 'rgba(255,255,255,0.95)'],
+        [0.62, 'rgba(255,255,255,0.35)'],
+        [1, 'rgba(255,255,255,0)'],
+      ],
+      64,
+    );
     this.markers = new THREE.Points(
       mg,
       new THREE.PointsMaterial({
@@ -319,7 +394,8 @@ export class VehicleLayer {
 
   /** Fade markers with camera distance (call each frame). */
   setCameraDistance(d: number): void {
-    const k = Math.max(0, Math.min(1, (d - 380) / 520));
+    this.camDist = d;
+    const k = Math.max(0, Math.min(1, (d - 420) / 520));
     this.markerOpacity = k;
     const m = this.markers.material as THREE.PointsMaterial;
     m.opacity = k * 0.95;
@@ -327,10 +403,26 @@ export class VehicleLayer {
     this.markers.visible = k > 0.01;
   }
 
+  /** Real sun shadows from vehicles (dynamic shadow map), or contact shadows only. */
+  setShadowMode(dynamic: boolean): void {
+    for (const m of this.sets()) {
+      m.paint.castShadow = dynamic;
+      m.trim.castShadow = dynamic;
+      m.glass.castShadow = false;
+    }
+    (this.blobs.material as THREE.MeshBasicMaterial).opacity = dynamic ? 0.32 : 0.62;
+  }
+
+  /** Camera position for the level of detail (call each frame before draw). */
+  setCamera(p: THREE.Vector3): void {
+    this.camPos.copy(p);
+  }
+
   /** Static parked cars in the city's lots (decoration only; not part of the simulation). */
   setParked(spots: Array<{ x: number; y: number; a?: number; h?: number }>): void {
     if (!spots.length) return;
-    const mesh = new THREE.InstancedMesh(bodyGeometry('car'), (this.classes.car.body.material as THREE.Material), spots.length);
+    const mat = new THREE.MeshStandardMaterial({ name: 'parked-cars', vertexColors: true, roughness: 0.35, metalness: 0.45, envMapIntensity: 1.2 });
+    const mesh = new THREE.InstancedMesh(parkedGeometry(), mat, spots.length);
     const palette = PAINT.car;
     spots.forEach((p, i) => {
       this.q.setFromAxisAngle(this.up, p.a ?? 0);
@@ -339,7 +431,7 @@ export class VehicleLayer {
       mesh.setColorAt(i, this.col.setHex(palette[(i * 7 + 3) % palette.length]));
     });
     mesh.castShadow = false;
-    mesh.receiveShadow = false;
+    mesh.receiveShadow = true;
     mesh.name = 'parked-cars';
     this.group.add(mesh);
   }
@@ -375,102 +467,158 @@ export class VehicleLayer {
     return { x: p.x + (c.x - p.x) * alpha, y: p.y + (c.y - p.y) * alpha, h: p.h + dh * alpha };
   }
 
+  /** Place an instance at the vehicle pose with a local offset and scale. */
+  private at(mesh: THREE.InstancedMesh, i: number, p: Pose, lx: number, ly: number, lz: number, sx = 1, sy = 1, sz = 1): void {
+    this.local.set(lx, ly, lz).applyQuaternion(this.q);
+    this.pos.set(p.x + this.local.x, 0.03 + this.local.y, -p.y + this.local.z);
+    this.scl.set(sx, sy, sz);
+    this.tmp.compose(this.pos, this.q, this.scl);
+    mesh.setMatrixAt(i, this.tmp);
+  }
+
+  private sets(): StyleMeshes[] {
+    const out: StyleMeshes[] = [];
+    for (const s of BODY_STYLES) out.push(this.styles[s].hi, this.styles[s].lo);
+    return out;
+  }
+
   /** Write instance matrices and colours for the current frame. */
   draw(engine: Engine, alpha: number, wallTime: number): void {
     const st = engine.state;
-    for (const cls of CLASS_LIST) {
-      const m = this.classes[cls];
+    for (const m of this.sets()) {
       m.ids.length = 0;
-      m.body.count = 0;
-      m.head.count = 0;
-      m.tail.count = 0;
+      m.paint.count = m.glass.count = m.trim.count = m.head.count = m.tail.count = 0;
     }
     this.status.count = 0;
-    this.statusIds.length = 0;
     this.beaconR.count = 0;
     this.beaconB.count = 0;
+    let nRing = 0;
+    let nBeam = 0;
+    let nGlow = 0;
+    let nBlob = 0;
+    const lamp = ENV.uLamp.value;
+    const night = Math.min(1, lamp * 1.2);
     const blink = Math.floor(wallTime * 3.2) % 2 === 0;
+    // rings read best at street and district scale; the overview has markers instead
+    const ringK = Math.max(0, Math.min(1, (900 - this.camDist) / 500)) * (0.55 + 0.45 * night);
+    const fxNear = this.camDist < 1400;
+    const lod2 = this.lodRadius * this.lodRadius;
     let mk = 0;
+    let ev: Pose | null = null;
     for (const id of st.order) {
       const v = st.vehicles[id];
       const p = this.pose(id, alpha);
       if (!p) continue;
-      const m = this.classes[v.cls];
+      const dx = p.x - this.camPos.x;
+      const dz = -p.y - this.camPos.z;
+      const near = dx * dx + dz * dz < lod2 || id === this.selected;
+      const style = styleOf(v);
+      const m = near ? this.styles[style].hi : this.styles[style].lo;
       const i = m.ids.length;
       m.ids.push(id);
       this.q.setFromAxisAngle(this.up, p.h);
       this.pos.set(p.x, 0.03, -p.y);
       this.tmp.compose(this.pos, this.q, this.one);
-      m.body.setMatrixAt(i, this.tmp);
+      m.paint.setMatrixAt(i, this.tmp);
+      m.glass.setMatrixAt(i, this.tmp);
+      m.trim.setMatrixAt(i, this.tmp);
       m.head.setMatrixAt(i, this.tmp);
       m.tail.setMatrixAt(i, this.tmp);
       this.col.setHex(PAINT[v.cls][v.paint % PAINT[v.cls].length]);
-      m.body.setColorAt(i, this.col);
-      m.head.setColorAt(i, HEAD);
+      m.paint.setColorAt(i, this.col);
+      this.col.copy(HEAD_DAY).lerp(HEAD_NIGHT, night);
+      m.head.setColorAt(i, this.col);
       const braking = v.acc < -0.6 || v.v < 0.3;
-      m.tail.setColorAt(i, braking ? TAIL_ON : TAIL_OFF);
-      m.body.count = m.head.count = m.tail.count = i + 1;
+      if (braking) m.tail.setColorAt(i, TAIL_ON);
+      else m.tail.setColorAt(i, this.col.copy(TAIL_DAY).lerp(TAIL_NIGHT, night));
+      m.paint.count = m.glass.count = m.trim.count = m.head.count = m.tail.count = i + 1;
+      const s2 = this.statusOf ? this.statusOf(v) : v.mode === 'mrc' ? 'mrc' : 'normal';
       if (this.markers.visible && mk < MAX) {
         this.markerPos[mk * 3] = p.x;
         this.markerPos[mk * 3 + 1] = 4;
         this.markerPos[mk * 3 + 2] = -p.y;
-        const st2 = this.statusOf ? this.statusOf(v) : v.mode === 'mrc' ? 'mrc' : 'normal';
         const c =
-          v.cls === 'ambulance'
-            ? MARK.ambulance
-            : st2 === 'mrc'
-              ? blink
-                ? MARK.mrc
-                : MARK.dim
-              : st2 === 'advisory'
-                ? MARK.advisory
-                : MARK[v.cls];
+          v.cls === 'ambulance' ? MARK.ambulance : s2 === 'mrc' ? (blink ? MARK.mrc : MARK.dim) : s2 === 'advisory' ? MARK.advisory : MARK[v.cls];
         this.markerCol[mk * 3] = c.r;
         this.markerCol[mk * 3 + 1] = c.g;
         this.markerCol[mk * 3 + 2] = c.b;
         mk++;
       }
+      const L = CLASSES[v.cls].len;
+      if (fxNear) {
+        this.at(this.blobs, nBlob++, p, 0, 0.045, 0, L * 1.18, 1, CLASSES[v.cls].width * 1.55);
+        // automated vehicles carry a status ring on the road
+        if (v.av && ringK > 0.01) {
+          const key = id === this.selected ? 'selected' : s2;
+          const c = RING[key] ?? RING.normal;
+          const k = ringK * (key === 'mrc' && !blink ? 0.3 : 1);
+          this.at(this.rings, nRing, p, 0, 0.06, 0, L + 2.2, 1, L + 2.2);
+          this.rings.setColorAt(nRing++, this.col.setRGB(c.r * k, c.g * k, c.b * k));
+        }
+        if (night > 0.02 && v.cls !== 'bus') {
+          this.at(this.beams, nBeam, p, L / 2 + 7.5, 0.05, 0, 15, 1, 6.5);
+          const k = 0.5 * night;
+          this.beams.setColorAt(nBeam++, this.col.setRGB(0.95 * k, 0.88 * k, 0.72 * k));
+        }
+        if (night > 0.02) {
+          this.at(this.glows, nGlow, p, -L / 2 - 1.2, 0.05, 0, 4.5, 1, 3.4);
+          const k = (braking ? 0.75 : 0.35) * night;
+          this.glows.setColorAt(nGlow++, this.col.setRGB(0.9 * k, 0.05 * k, 0.03 * k));
+        }
+      }
       if (v.cls === 'robotaxi') {
         const k = this.status.count;
-        const L = CLASSES.robotaxi.len;
-        const local = new THREE.Vector3(-0.02 * L, 1.66, 0).applyQuaternion(this.q);
-        this.tmp.compose(new THREE.Vector3(p.x + local.x, 0.03 + local.y, -p.y + local.z), this.q, this.one);
-        this.status.setMatrixAt(k, this.tmp);
-        const s = id === this.selected ? 'selected' : this.statusOf ? this.statusOf(v) : v.mode === 'mrc' ? 'mrc' : 'normal';
+        this.at(this.status, k, p, -0.1 * L, 1.86, 0);
+        const s = id === this.selected ? 'selected' : s2;
         const c = STATUS[s];
         if (s === 'mrc' && !blink) this.col.setRGB(c.r * 0.25, c.g * 0.25, c.b * 0.25);
         else this.col.copy(c);
         this.status.setColorAt(k, this.col);
         this.status.count = k + 1;
-        this.statusIds.push(id);
       }
       if (v.cls === 'ambulance') {
-        const k = this.beaconR.count;
-        const L = CLASSES.ambulance.len;
-        for (const [mesh, side, on] of [
-          [this.beaconR, 1, blink],
-          [this.beaconB, -1, !blink],
-        ] as Array<[THREE.InstancedMesh, number, boolean]>) {
-          const local = new THREE.Vector3(0.18 * L, 2.69, side * 0.32).applyQuaternion(this.q);
-          this.tmp.compose(new THREE.Vector3(p.x + local.x, 0.03 + local.y, -p.y + local.z), this.q, this.one);
-          mesh.setMatrixAt(k, this.tmp);
-          const base = mesh === this.beaconR ? [9, 0.5, 0.4] : [0.5, 1.6, 9];
-          const f = on ? 1 : 0.06;
-          mesh.setColorAt(k, this.col.setRGB(base[0] * f, base[1] * f, base[2] * f));
-          mesh.count = k + 1;
+        ev = p;
+        // beacons on the four top corners of the patient module, red and blue alternating
+        for (const [lx, side] of [
+          [0.12 * L - 0.22, 1],
+          [-0.5 * L + 0.22, -1],
+        ]) {
+          for (const [mesh, s, on] of [
+            [this.beaconR, side, blink],
+            [this.beaconB, -side, !blink],
+          ] as Array<[THREE.InstancedMesh, number, boolean]>) {
+            const k = mesh.count;
+            this.at(mesh, k, p, lx, 2.68, s * 0.88);
+            const base = mesh === this.beaconR ? [9, 0.5, 0.4] : [0.5, 1.6, 9];
+            const f = on ? 1 : 0.05;
+            mesh.setColorAt(k, this.col.setRGB(base[0] * f, base[1] * f, base[2] * f));
+            mesh.count = k + 1;
+          }
         }
       }
     }
-    for (const cls of CLASS_LIST) {
-      const m = this.classes[cls];
-      for (const mesh of [m.body, m.head, m.tail]) {
+    for (const m of this.sets()) {
+      for (const mesh of [m.paint, m.glass, m.trim, m.head, m.tail]) {
+        mesh.visible = mesh.count > 0;
         mesh.instanceMatrix.needsUpdate = true;
         if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
       }
     }
-    for (const mesh of [this.status, this.beaconR, this.beaconB]) {
+    this.rings.count = nRing;
+    this.beams.count = nBeam;
+    this.glows.count = nGlow;
+    this.blobs.count = nBlob;
+    for (const mesh of [this.status, this.beaconR, this.beaconB, this.rings, this.beams, this.glows, this.blobs]) {
       mesh.instanceMatrix.needsUpdate = true;
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    }
+    // the ambulance washes the road in red and blue
+    this.evGlow.visible = !!ev;
+    if (ev) {
+      const k = 0.18 + 0.5 * night;
+      this.evGlow.position.set(ev.x, 0.07, -ev.y);
+      this.evGlow.scale.set(15, 1, 15);
+      (this.evGlow.material as THREE.MeshBasicMaterial).color.setRGB(blink ? 1.1 * k : 0.08 * k, 0.08 * k, blink ? 0.12 * k : 1.3 * k);
     }
     const mgeo = this.markers.geometry;
     mgeo.setDrawRange(0, mk);
@@ -489,11 +637,10 @@ export class VehicleLayer {
   /** Vehicle id under the ray, if any. */
   pick(ray: THREE.Raycaster): number | null {
     let best: { d: number; id: number } | null = null;
-    for (const cls of CLASS_LIST) {
-      const m = this.classes[cls];
-      if (!m.body.count) continue;
-      m.body.computeBoundingSphere();
-      const hits = ray.intersectObject(m.body, false);
+    for (const m of this.sets()) {
+      if (!m.paint.count) continue;
+      m.paint.computeBoundingSphere();
+      const hits = ray.intersectObject(m.paint, false);
       for (const h of hits) {
         if (h.instanceId === undefined) continue;
         const id = m.ids[h.instanceId];

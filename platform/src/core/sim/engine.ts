@@ -68,6 +68,8 @@ const MAX_LOG = 40;
 const LOOKAHEAD = 160;
 /** an emergency vehicle positions for its next movement this far before the junction, m */
 const EV_TURN_PREP = 230;
+/** an emergency vehicle nearing its call moves to the kerb lane this far before it, m */
+const EV_KERB_PREP = 200;
 
 function idm(v: number, v0: number, gap: number, dv: number, a: number, b: number, T: number, s0: number): number {
   const vr = v0 > 0.1 ? v / v0 : 1;
@@ -782,6 +784,13 @@ export class Engine {
   private evLaneChoice(v: Vehicle): void {
     const link = this.net.links[v.seg.id];
     const D = link.length - v.s;
+    // nearing its call: over to the kerb lane, to pull in at the kerb instead of stopping mid-road
+    if (v.ri === v.route.length - 1 && Number.isFinite(v.destS) && v.destS - v.s < EV_KERB_PREP) {
+      if (v.seg.lane < link.lanes - 1 && this.tryChange(v, v.seg.lane + 1, true, 1, 4.0)) {
+        this.log(v, 'LANE_CHANGE', { from: v.seg.lane - 1, to: v.seg.lane, reason: 'pull_over' });
+      }
+      return;
+    }
     const next = v.ri < v.route.length - 1 ? v.route[v.ri + 1] : null;
     const allowed: number[] = [];
     if (next) for (const c of connectorsBetween(this.net, link.id, next)) allowed.push(this.net.connectors[c].inLane);
@@ -1003,6 +1012,7 @@ export class Engine {
         const step = 1.4 * DT;
         v.lat = Math.abs(v.lat) <= step ? 0 : v.lat - Math.sign(v.lat) * step;
       }
+      if (v.cls === 'ambulance') v.lat = Math.max(v.lat, this.pullIn(v));
       if (v.lcHold > 0) v.lcHold = Math.max(0, v.lcHold - DT);
     }
 
@@ -1034,6 +1044,16 @@ export class Engine {
 
     this.hooks.afterStep?.();
     if (this.recording && st.tick % 50 === 0) this.sample();
+  }
+
+  /** How far an ambulance stopping at its call has pulled in toward the kerb, m (drawn only: it
+      still takes up the kerb lane, as a real one parked at a scene does). */
+  private pullIn(v: Vehicle): number {
+    if (v.seg.k !== 'L' || v.ri !== v.route.length - 1 || !Number.isFinite(v.destS)) return 0;
+    const link = this.net.links[v.seg.id];
+    if (v.seg.lane !== link.lanes - 1) return 0;
+    const k = Math.min(1, Math.max(0, (32 - (v.destS - v.s)) / 28));
+    return (link.halfWidth - link.laneOffsets[v.seg.lane] + 0.6) * k * k * (3 - 2 * k);
   }
 
   /** Commitment, junction queues, segment transitions. Returns true when the vehicle left. */

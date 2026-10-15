@@ -153,6 +153,11 @@ export function AboutView() {
             </div>
           </div>
         </div>
+
+        <div className="card">
+          <h2>{t('ab.visual')}</h2>
+          <List t={t} keys={['ab.visual.1', 'ab.visual.2', 'ab.visual.3', 'ab.visual.4']} />
+        </div>
       </div>
     </div>
   );

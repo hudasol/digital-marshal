@@ -20,6 +20,8 @@ interface Shot {
   query?: string;
   /** the page has no 3D world (WebGL fallback): do not wait for it */
   noWorld?: boolean;
+  /** lighting: day, golden, dusk or night */
+  tod?: 'day' | 'golden' | 'dusk' | 'night';
 }
 
 async function launch(): Promise<Browser> {
@@ -56,21 +58,29 @@ async function main() {
     }, shot.lang ?? 'en');
     await page.goto(url + (shot.query ?? ''), { waitUntil: 'load' });
     if (!shot.noWorld) {
-      await page.waitForFunction(() => !!(window as unknown as { digitalMarshal?: { world?: unknown } }).digitalMarshal?.world, null, {
-        timeout: 30000,
+      // the city exists once the 3D kit has loaded and the scene is built
+      await page.waitForFunction(() => !!(window as unknown as { digitalMarshal?: { city?: unknown } }).digitalMarshal?.city, null, {
+        timeout: 60000,
       });
     }
     await page.evaluate(
-      ({ quality, pose, mode, hideUi }) => {
+      ({ quality, pose, mode, hideUi, tod }) => {
         const dm = (window as unknown as { digitalMarshal: any }).digitalMarshal;
         if (quality && dm.world) dm.setQualityChoice(quality);
+        if (tod && dm.world) {
+          dm.setTimeOfDay(tod);
+          dm.world.atmosphere.setKey(tod, true);
+        }
         if (mode) dm.setCamMode(mode);
         if (pose && dm.world) dm.world.rig.flyTo(pose, { duration: 0.001 });
         const fade = document.querySelector('.stage-fade') as HTMLElement | null;
         if (fade) fade.style.display = 'none';
-        if (hideUi) document.querySelectorAll('.panel, .bar, .cam-toolbar, .panel-toggle').forEach((e) => ((e as HTMLElement).style.display = 'none'));
+        if (hideUi)
+          document
+            .querySelectorAll('.panel, .bar, .cam-toolbar, .panel-toggle, .hdr, header, .event-feed, .district-caption, .minimap, .scene-labels')
+            .forEach((e) => ((e as HTMLElement).style.display = 'none'));
       },
-      { quality: shot.quality, pose: shot.pose, mode: shot.mode, hideUi: shot.hideUi },
+      { quality: shot.quality, pose: shot.pose, mode: shot.mode, hideUi: shot.hideUi, tod: shot.tod },
     );
     if (shot.eval) await page.evaluate(shot.eval);
     await page.waitForTimeout(shot.wait ?? 2500);

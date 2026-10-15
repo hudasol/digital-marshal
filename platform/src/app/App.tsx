@@ -12,6 +12,9 @@ import { ScenarioPanel } from './components/Scenario';
 import { EventFeed } from './components/EventFeed';
 import { TourCard } from './components/Tour';
 import { MapFallback } from './components/MapFallback';
+import { SceneLabels } from './components/SceneLabels';
+import { Minimap, TimeOfDaySwitch } from './components/Minimap';
+import { LoadingScreen } from './components/LoadingScreen';
 // the evidence view carries the benchmark data; load it only when it is opened
 const EvidenceView = lazy(() => import('./views/EvidenceView').then((m) => ({ default: m.EvidenceView })));
 import { EngineeringView } from './views/EngineeringView';
@@ -97,8 +100,18 @@ function DisplaySection() {
   const setOverlay = useStore((s) => s.setOverlay);
   const shortcuts = useStore((s) => s.shortcuts);
   const setShortcuts = useStore((s) => s.setShortcuts);
+  const webgl = useStore((s) => s.webgl);
   return (
     <Section title={t('display.title')}>
+      {webgl && (
+        <div className="field">
+          <div className="field-row">
+            <span>{t('tod.title')}</span>
+          </div>
+          <TimeOfDaySwitch />
+          <div className="note">{t('tod.note')}</div>
+        </div>
+      )}
       <label className="toggle">
         <span>{t('display.labels')}</span>
         <input type="checkbox" checked={overlays.labels} onChange={(e) => setOverlay('labels', e.target.checked)} />
@@ -210,6 +223,7 @@ export function App() {
   const hasIncidents = useStore((s) => (s.dm?.incidents.length ?? 0) > 0);
   const evActive = useStore((s) => !!s.dm?.ev?.active);
   const markers = useStore((s) => s.markers);
+  const webgl = useStore((s) => s.webgl);
 
   // language and direction on the document element
   useEffect(() => {
@@ -245,6 +259,8 @@ export function App() {
         return;
       }
       if (!st.shortcuts) return;
+      // W A S D (plus Q E R F) fly the camera while held; matched by key position so any layout works
+      if (st.view === 'twin' && controller.flyKey(e.code, true)) return;
       if (e.key === ' ') {
         // Space keeps its own meaning on anything that can be activated
         if (st.view !== 'twin' || el?.closest('button, a, summary, [role="button"], [role="tab"], [role="radio"], [role="checkbox"], [role="link"]')) return;
@@ -260,8 +276,17 @@ export function App() {
         st.togglePerf();
       }
     };
+    // releases always count, so a key let go over a text field or after a view change never sticks
+    const onKeyUp = (e: KeyboardEvent) => void controller.flyKey(e.code, false);
+    const release = () => controller.releaseFlyKeys();
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', release);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', release);
+    };
   }, []);
 
   return (
@@ -274,6 +299,12 @@ export function App() {
       {view === 'twin' && (
         <>
           <h1 className="sr-only">{t('a11y.twin')}</h1>
+          {webgl && (
+            <>
+              <SceneLabels />
+              <Minimap />
+            </>
+          )}
           <CameraToolbar available={{ incident: hasIncidents, follow: selection?.kind === 'vehicle', emergency: evActive }} />
           <SidePanel side="left" title={t('panel.ops')}>
             <ScenarioPanel />
@@ -300,6 +331,7 @@ export function App() {
       {view === 'about' && <AboutView />}
       <TourCard />
       <Toasts />
+      <LoadingScreen />
     </div>
   );
 }

@@ -199,6 +199,42 @@ const P: Record<string, ReactElement> = {
       <path d="M8 18h7.5a3.5 3.5 0 0 0 0-7h-7a3.5 3.5 0 0 1 0-7H16" />
     </>
   ),
+  sun: (
+    <>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7" />
+    </>
+  ),
+  sunset: (
+    <>
+      <path d="M3 17.5h18M6 21h12" />
+      <path d="M7.5 17.5a4.5 4.5 0 0 1 9 0" />
+      <path d="M12 6.5v3.5M5.6 9.6l1.7 1.7M18.4 9.6l-1.7 1.7" />
+    </>
+  ),
+  dusk: (
+    <>
+      <path d="M3 18h18" />
+      <path d="M8 18a4 4 0 0 1 8 0" />
+      <path d="M17.5 4.5a3.6 3.6 0 1 0 2.8 5.9 3 3 0 0 1-2.8-5.9z" />
+    </>
+  ),
+  moon: <path d="M19.5 14.5A8 8 0 1 1 9.5 4.5a6.4 6.4 0 0 0 10 10z" />,
+  plus: <path d="M12 5v14M5 12h14" />,
+  minus: <path d="M5 12h14" />,
+  locate: (
+    <>
+      <circle cx="12" cy="12" r="6.5" />
+      <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
+      <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3" />
+    </>
+  ),
+  map: (
+    <>
+      <path d="M3.5 6.5l5.5-2.5 6 2.5 5.5-2.5v13.5L15 20l-6-2.5-5.5 2.5z" />
+      <path d="M9 4v13.5M15 6.5V20" />
+    </>
+  ),
 };
 
 export type IconName = keyof typeof P;

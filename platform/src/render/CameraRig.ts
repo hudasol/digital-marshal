@@ -33,6 +33,7 @@ export interface FollowTarget {
 }
 
 const TAU = Math.PI * 2;
+const FLY_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'KeyR', 'KeyF', 'ShiftLeft', 'ShiftRight']);
 
 function wrapAngle(a: number): number {
   a = (a + Math.PI) % TAU;
@@ -64,11 +65,13 @@ export class CameraRig {
   onUserTakeover: (() => void) | null = null;
   private presets: Partial<Record<CamMode, Pose>> = {};
   private obstacle: ((from: THREE.Vector3, to: THREE.Vector3) => number | null) | null = null;
+  /** Keys held for keyboard flight, by KeyboardEvent.code (physical position, any layout). */
+  private keys = new Set<string>();
   private tmpA = new THREE.Vector3();
   private tmpB = new THREE.Vector3();
 
   constructor(aspect: number) {
-    this.camera = new THREE.PerspectiveCamera(40, aspect, 1.5, 9000);
+    this.camera = new THREE.PerspectiveCamera(40, aspect, 1.5, 16000);
     this.pose = { tx: 0, ty: 0, tz: 0, yaw: 0.6, pitch: 0.5, dist: 1400, fov: 40 };
     this.want = { ...this.pose };
     this.apply();
@@ -212,8 +215,54 @@ export class CameraRig {
     }
   }
 
+  /** Keyboard flight: W/S forward and back, A/D sideways, Q/E turn, R/F zoom, Shift faster.
+      Returns true when the key is one the rig uses. */
+  key(code: string, down: boolean): boolean {
+    if (!FLY_KEYS.has(code)) return false;
+    if (down) this.keys.add(code);
+    else this.keys.delete(code);
+    return true;
+  }
+
+  releaseKeys(): void {
+    this.keys.clear();
+  }
+
+  private fly(dt: number): void {
+    const k = this.keys;
+    const fwd = (k.has('KeyW') ? 1 : 0) - (k.has('KeyS') ? 1 : 0);
+    const side = (k.has('KeyD') ? 1 : 0) - (k.has('KeyA') ? 1 : 0);
+    const turn = (k.has('KeyQ') ? 1 : 0) - (k.has('KeyE') ? 1 : 0);
+    const zoom = (k.has('KeyF') ? 1 : 0) - (k.has('KeyR') ? 1 : 0);
+    if (!fwd && !side && !turn && !zoom) return;
+    const fast = k.has('ShiftLeft') || k.has('ShiftRight') ? 3 : 1;
+    dt = Math.min(dt, 0.1);
+    if (this.follow && (this.mode === 'follow' || this.mode === 'emergency') && (fwd || side)) {
+      // moving away from a chased vehicle: fly on freely from where the camera is
+      this.follow = null;
+      this.from = this.to = null;
+      this.want = { ...this.pose };
+      this.mode = 'free';
+      this.onUserTakeover?.();
+    }
+    if (fwd || side) {
+      this.takeover();
+      // ground speed grows with height so the street and the overview both feel right
+      const speed = THREE.MathUtils.clamp(this.want.dist * 0.6, 18, 1200) * fast;
+      const sy = Math.sin(this.want.yaw);
+      const cy = Math.cos(this.want.yaw);
+      const n = fwd && side ? Math.SQRT1_2 : 1;
+      this.want.tx += (-sy * fwd + cy * side) * n * speed * dt;
+      this.want.tz += (-cy * fwd - sy * side) * n * speed * dt;
+      this.clampTarget(this.want);
+    }
+    if (turn) this.orbit(turn * 1.2 * fast * dt, 0);
+    if (zoom) this.zoom(Math.exp(zoom * 1.2 * fast * dt));
+  }
+
   private clampTarget(p: Pose): void {
-    const m = 250;
+    // the camera may roam over the surrounding city, not only the simulated district
+    const m = 1500;
     p.tx = THREE.MathUtils.clamp(p.tx, this.bounds.minX - m, this.bounds.maxX + m);
     p.tz = THREE.MathUtils.clamp(p.tz, this.bounds.minZ - m, this.bounds.maxZ + m);
   }
@@ -221,6 +270,7 @@ export class CameraRig {
   // ---------------------------------------------------------------- per frame
 
   update(dt: number): void {
+    if (this.keys.size) this.fly(dt);
     const now = performance.now() / 1000;
     const f = this.follow && (this.mode === 'follow' || this.mode === 'emergency') ? this.follow() : null;
     if (f && !this.from) {
@@ -305,7 +355,8 @@ export class CameraRig {
       this.camera.updateProjectionMatrix();
     }
     const near = THREE.MathUtils.clamp(dist * 0.02, 0.5, 20);
-    const far = Math.max(6000, dist * 6);
+    // far enough that the haze, not the clip plane, ends the desert and the sea
+    const far = Math.max(16000, dist * 8);
     if (Math.abs(this.camera.near - near) / near > 0.15 || this.camera.far !== far) {
       this.camera.near = near;
       this.camera.far = far;

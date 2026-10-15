@@ -134,7 +134,7 @@ export function VehicleInspector({ v }: { v: VehicleFrame }) {
       {/* not a live region: the plan is rewritten several times a second and would keep a screen reader talking */}
       <div className={`now tone-${tone}`}>
         <div className="now-label">{t('veh.planning')}</div>
-        <div className="now-text">{v.exited ? t('veh.exited') : bindText(t, v.bind, v.speedKmh)}</div>
+        <div className="now-text">{v.exited ? t('veh.exited') : v.mode === 'arrived' ? t('veh.onScene') : bindText(t, v.bind, v.speedKmh)}</div>
       </div>
 
       {v.cls === 'ambulance' && evFrame && evFrame.id === v.id && <EvMission ev={evFrame} />}

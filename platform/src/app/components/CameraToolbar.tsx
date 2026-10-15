@@ -48,7 +48,7 @@ export function CameraToolbar({ available }: { available: Partial<Record<CamMode
             tabIndex={stop === it.mode ? 0 : -1}
             onFocus={() => setLast(it.mode)}
             onClick={() => controller.setCamMode(it.mode)}
-            title={shortcuts ? `${t(it.key)} (${it.hotkey})` : t(it.key)}
+            title={shortcuts ? `${t(it.key)} (${it.hotkey})${it.mode === 'free' ? ` · ${t('cam.wasd')}` : ''}` : t(it.key)}
             aria-label={t(it.key)}
           >
             <Icon name={it.icon} />
@@ -57,6 +57,14 @@ export function CameraToolbar({ available }: { available: Partial<Record<CamMode
         );
       })}
       <span className="sep" />
+      {shortcuts && (
+        <span className="cam-keys hide-md" title={t('cam.wasd')} aria-hidden="true">
+          <kbd>W</kbd>
+          <kbd>A</kbd>
+          <kbd>S</kbd>
+          <kbd>D</kbd>
+        </span>
+      )}
       <button
         tabIndex={stop === 'reset' ? 0 : -1}
         onFocus={() => setLast('reset')}

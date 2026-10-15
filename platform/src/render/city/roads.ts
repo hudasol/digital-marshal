@@ -3,6 +3,7 @@ import type { LinkDef, Network, Side, Turn } from '../../core/network/types';
 import { CROSSWALK, LANE_W } from '../../core/network/district';
 import { GeoBuilder } from './builder';
 import { asphaltTexture, grassTexture } from './textures';
+import { GLSL_COMMON } from '../env/uniforms';
 
 /* Road surfaces, markings and medians, all generated from the network definition so the drawing
    cannot drift from the geometry the simulation uses. */
@@ -10,7 +11,9 @@ import { asphaltTexture, grassTexture } from './textures';
 export const ASPHALT_H = 0.02;
 const MARK_H = 0.045;
 export const CURB_H = 0.15;
-const EXTEND = 650; // road continues past the district edge into the haze
+// the road continues past the gateway to the far kerb of the perimeter street; the surrounding
+// city's ground (city/metroGround.ts) carries it on from there
+const EXTEND = 170;
 
 interface Segment {
   a: { x: number; y: number };
@@ -204,7 +207,39 @@ export function buildRoads(net: Network, anisotropy: number): RoadLayer {
   // ---------------------------------------------------------------- materials and meshes
   const asphaltTex = asphaltTexture();
   asphaltTex.anisotropy = anisotropy;
-  const mAsphalt = new THREE.MeshStandardMaterial({ map: asphaltTex, color: 0x6f7378, roughness: 0.93, metalness: 0 });
+  const mAsphalt = new THREE.MeshStandardMaterial({ map: asphaltTex, color: 0xb0b2b6, roughness: 0.86, metalness: 0 });
+  // weathering in world space, so the 8 m texture never visibly repeats: broad sun-bleached and
+  // darker areas, resurfaced patches and a slightly varying sheen
+  mAsphalt.customProgramCacheKey = () => 'dm-asphalt';
+  mAsphalt.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', `#include <common>
+varying vec3 vAWP;`)
+      .replace(
+        '#include <worldpos_vertex>',
+        `#include <worldpos_vertex>
+vAWP = (modelMatrix * vec4(transformed, 1.0)).xyz;`,
+      );
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>
+varying vec3 vAWP;
+${GLSL_COMMON}`)
+      .replace(
+        '#include <color_fragment>',
+        `#include <color_fragment>
+vec2 aw = vAWP.xz;
+float big = dmNoise(aw * 0.018) * 0.6 + dmNoise(aw * 0.05) * 0.4;
+diffuseColor.rgb *= 0.86 + 0.26 * big;
+float patchM = smoothstep(0.66, 0.7, dmNoise(aw * 0.011 + 3.1)) * step(0.5, dmNoise(aw * 0.09 + 7.7));
+diffuseColor.rgb *= mix(1.0, 0.72, patchM);
+float dmARough = mix(0.8, 0.94, dmNoise(aw * 0.4)) - patchM * 0.1;`,
+      )
+      .replace(
+        '#include <roughnessmap_fragment>',
+        `#include <roughnessmap_fragment>
+roughnessFactor = dmARough;`,
+      );
+  };
   const markProps = { roughness: 0.75, metalness: 0, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 };
   const mWhite = new THREE.MeshStandardMaterial({ color: 0xdedbd2, ...markProps });
   const mYellow = new THREE.MeshStandardMaterial({ color: 0xd9a531, ...markProps });
