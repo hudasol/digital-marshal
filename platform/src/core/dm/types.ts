@@ -196,6 +196,11 @@ export interface DmParams {
   extraLatencyMs: number; // communication fault: added latency
   extraLoss: number; // communication fault: added loss probability
   rsuDown: string[]; // communication fault: RSUs out of service
+  /* Coordination features. Each is on under policy C and off under A and B unless set explicitly,
+     so ablations can switch one off (or one on) while everything else stays the same. */
+  grouping: boolean; // grouped, prioritised remote assistance with junction-scoped authorisations
+  advice: boolean; // capacity-aware detour allocation
+  priority: boolean; // signal priority along an emergency vehicle's route
 }
 
 export interface DmState {

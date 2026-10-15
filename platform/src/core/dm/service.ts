@@ -52,7 +52,20 @@ export const DEFAULT_DM: DmParams = {
   extraLatencyMs: 0,
   extraLoss: 0,
   rsuDown: [],
+  grouping: true,
+  advice: true,
+  priority: true,
 };
+
+/** Parameters for a run: coordination features follow the policy unless given explicitly. */
+export function resolveDmParams(params: Partial<DmParams>): DmParams {
+  const p: DmParams = { ...DEFAULT_DM, ...params };
+  const c = p.policy === 'C';
+  p.grouping = params.grouping ?? c;
+  p.advice = params.advice ?? c;
+  p.priority = params.priority ?? c;
+  return p;
+}
 
 const REFRESH_EVERY = 60;
 const NO_CLOSURES: Array<{ id: string; link: string; lanes: number[]; s0: number; s1: number }> = [];
@@ -120,7 +133,7 @@ export class DigitalMarshal {
 
   constructor(engine: Engine, params: Partial<DmParams> = {}) {
     this.engine = engine;
-    if (!engine.state.dm) engine.state.dm = initDmState({ ...DEFAULT_DM, ...params }, engine.state.seed);
+    if (!engine.state.dm) engine.state.dm = initDmState(resolveDmParams(params), engine.state.seed);
     const prevAfter = engine.hooks.afterStep;
     engine.hooks.routeOptions = (v) => this.routeOptions(v);
     engine.hooks.authorized = (v, j) => this.authorized(v, j);
@@ -305,8 +318,8 @@ export class DigitalMarshal {
       inc.updatedAt = this.now;
       this.publish(inc, 'EMERGENCY_CORRIDOR', { ev: ev.tag, route: rest }, `Emergency vehicle ${ev.tag} approaching on this route: keep its lane clear where it is safe`, 5, 600);
     }
-    // policy C: request signal priority for the next junction when the ambulance is close
-    if (this.policy === 'C' && ev.seg.k === 'L') {
+    // signal priority (policy C): request it for the next junction when the ambulance is close
+    if (this.s.params.priority && ev.seg.k === 'L') {
       const link = net.links[ev.seg.id];
       const j = link.to;
       if (link.endsAtJunction && !st.road.dark.includes(j) && !st.road.preempt[j] && ev.conn) {
@@ -853,7 +866,7 @@ export class DigitalMarshal {
     this.engine.log(v, 'ASSIST_REQUEST', { exception: ex.id, junction });
     this.engine.event('assist-request', 'warn', v.tag, { exception: ex.id, junction });
     // coordinated: a junction authorisation for this incident already exists -> resolve at once
-    if (this.policy === 'C' && incidentId) {
+    if (this.s.params.grouping && incidentId) {
       const ja = s.junctionAuth[junction];
       if (ja && ja.incidentId === incidentId) {
         this.grant(v, junction, incidentId, 'junction', ja.msgId);
@@ -877,7 +890,7 @@ export class DigitalMarshal {
     const open = Object.values(s.exceptions).filter((e) => e.status === 'open');
     if (!open.length) return null;
     const p = s.params;
-    if (this.policy !== 'C') {
+    if (!p.grouping) {
       open.sort((a, b) => a.raisedAt - b.raisedAt || (a.id < b.id ? -1 : 1));
       const e = open[0];
       return { exceptions: [e], kind: 'individual', junction: e.junction, incidentId: e.incidentId, priority: 0, rationale: 'First come, first served' };
@@ -1143,7 +1156,8 @@ export class DigitalMarshal {
     }
 
     // coordinated detour advice
-    if (this.policy === 'C' && now - s.lastAdvice >= ADVICE_EVERY - 1e-9) {
+    // (advice needs the shared channel, so never under policy A)
+    if (s.params.advice && this.policy !== 'A' && now - s.lastAdvice >= ADVICE_EVERY - 1e-9) {
       for (const incId of Object.keys(s.incidents)) {
         const inc = s.incidents[incId];
         if (inc.status !== 'active' || (inc.type !== 'signal_outage' && inc.type !== 'roadworks')) continue;

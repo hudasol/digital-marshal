@@ -24,7 +24,7 @@ export function createSession(net: Network, cfg: SessionConfig = {}): SimSession
   const session = new SimSession(net, cfg);
   session.onEngine((engine) => {
     const c = session.cfg as SessionConfig;
-    dmOf.set(engine, new DigitalMarshal(engine, { ...DEFAULT_DM, ...(c.dm ?? {}) }));
+    dmOf.set(engine, new DigitalMarshal(engine, (c.dm ?? {}) as Partial<typeof DEFAULT_DM>));
   });
   session.addApplier((engine, iv) => applyIntervention(engine, iv.kind, iv.params));
   return session;
