@@ -1,0 +1,21 @@
+{
+  "expected_runs": 15,
+  "runs_audited": 14,
+  "all_pass": false,
+  "events_checked": 1742,
+  "violations": [
+    {
+      "scenario": "primary_double_capacity",
+      "policy": "coordinated_batch",
+      "counts": {
+        "missing_run": 1
+      },
+      "detail": [
+        {
+          "check": "missing_run",
+          "file": "confirmatory_metrics.csv"
+        }
+      ]
+    }
+  ]
+}
