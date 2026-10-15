@@ -1,0 +1,156 @@
+{
+  "runs": 15,
+  "all_invariants_pass": true,
+  "metrics": [
+    {
+      "scenario": "manageable_primary",
+      "policy": "static",
+      "total_fleet_travel_time_vehicle_min": 93.75,
+      "route_A_count": 10,
+      "route_B_count": 0,
+      "max_30s_batch_dominant_route_share": 1.0,
+      "fifo_violations": 0,
+      "checks_pass": true
+    },
+    {
+      "scenario": "manageable_primary",
+      "policy": "independent_periodic",
+      "total_fleet_travel_time_vehicle_min": 93.75,
+      "route_A_count": 10,
+      "route_B_count": 0,
+      "max_30s_batch_dominant_route_share": 1.0,
+      "fifo_violations": 0,
+      "checks_pass": true
+    },
+    {
+      "scenario": "manageable_primary",
+      "policy": "coordinated_batch",
+      "total_fleet_travel_time_vehicle_min": 93.75,
+      "route_A_count": 10,
+      "route_B_count": 0,
+      "max_30s_batch_dominant_route_share": 1.0,
+      "fifo_violations": 0,
+      "checks_pass": true
+    },
+    {
+      "scenario": "near_branch_capacity",
+      "policy": "static",
+      "total_fleet_travel_time_vehicle_min": 262.0,
+      "route_A_count": 24,
+      "route_B_count": 0,
+      "max_30s_batch_dominant_route_share": 1.0,
+      "fifo_violations": 0,
+      "checks_pass": true
+    },
+    {
+      "scenario": "near_branch_capacity",
+      "policy": "independent_periodic",
+      "total_fleet_travel_time_vehicle_min": 254.275,
+      "route_A_count": 18,
+      "route_B_count": 6,
+      "max_30s_batch_dominant_route_share": 1.0,
+      "fifo_violations": 0,
+      "checks_pass": true
+    },
+    {
+      "scenario": "near_branch_capacity",
+      "policy": "coordinated_batch",
+      "total_fleet_travel_time_vehicle_min": 249.95,
+      "route_A_count": 16,
+      "route_B_count": 8,
+      "max_30s_batch_dominant_route_share": 1.0,
+      "fifo_violations": 0,
+      "checks_pass": true
+    },
+    {
+      "scenario": "overload_stress",
+      "policy": "static",
+      "total_fleet_travel_time_vehicle_min": 923.5,
+      "route_A_count": 60,
+      "route_B_count": 0,
+      "max_30s_batch_dominant_route_share": 1.0,
+      "fifo_violations": 0,
+      "checks_pass": true
+    },
+    {
+      "scenario": "overload_stress",
+      "policy": "independent_periodic",
+      "total_fleet_travel_time_vehicle_min": 719.875,
+      "route_A_count": 30,
+      "route_B_count": 30,
+      "max_30s_batch_dominant_route_share": 1.0,
+      "fifo_violations": 0,
+      "checks_pass": true
+    },
+    {
+      "scenario": "overload_stress",
+      "policy": "coordinated_batch",
+      "total_fleet_travel_time_vehicle_min": 701.491667,
+      "route_A_count": 25,
+      "route_B_count": 35,
+      "max_30s_batch_dominant_route_share": 0.666667,
+      "fifo_violations": 0,
+      "checks_pass": true
+    },
+    {
+      "scenario": "primary_half_capacity",
+      "policy": "static",
+      "total_fleet_travel_time_vehicle_min": 105.0,
+      "route_A_count": 10,
+      "route_B_count": 0,
+      "max_30s_batch_dominant_route_share": 1.0,
+      "fifo_violations": 0,
+      "checks_pass": true
+    },
+    {
+      "scenario": "primary_half_capacity",
+      "policy": "independent_periodic",
+      "total_fleet_travel_time_vehicle_min": 104.05,
+      "route_A_count": 9,
+      "route_B_count": 1,
+      "max_30s_batch_dominant_route_share": 1.0,
+      "fifo_violations": 0,
+      "checks_pass": true
+    },
+    {
+      "scenario": "primary_half_capacity",
+      "policy": "coordinated_batch",
+      "total_fleet_travel_time_vehicle_min": 102.8,
+      "route_A_count": 8,
+      "route_B_count": 2,
+      "max_30s_batch_dominant_route_share": 1.0,
+      "fifo_violations": 0,
+      "checks_pass": true
+    },
+    {
+      "scenario": "primary_double_capacity",
+      "policy": "static",
+      "total_fleet_travel_time_vehicle_min": 90.0,
+      "route_A_count": 10,
+      "route_B_count": 0,
+      "max_30s_batch_dominant_route_share": 1.0,
+      "fifo_violations": 0,
+      "checks_pass": true
+    },
+    {
+      "scenario": "primary_double_capacity",
+      "policy": "independent_periodic",
+      "total_fleet_travel_time_vehicle_min": 90.0,
+      "route_A_count": 10,
+      "route_B_count": 0,
+      "max_30s_batch_dominant_route_share": 1.0,
+      "fifo_violations": 0,
+      "checks_pass": true
+    },
+    {
+      "scenario": "primary_double_capacity",
+      "policy": "coordinated_batch",
+      "total_fleet_travel_time_vehicle_min": 90.0,
+      "route_A_count": 10,
+      "route_B_count": 0,
+      "max_30s_batch_dominant_route_share": 1.0,
+      "fifo_violations": 0,
+      "checks_pass": true
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+[
+  {
+    "scenario": "manageable_primary",
+    "independent_total_vehicle_min": 93.75,
+    "coordinated_total_vehicle_min": 93.75,
+    "relative_reduction_percent": 0.0,
+    "independent_A_B": "10/0",
+    "coordinated_A_B": "10/0",
+    "threshold_5pct_met": false
+  },
+  {
+    "scenario": "near_branch_capacity",
+    "independent_total_vehicle_min": 254.275,
+    "coordinated_total_vehicle_min": 249.95,
+    "relative_reduction_percent": 1.7009,
+    "independent_A_B": "18/6",
+    "coordinated_A_B": "16/8",
+    "threshold_5pct_met": false
+  },
+  {
+    "scenario": "overload_stress",
+    "independent_total_vehicle_min": 719.875,
+    "coordinated_total_vehicle_min": 701.491667,
+    "relative_reduction_percent": 2.5537,
+    "independent_A_B": "30/30",
+    "coordinated_A_B": "25/35",
+    "threshold_5pct_met": false
+  },
+  {
+    "scenario": "primary_half_capacity",
+    "independent_total_vehicle_min": 104.05,
+    "coordinated_total_vehicle_min": 102.8,
+    "relative_reduction_percent": 1.2013,
+    "independent_A_B": "9/1",
+    "coordinated_A_B": "8/2",
+    "threshold_5pct_met": false
+  },
+  {
+    "scenario": "primary_double_capacity",
+    "independent_total_vehicle_min": 90.0,
+    "coordinated_total_vehicle_min": 90.0,
+    "relative_reduction_percent": 0.0,
+    "independent_A_B": "10/0",
+    "coordinated_A_B": "10/0",
+    "threshold_5pct_met": false
+  }
+]
