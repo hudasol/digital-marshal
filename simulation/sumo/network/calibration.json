@@ -1,0 +1,17 @@
+{
+  "mu_A": 0.49969192852741834,
+  "mu_A_runs": [
+    0.49907578558225507,
+    0.5,
+    0.5
+  ],
+  "mu_B": 1.0189066163887435,
+  "mu_B_runs": [
+    1.026615969581749,
+    1.0112359550561798,
+    1.0188679245283019
+  ],
+  "unit_veh_h_per_abstract_vpm_implied_A": 449.7227356746765,
+  "unit_veh_h_per_abstract_vpm_implied_B": 458.50797737493457,
+  "note": "mu in veh/s measured at the P diverge under a standing queue (overload demand, 3 seeds, middle 60% of crossings)"
+}

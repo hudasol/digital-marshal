@@ -1,0 +1,13 @@
+<edges>
+  <edge id="E1" from="O" to="P" numLanes="4" speed="13.89" length="2500.2"/>
+  <edge id="E2" from="P" to="C" numLanes="1" speed="13.89" length="1666.8"/>
+  <edge id="E3" from="C" to="D" numLanes="1" speed="13.89" length="1666.8"/>
+  <edge id="E4" from="P" to="A1" numLanes="1" speed="13.89" length="833.4"/>
+  <edge id="E5" from="A1" to="A2" numLanes="1" speed="13.89" length="1666.8"/>
+  <edge id="E6" from="A2" to="M" numLanes="1" speed="13.89" length="833.4"/>
+  <edge id="E7" from="P" to="B1" numLanes="2" speed="13.89" length="1666.8"/>
+  <edge id="E8" from="B1" to="B2" numLanes="2" speed="13.89" length="1666.8"/>
+  <edge id="E9" from="B2" to="B3" numLanes="2" speed="13.89" length="833.4"/>
+  <edge id="E10" from="B3" to="M" numLanes="2" speed="13.89" length="833.4"/>
+  <edge id="E11" from="M" to="D" numLanes="4" speed="13.89" length="1666.8"/>
+</edges>
