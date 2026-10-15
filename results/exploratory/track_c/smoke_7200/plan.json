@@ -1,0 +1,72 @@
+{
+  "plan": "track_c_smoke",
+  "label": "exploratory (not confirmatory; protocol not frozen)",
+  "horizon_s": 7200.0,
+  "scenarios": {
+    "near_branch_capacity": {
+      "params": {
+        "n_abstract": 24,
+        "spacing_abstract_s": 5.0,
+        "branch_capacity_scale": 1.0
+      },
+      "seeds": [
+        1
+      ]
+    },
+    "manageable_primary": {
+      "params": {
+        "n_abstract": 10,
+        "spacing_abstract_s": 10.0,
+        "branch_capacity_scale": 1.0
+      },
+      "seeds": [
+        1
+      ]
+    },
+    "overload_stress": {
+      "params": {
+        "n_abstract": 60,
+        "spacing_abstract_s": 2.0,
+        "branch_capacity_scale": 1.0
+      },
+      "seeds": [
+        1
+      ]
+    },
+    "primary_half_capacity": {
+      "params": {
+        "n_abstract": 10,
+        "spacing_abstract_s": 10.0,
+        "branch_capacity_scale": 0.5
+      },
+      "seeds": [
+        1
+      ]
+    },
+    "primary_double_capacity": {
+      "params": {
+        "n_abstract": 10,
+        "spacing_abstract_s": 10.0,
+        "branch_capacity_scale": 2.0
+      },
+      "seeds": [
+        1
+      ]
+    }
+  },
+  "policies": [
+    "static",
+    "measured_periodic",
+    "independent_periodic",
+    "coordinated_batch",
+    "independent_batch_copy"
+  ],
+  "runs": 25,
+  "workers": 12,
+  "python": "3.12.10",
+  "started": "2026-10-15T08:35:26+0400",
+  "finished": "2026-10-15T08:37:05+0400",
+  "status_counts": {
+    "ok": 25
+  }
+}
