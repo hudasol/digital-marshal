@@ -125,6 +125,15 @@ footer{margin-top:16px;font-size:11px;color:var(--slate);line-height:1.5}
     </div>
   </section>
 
+  <section class="grid2" id="viz1">
+    <div class="card"><h2 style="font-size:15px" data-i="cumT"></h2><div class="sub" data-i="cumS"></div><svg id="cum" viewBox="0 0 520 230" style="width:100%;height:auto;margin-top:8px"></svg></div>
+    <div class="card"><h2 style="font-size:15px" data-i="stripT"></h2><div class="sub" data-i="stripS"></div><svg id="strip" viewBox="0 0 520 230" style="width:100%;height:auto;margin-top:8px"></svg></div>
+  </section>
+  <section class="grid2" id="viz2">
+    <div class="card"><h2 style="font-size:15px" data-i="heatT"></h2><div class="sub" data-i="heatS"></div><svg id="heat" viewBox="0 0 520 300" style="width:100%;height:auto;margin-top:8px"></svg></div>
+    <div class="card"><h2 style="font-size:15px" data-i="barT"></h2><div class="sub" data-i="barS"></div><svg id="bars" viewBox="0 0 520 300" style="width:100%;height:auto;margin-top:8px"></svg></div>
+  </section>
+
   <section class="grid2">
     <div class="card">
       <h2 style="font-size:15px" data-i="logT"></h2>
@@ -167,7 +176,7 @@ var I18N={
   hlTotal:'Coordinated total fleet time',hlInd:'Change vs independent periodic',hlStat:'Change vs static Route A',
   better:'lower',worse:'higher',same:'no change',
   xmPQ:'Point queue',xmSumo:'SUMO mean',xmCI:'SUMO 95% interval',xmSeeds:'Seeds better',
-  n1:'Both models rank coordinated at or below independent, and both below static, in the loaded scenarios.',
+  cumT:'Cumulative arrivals at the destination',cumS:'Vehicles that have completed their trip by each moment; a steeper curve clears the fleet sooner',stripT:'Trip time of every vehicle',stripS:'One dot per vehicle, coloured by route; vertical tick marks the mean',heatT:'Congestion heat grid',heatS:'Total waiting time in each edge queue, in vehicle minutes',barT:'Fleet time and route split',barS:'Total fleet travel time (bars) and share of vehicles on each route',minutes:'minutes',vm:'veh min',vehs:'vehicles',n1:'Both models rank coordinated at or below independent, and both below static, in the loaded scenarios.',
   n2:'The gap to independent periodic is small in both models and far below the provisional 5 percent target.',
   n3:'The two models do not share identical policy semantics, so the figures are not a replication pair.',
   sc:{manageable_primary:'Manageable primary (10 vehicles)',near_branch_capacity:'Near branch capacity (24 vehicles)',overload_stress:'Overload stress (60 vehicles)',primary_half_capacity:'Half capacity (10 vehicles)',primary_double_capacity:'Double capacity (10 vehicles)'}},
@@ -188,7 +197,7 @@ var I18N={
   hlTotal:'إجمالي زمن الأسطول المنسق',hlInd:'التغير مقارنة بالمستقل الدوري',hlStat:'التغير مقارنة بالمسار الثابت أ',
   better:'أقل',worse:'أعلى',same:'دون تغير',
   xmPQ:'الطوابير النقطية',xmSumo:'متوسط SUMO',xmCI:'فترة ثقة 95%',xmSeeds:'البذور الأفضل',
-  n1:'يضع النموذجان المنسق عند مستوى المستقل أو أفضل منه، وكلاهما أفضل من الثابت، في السيناريوهات المحملة.',
+  cumT:'الوصول التراكمي إلى الوجهة',cumS:'عدد المركبات التي أتمت رحلتها في كل لحظة؛ المنحنى الأشد ميلاً يُخلي الأسطول أسرع',stripT:'زمن رحلة كل مركبة',stripS:'نقطة لكل مركبة بلون مسارها؛ الخط العمودي يمثل المتوسط',heatT:'خريطة حرارة الازدحام',heatS:'إجمالي زمن الانتظار في طابور كل رابط بالمركبة دقيقة',barT:'زمن الأسطول وتوزيع المسارات',barS:'إجمالي زمن الأسطول (أعمدة) ونسبة المركبات على كل مسار',minutes:'دقيقة',vm:'مركبة دقيقة',vehs:'مركبات',n1x:'',n1:'يضع النموذجان المنسق عند مستوى المستقل أو أفضل منه، وكلاهما أفضل من الثابت، في السيناريوهات المحملة.',
   n2:'الفارق عن المستقل الدوري صغير في النموذجين وأقل بكثير من الهدف المؤقت البالغ 5 بالمئة.',
   n3:'لا يتطابق تعريف السياسات في النموذجين، لذلك لا تشكل الأرقام زوج تكرار.',
   sc:{manageable_primary:'أساسي قابل للإدارة (10 مركبات)',near_branch_capacity:'قرب سعة الفرع (24 مركبة)',overload_stress:'ضغط زائد (60 مركبة)',primary_half_capacity:'نصف السعة (10 مركبات)',primary_double_capacity:'ضعف السعة (10 مركبات)'}}
@@ -228,7 +237,7 @@ function buildPanels(){
      '<div class="live"><div class="q"><b>0</b><span></span></div><div><b>0</b><span></span></div><div><b>0</b><span></span></div><div><b>0</b><span></span></div></div>';
     host.appendChild(c);
     var svg=$('svg',c);
-    var o={card:c,svg:svg,title:$('.ttl',c),sub:$('.sub',c),vals:[],lab:[],dots:{},edgeEls:{}};
+    var o={heat:{},card:c,svg:svg,title:$('.ttl',c),sub:$('.sub',c),vals:[],lab:[],dots:{},edgeEls:{}};
     var lv=c.querySelectorAll('.live div');for(var i=0;i<4;i++){o.vals.push($('b',lv[i]));o.lab.push($('span',lv[i]));}
     // defs hatch
     var defs=el('defs',{},svg);var pt=el('pattern',{id:'h'+p,width:8,height:8,patternUnits:'userSpaceOnUse',patternTransform:'rotate(45)'},defs);
@@ -238,6 +247,7 @@ function buildPanels(){
       var a=px(e.src),b=px(e.dst),w=3+LANES[e.id]*2.5;
       var g=el('g',{},svg);
       el('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:'#CBD5E1','stroke-width':w,'stroke-linecap':'round'},g);
+      o.heat=o.heat||{};o.heat[e.id]=el('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:'#FFB715','stroke-width':w+4,'stroke-linecap':'round',opacity:0},g);
       var closed=el('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:'url(#h'+p+')','stroke-width':w,'stroke-linecap':'round',opacity:0},g);
       var mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;
       var dy=(e.id==='E1'||e.id==='E11')?-18:(e.id==='E2'||e.id==='E3')?22:(['E4','E5','E6'].indexOf(e.id)>=0?-14:22);
@@ -292,7 +302,7 @@ function draw(){
   $('#scrub').value=t;
   var cnt={};
   POL.forEach(function(p){
-    var o=P[p],q=0,arr=0,a=0,b=0,stack={};
+    var o=P[p],q=0,arr=0,a=0,b=0,stack={};var eq={};
     var show=t>=inc;
     Object.keys(o.edgeEls).forEach(function(id){o.edgeEls[id].setAttribute('opacity',(show&&D.graph.closed.indexOf(id)>=0)?1:0);});
     o.ban.setAttribute('opacity',show?1:0);
@@ -308,7 +318,7 @@ function draw(){
       var ed=EDGE[ps.edge],A=px(ed.src),B=px(ed.dst);
       var dx=B[0]-A[0],dy=B[1]-A[1],L=Math.sqrt(dx*dx+dy*dy)||1,ux=dx/L,uy=dy/L;
       var off=0;
-      if(ps.waiting){var s=stack[ps.edge]=(stack[ps.edge]||0)+1;off=-s*9.5;q++;}
+      if(ps.waiting){eq[ps.edge]=(eq[ps.edge]||0)+1;var s=stack[ps.edge]=(stack[ps.edge]||0)+1;off=-s*9.5;q++;}
       var f=ps.fr;
       var lanes=LANES[ps.edge],lane=((d.i)%lanes)-(lanes-1)/2;
       var cx=A[0]+dx*f+ux*off+(-uy)*lane*5.5,cy=A[1]+dy*f+uy*off+ux*lane*5.5;
@@ -319,9 +329,11 @@ function draw(){
     });
     // route counts decided so far = vehicles whose p time has passed (epoch granularity ignored)
     vlist(p).forEach(function(v){if(t>=v.p){if(v.r==='A')a++;else b++;}});
+    Object.keys(o.heat).forEach(function(id){var n=eq[id]||0;o.heat[id].setAttribute('opacity',Math.min(0.9,n*0.16));o.heat[id].setAttribute('stroke',n>=5?'#DA291C':'#FFB715');});
     o.vals[0].textContent=q;o.vals[1].textContent=arr+' / '+vlist(p).length;o.vals[2].textContent=a;o.vals[3].textContent=b;
   });
   var m=$('#cursor');if(m){var x=chartX(t);m.setAttribute('x1',x);m.setAttribute('x2',x);}
+  var m2=$('#cumCursor');if(m2){var x2=chartX(t);m2.setAttribute('x1',x2);m2.setAttribute('x2',x2);}
   renderLog();
 }
 
@@ -379,7 +391,75 @@ function renderStatic(){
   var x='<tr><th></th><th>'+T('xmPQ')+'</th><th>'+T('xmSumo')+'</th><th>'+T('xmCI')+'</th><th>'+T('xmSeeds')+'</th></tr>';
   XM.forEach(function(r){x+='<tr><td>'+I18N[LANG].sc[r[0]].split(' (')[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td><td>'+r[4]+'</td></tr>';});
   $('#xm').innerHTML=x;$('#xmNotes').innerHTML='<li>'+T('n1')+'</li><li>'+T('n2')+'</li><li>'+T('n3')+'</li>';
-  renderChart();renderTimeline();
+  renderChart();renderViz();renderTimeline();
+}
+
+
+function renderViz(){
+  var NS='http://www.w3.org/2000/svg';
+  function tx(svg,x,y,txt,o){var e=el('text',{x:x,y:y,'font-size':10,fill:'#64748B','text-anchor':(o&&o.a)||'middle','font-weight':(o&&o.w)||500},svg);e.textContent=txt;return e;}
+  // cumulative arrivals
+  var c=$('#cum');c.innerHTML='';var H=230,top=10,bot=28,n=vlist('static').length;
+  function yc(v){return top+(1-v/n)*(H-top-bot);}
+  for(var g=0;g<=4;g++){var v=n*g/4,yy=yc(v);el('line',{x1:36,x2:510,y1:yy,y2:yy,stroke:'#E2E8F0'},c);tx(c,30,yy+4,Math.round(v),{a:'end'});}
+  for(var g2=0;g2<=5;g2++){var tt=state.tMax*g2/5;tx(c,chartX(tt),H-10,Math.round(tt)+'s');}
+  POL.forEach(function(p){
+    var a=vlist(p).map(function(v){return v.a;}).sort(function(x,y){return x-y;});
+    var pts='36,'+yc(0);a.forEach(function(t,i){pts+=' '+chartX(t).toFixed(1)+','+yc(i).toFixed(1)+' '+chartX(t).toFixed(1)+','+yc(i+1).toFixed(1);});
+    pts+=' 510,'+yc(n);
+    el('polyline',{points:pts,fill:'none',stroke:POLCOL[p],'stroke-width':p==='coordinated_batch'?3:2.2,'stroke-linejoin':'round'},c);
+  });
+  el('line',{id:'cumCursor',x1:chartX(state.t),x2:chartX(state.t),y1:top,y2:H-bot,stroke:'#242526','stroke-width':1.5},c);
+  // strip plot of trip times
+  var sv=$('#strip');sv.innerHTML='';var all=[];POL.forEach(function(p){vlist(p).forEach(function(v){all.push((v.a-v.d)/60);});});
+  var lo=Math.floor(Math.min.apply(null,all)),hi=Math.ceil(Math.max.apply(null,all));if(hi-lo<2)hi=lo+2;
+  function xs(m){return 150+(m-lo)/(hi-lo)*(480-150);}
+  var step=Math.max(1,Math.round((hi-lo)/6));
+  for(var m=lo;m<=hi;m+=step){el('line',{x1:xs(m),x2:xs(m),y1:12,y2:190,stroke:'#E2E8F0'},sv);tx(sv,xs(m),210,m+' min');}
+  POL.forEach(function(p,i){
+    var y0=52+i*62,vs=vlist(p);tx(sv,8,y0+4,T(p),{a:'start',w:600});
+    el('line',{x1:150,x2:480,y1:y0,y2:y0,stroke:'#CBD5E1'},sv);
+    var mean=0;vs.forEach(function(v){mean+=(v.a-v.d)/60;});mean/=vs.length;
+    var bins={};
+    vs.slice().sort(function(a,b){return (a.a-a.d)-(b.a-b.d);}).forEach(function(v){var m=(v.a-v.d)/60,k=Math.round(m*4);bins[k]=(bins[k]||0)+1;
+      el('circle',{cx:xs(m),cy:y0-4-(bins[k]-1)*8,r:3.6,fill:v.r==='A'?'#242526':'#FFB715',stroke:v.r==='A'?'#fff':'#242526','stroke-width':.8},sv);});
+    el('line',{x1:xs(mean),x2:xs(mean),y1:y0-30,y2:y0+8,stroke:POLCOL[p],'stroke-width':3},sv);
+    tx(sv,xs(mean),y0+20,mean.toFixed(1),{w:700});
+  });
+  // heat grid: queue wait per edge and policy
+  var hs=$('#heat');hs.innerHTML='';var eds=D.graph.edges.map(function(e){return e.id;}),grid={},mx=0;
+  POL.forEach(function(p){grid[p]={};eds.forEach(function(e){grid[p][e]=0;});vlist(p).forEach(function(v){v.ev.forEach(function(e){grid[p][e[0]]+=e[3];});});eds.forEach(function(e){grid[p][e]/=60;if(grid[p][e]>mx)mx=grid[p][e];});});
+  var cw=118,rh=22;
+  POL.forEach(function(p,j){tx(hs,70+j*cw+cw/2,14,T(p),{w:600});});
+  eds.forEach(function(e,i){
+    tx(hs,60,40+i*rh+4,e+' ('+(LANES[e]||1)+')',{a:'end',w:600});
+    POL.forEach(function(p,j){var val=grid[p][e],k=mx?val/mx:0;
+      var col=val<0.005?'#F8FAFC':(k>0.55?'#DA291C':(k>0.2?'#F08A82':'#FFD98A'));
+      el('rect',{x:70+j*cw+2,y:26+i*rh,width:cw-4,height:rh-3,fill:col,stroke:'#E2E8F0'},hs);
+      tx(hs,70+j*cw+cw/2,26+i*rh+14,val.toFixed(1),{w:600}).setAttribute('fill',k>0.55?'#fff':'#1B1D21');});
+  });
+  tx(hs,70,292,'0',{a:'start'});tx(hs,455,292,mx.toFixed(1)+' '+T('vm'),{a:'end'});
+  var lg=[['#F8FAFC',0],['#FFD98A',1],['#F08A82',2],['#DA291C',3]];lg.forEach(function(l,i){el('rect',{x:90+i*30,y:282,width:28,height:8,fill:l[0],stroke:'#E2E8F0'},hs);});
+  // bars: total fleet time + route split
+  var bs=$('#bars');bs.innerHTML='';var tot=POL.map(function(p){return parseFloat(runOf(p).metrics.total_fleet_travel_time_vehicle_min);});
+  var tmax=Math.max.apply(null,tot);
+  POL.forEach(function(p,i){
+    var y0=20+i*52,w=(tot[i]/tmax)*250;
+    tx(bs,8,y0+16,T(p),{a:'start',w:600});
+    el('rect',{x:150,y:y0,width:250,height:22,fill:'#F1F5F9'},bs);
+    el('rect',{x:150,y:y0,width:w,height:22,fill:POLCOL[p]},bs);
+    tx(bs,150+w+6,y0+15,tot[i].toFixed(1)+' '+T('vm'),{a:'start',w:700}).setAttribute('fill','#1B1D21');
+    var vm=runOf(p).metrics,A=+vm.route_A_count,B=+vm.route_B_count,N=A+B,sw=250;
+    el('rect',{x:150,y:y0+26,width:sw*A/N,height:10,fill:'#242526'},bs);
+    el('rect',{x:150+sw*A/N,y:y0+26,width:sw*B/N,height:10,fill:'#FFB715'},bs);
+    tx(bs,150+sw+6,y0+35,'A '+A+' · B '+B,{a:'start'});
+  });
+  // delta callouts
+  var dI=(tot[2]-tot[1])/tot[1]*100,dS=(tot[2]-tot[0])/tot[0]*100;
+  el('rect',{x:8,y:190,width:504,height:96,fill:'#FFFBEF',stroke:'#FFB715'},bs);
+  tx(bs,20,214,T('hlInd')+': '+(dI<=0?'':'+')+dI.toFixed(2)+'%',{a:'start',w:700}).setAttribute('font-size',13);
+  tx(bs,20,238,T('hlStat')+': '+(dS<=0?'':'+')+dS.toFixed(2)+'%',{a:'start',w:700}).setAttribute('font-size',13);
+  tx(bs,20,266,I18N[LANG].sc[state.scn],{a:'start'});
 }
 
 function renderTimeline(){
