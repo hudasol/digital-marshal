@@ -68,7 +68,8 @@ function comparisons(exp: ExperimentDef, runs: RunMetrics[]): PairedDiff[] {
 function gitCommit(): string {
   try {
     const sha = execSync('git rev-parse --short HEAD', { cwd: here }).toString().trim();
-    const dirty = execSync('git status --porcelain -- src', { cwd: resolve(here, '..') }).toString().trim().length > 0;
+    // only the simulation core and this runner can change the numbers; interface edits cannot
+    const dirty = execSync('git status --porcelain -- src/core scripts/run-experiments.ts', { cwd: resolve(here, '..') }).toString().trim().length > 0;
     return dirty ? `${sha}+local-changes` : sha;
   } catch {
     return 'unknown';
