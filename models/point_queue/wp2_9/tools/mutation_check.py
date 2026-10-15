@@ -41,6 +41,8 @@ MUTANTS = [
  ('audit review: decision route not tied to paths', 'src/raw_audit.py', "if driven.get(r['vehicle']) != r['chosen_route']:", 'if False:'),
  ('audit review: metrics route counts not tied to paths', 'src/raw_audit.py', "!= (nA, nB):\n            flag(key, 'metrics_route_counts_vs_paths'", "== (-1, -1):\n            flag(key, 'metrics_route_counts_vs_paths'"),
  ('audit review: batch route totals not tied to paths', 'src/raw_audit.py', "for r in bl)) != (nA, nB):\n            flag(key, 'batch_route_totals_vs_paths'", "for r in bl)) == (-1, -1):\n            flag(key, 'batch_route_totals_vs_paths'"),
+ ('closeout: per epoch batch contents not checked', 'src/raw_audit.py', "if got != want: flag(key, 'batch_epoch_mismatch'", "if False: flag(key, 'batch_epoch_mismatch'"),
+ ('closeout: decision log time fields not checked', 'src/raw_audit.py', "            if why: flag(key, 'decision_field_mismatch'", "            if False: flag(key, 'decision_field_mismatch'"),
 ]
 killed = 0
 for name, rel, old, new in MUTANTS:

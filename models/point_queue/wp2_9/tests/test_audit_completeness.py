@@ -338,6 +338,44 @@ class RouteLabelsAndCountsMatchTheDrivenPaths(Base):
         self.assertEqual({k: v for k, v in spec['route_labels'].items()}, {k: m.ROUTES[k] for k in ('A', 'B')})
 
 
+class EpochBatchesAndDecisionFields(Base):
+    """Residual blind spots closed in the bounded closeout: per epoch batch contents and decision log time fields."""
+    def batch_rows(self):
+        h, rows, si, pi = self.cols(FILES[4]); return h, rows, [r for r in rows if (r[si], r[pi]) == KEY]
+
+    def test_batch_row_with_the_wrong_epoch_fails(self):
+        h, rows, mine = self.batch_rows(); mine[0][h.index('epoch_s')] = '181.0'; write(self.d / FILES[4], h, rows)
+        self.expect('batch_epoch_mismatch')
+
+    def test_vehicle_moved_between_epochs_keeps_totals_but_fails(self):
+        h, rows, mine = self.batch_rows(); b, a = h.index('batch_size'), h.index('A_count')
+        self.assertGreater(int(mine[0][a]), 0, 'test premise')
+        mine[0][b], mine[0][a] = str(int(mine[0][b]) - 1), str(int(mine[0][a]) - 1)
+        mine[1][b], mine[1][a] = str(int(mine[1][b]) + 1), str(int(mine[1][a]) + 1)
+        write(self.d / FILES[4], h, rows)
+        out = self.expect('batch_epoch_mismatch')
+        self.assertNotIn('batch_route_totals_vs_paths', self.checks(out)[KEY])           # totals unchanged: only the epoch check sees it
+        self.assertNotIn('batch_row_counts_do_not_sum', self.checks(out)[KEY])
+
+    def test_decision_p_arrival_differing_from_the_vehicle_record_fails(self):
+        self.set_cell('decision_log.csv', 'p_arrival_s', '999.0'); self.expect('decision_field_mismatch')
+
+    def test_retroactive_decision_epoch_fails(self):
+        self.set_cell('decision_log.csv', 'decision_epoch_s', '9999.0'); self.expect('decision_field_mismatch')
+
+    def test_seconds_after_incident_must_equal_epoch_minus_incident(self):
+        self.set_cell('decision_log.csv', 'seconds_after_incident', '1.0'); self.expect('decision_field_mismatch')
+
+    def test_cli_reports_which_specification_was_used(self):
+        code, out, _ = self.cli()
+        self.assertTrue(out['spec_is_default']); self.assertEqual(len(out['spec_sha256']), 64)
+        import hashlib
+        self.assertEqual(out['spec_sha256'], hashlib.sha256(ra.DEFAULT_SPEC.read_bytes()).hexdigest())
+        other = self.d / 'other_spec.json'; other.write_text(ra.DEFAULT_SPEC.read_text())
+        r = subprocess.run([sys.executable, str(ROOT / 'src' / 'raw_audit.py'), '--results', str(self.d), '--spec', str(other)], capture_output=True, text=True)
+        self.assertFalse(json.loads(r.stdout)['spec_is_default'])
+
+
 class LibraryApiFailsClosedToo(Base):
     def test_audit_results_dir_returns_a_failing_entry_for_every_missing_run(self):
         self.drop_group(FILES[0], KEY)

@@ -13,7 +13,7 @@ Independence contract
 Library use:  audit_run(spec, edge_events, vehicle_rows, scale=..., expected_vehicles=..., ...)
 CLI:          python src/raw_audit.py --results results [--spec config/graph_spec.json]   (exit 0 pass, 1 fail)
 """
-import argparse, csv, json, math, sys
+import argparse, csv, hashlib, json, math, sys
 from collections import defaultdict
 from pathlib import Path
 
@@ -151,7 +151,7 @@ REQUIRED = {   # file -> (numeric columns, count columns (non negative integers)
                                   'p95_nearest_rank_min'], ['vehicles', 'completed', 'incomplete', 'route_A_count', 'route_B_count'], []),
     'vehicle_records.csv': (['depart_s', 'p_time_s', 'arrival_s', 'travel_time_s'], [], ['vehicle', 'route']),
     'edge_event_records.csv': (['arrival_s', 'exit_s', 'queue_wait_s'], [], ['edge', 'vehicle']),
-    'decision_log.csv': ([], [], ['vehicle', 'chosen_route']),
+    'decision_log.csv': (['decision_epoch_s', 'p_arrival_s', 'seconds_after_incident'], [], ['vehicle', 'chosen_route']),
     'batch_allocation_log.csv': (['epoch_s'], ['batch_size', 'A_count', 'B_count'], []),
 }
 
@@ -265,6 +265,26 @@ def audit_results_dir(results_dir, spec_path=DEFAULT_SPEC):
         bl = groups['batch_allocation_log.csv'].get(key, [])
         if bl and (sum(int(float(r['A_count'])) for r in bl), sum(int(float(r['B_count'])) for r in bl)) != (nA, nB):
             flag(key, 'batch_route_totals_vs_paths', file='batch_allocation_log.csv', driven=(nA, nB))
+        # Batch log per epoch, and the decision log time fields, against the vehicle records (epoch rule from the spec, decision D3).
+        u, a0 = spec['epoch_s'], spec['epoch_anchor_s']
+        pt = {r['vehicle']: float(r['p_time_s']) for r in groups['vehicle_records.csv'].get(key, [])}
+        def epoch_of(p): return round(a0 + math.floor(max(0.0, p - a0) / u + 1e-9) * u, 6)
+        exp = defaultdict(lambda: [0, 0, 0])
+        for v, p in pt.items():
+            e = exp[epoch_of(p)]; e[0] += 1; e[1] += driven.get(v) == 'A'; e[2] += driven.get(v) == 'B'
+        if bl:
+            got = sorted((round(float(r['epoch_s']), 6), int(float(r['batch_size'])), int(float(r['A_count'])), int(float(r['B_count']))) for r in bl)
+            want = sorted((e, *map(int, x)) for e, x in exp.items())
+            if got != want: flag(key, 'batch_epoch_mismatch', file='batch_allocation_log.csv', found=got[:4], expected=want[:4])
+        for r in groups['decision_log.csv'].get(key, []):
+            p = pt.get(r['vehicle'])
+            if p is None: continue
+            ep, pa, sa = float(r['decision_epoch_s']), float(r['p_arrival_s']), float(r['seconds_after_incident'])
+            why = ('p_arrival_s differs from the vehicle record' if abs(pa - p) > EPS else
+                   'decision epoch after the P arrival (retroactive)' if ep > pa + EPS else
+                   'decision epoch is not the batch epoch of the P arrival' if abs(ep - epoch_of(p)) > EPS else
+                   'seconds_after_incident is not epoch minus incident time' if abs(sa - (ep - spec['incident_s'])) > EPS else None)
+            if why: flag(key, 'decision_field_mismatch', file='decision_log.csv', vehicle=r['vehicle'], why=why); break
     out = []
     def entry(key, res):
         counts = defaultdict(int)
@@ -303,7 +323,7 @@ if __name__ == '__main__':
         print(json.dumps({'all_pass': False, 'error': 'audit_crashed', 'detail': f'{type(e).__name__}: {str(e)[:200]}'}, indent=2)); sys.exit(2)
     audited = [r for r in res if r['scenario'] != '(package)' and not any(v['check'] in COMPLETENESS_CHECKS for v in r['violations'])]
     allpass = all(r['pass'] for r in res) and len(audited) == expected and len(res) == expected
-    print(json.dumps({'expected_runs': expected, 'runs_audited': len(audited), 'all_pass': allpass,
+    print(json.dumps({'spec_sha256': hashlib.sha256(Path(a.spec).read_bytes()).hexdigest(), 'spec_is_default': Path(a.spec).resolve() == DEFAULT_SPEC.resolve(), 'expected_runs': expected, 'runs_audited': len(audited), 'all_pass': allpass,
                       'events_checked': sum(r['events_checked'] for r in res),
                       'violations': [{'scenario': r['scenario'], 'policy': r['policy'], 'counts': r['violation_counts'],
                                       'detail': r['violations'][:12]} for r in res if not r['pass']]}, indent=2))

@@ -12,7 +12,7 @@ class Runner(unittest.TestCase):
             c.run_all(d)
             r = subprocess.run([sys.executable, str(ROOT / 'tools' / 'audit_adversarial.py'), d], capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr[-400:])
-        self.assertIn('71/71 cases behaved as expected; fixture unchanged: True', r.stdout)
+        self.assertIn('75/75 cases behaved as expected; fixture unchanged: True', r.stdout)
 
 
 if __name__ == '__main__':

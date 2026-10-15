@@ -111,6 +111,17 @@ def case_list():
     C.append(('route label flipped in vehicle records', 1, 'vehicle_route_label_mismatch', lambda d: flip(d, FILES[1], 'route')))
     C.append(('chosen route flipped in decision log', 1, 'decision_route_mismatch', lambda d: flip(d, FILES[3], 'chosen_route')))
     C.append(('batch log moves a vehicle between routes (row sum unchanged)', 1, 'batch_route_totals_vs_paths', shift_batch))
+    def epoch_shift(d):
+        h, r = rd(d / FILES[4]); s, p = h.index('scenario'), h.index('policy')
+        next(x for x in r if (x[s], x[p]) == KEY)[h.index('epoch_s')] = '181.0'; wr(d / FILES[4], h, r)
+    def move_between_epochs(d):
+        h, r = rd(d / FILES[4]); s, p = h.index('scenario'), h.index('policy'); b, a = h.index('batch_size'), h.index('A_count')
+        m = [x for x in r if (x[s], x[p]) == KEY]
+        m[0][b], m[0][a] = str(int(m[0][b]) - 1), str(int(m[0][a]) - 1); m[1][b], m[1][a] = str(int(m[1][b]) + 1), str(int(m[1][a]) + 1); wr(d / FILES[4], h, r)
+    C.append(('batch log row with the wrong epoch', 1, 'batch_epoch_mismatch', epoch_shift))
+    C.append(('vehicle moved between epochs in the batch log (totals unchanged)', 1, 'batch_epoch_mismatch', move_between_epochs))
+    C.append(('decision log p_arrival_s differs from vehicle record', 1, 'decision_field_mismatch', lambda d: setcell(d, FILES[3], 'p_arrival_s', '999.0')))
+    C.append(('decision epoch after the P arrival (retroactive)', 1, 'decision_field_mismatch', lambda d: setcell(d, FILES[3], 'decision_epoch_s', '9999.0')))
     def leak(d):          # relabel a post incident Route A event as the closed edge E3: a vehicle 'entered' E3 after 120 s
         h, r = rd(d / FILES[2]); s, p, e = h.index('scenario'), h.index('policy'), h.index('edge')
         next(x for x in r if (x[s], x[p]) == KEY and x[e] == 'E4')[e] = 'E3'; wr(d / FILES[2], h, r)
