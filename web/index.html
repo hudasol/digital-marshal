@@ -100,7 +100,7 @@ td,.hl b,.live b,.clock span,#log b{unicode-bidi:plaintext}
   .hdr .title h1{font-size:15px}.hdr .title div{font-size:11px}
   .chip{font-size:10px;padding:1px 8px}
   .wrap{height:calc(100% - 48px);max-width:none;margin:0;padding-block:6px;display:grid;gap:6px;
-    grid-template-columns:repeat(12,minmax(0,1fr));grid-template-rows:auto auto auto repeat(3,minmax(0,1fr)) auto auto;}
+    grid-template-columns:repeat(12,minmax(0,1fr));grid-template-rows:auto auto auto repeat(3,minmax(0,1fr));}
   .wrap>.bar{grid-column:1/-1;order:1}
   .wrap>.scrub{grid-column:1/-1;order:2;margin:0;height:14px}
   .wrap>.timeline{display:none}
@@ -126,6 +126,9 @@ td,.hl b,.live b,.clock span,#log b{unicode-bidi:plaintext}
   #xm{margin-top:2px !important}
   .leg.inbar{margin-inline-start:auto}
   .clock{margin-inline-start:0;font-size:13px}
+  .bar>div:first-child{display:flex;align-items:center;gap:8px}.bar>div:first-child br{display:none}.bar label{display:inline}
+  .bar{padding:4px 12px}
+  th,td{padding:1px 6px}.hl{margin:3px 0 4px}#hl .idle span{font-size:10px;line-height:1.25}
 }
 
 .status{display:flex;gap:0;flex-wrap:wrap;background:var(--char);color:#fff;border:1px solid var(--char);font-size:11px}
@@ -138,6 +141,28 @@ td,.hl b,.live b,.clock span,#log b{unicode-bidi:plaintext}
 @media (min-width:1200px) and (min-height:700px){
   .wrap>.status{grid-column:1/-1;order:0}
 }
+
+.sysbtn{background:transparent !important;color:#fff !important;border:1px solid #fff !important;margin-inline-end:8px}
+.sysbtn:hover{background:#fff !important;color:var(--red) !important}
+.modal{position:fixed;inset:0;background:rgba(27,29,33,.62);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal[hidden]{display:none}
+.mbox{background:#fff;border-top:4px solid var(--red);max-width:880px;width:100%;max-height:90vh;overflow:auto}
+.mhead{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff}
+.mhead h2{font-size:16px}
+.mbody{padding:6px 18px 16px}
+.mbody h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin:12px 0 2px;color:var(--red)}
+.mbody p{margin:0;font-size:13px}
+.tip{position:fixed;z-index:60;background:var(--char);color:#fff;padding:6px 10px;font-size:11px;border-top:2px solid var(--gold);pointer-events:none;min-width:150px}
+.tip[hidden]{display:none}
+.tip div{display:flex;gap:6px;align-items:center;margin-top:2px}.tip i{display:inline-block;width:9px;height:9px}.tip b{margin-inline-start:auto;font-variant-numeric:tabular-nums}
+#chart{cursor:crosshair}
+.inj{display:flex;align-items:center;gap:8px;border-inline-start:1px solid var(--line);padding-inline-start:12px}
+.inj label{display:inline;margin:0}
+.inj input[type=range]{width:120px;accent-color:var(--red)}
+.inj b{min-width:44px;font-variant-numeric:tabular-nums}
+#hl .idle{grid-column:1/-1;display:flex;gap:12px;align-items:baseline;border-inline-start:4px solid var(--red)}
+#hl .idle b{display:inline;font-size:16px}
+#hl .idle span{font-size:10.5px}
 @keyframes pulse{0%{r:6;opacity:.9}100%{r:70;opacity:0}}
 .pulse{animation:pulse 2.4s ease-out infinite}
 </style>
@@ -147,6 +172,7 @@ td,.hl b,.live b,.clock span,#log b{unicode-bidi:plaintext}
   <div class="logo" id="logoSlot" aria-label="Digital Marshal"><b>DIGITAL MARSHAL</b><span lang="ar" dir="rtl">المارشال الرقمي</span></div>
   <div class="title"><h1 data-i="title"></h1><div data-i="subtitle"></div></div>
   <div class="chips"><span class="chip" data-i="chip1"></span><span class="chip" data-i="chip2"></span><span class="chip" data-i="chip3"></span></div>
+  <button class="lang sysbtn" id="sysBtn" data-i="sysBtn"></button>
   <button class="lang" id="langBtn">العربية</button>
 </header>
 
@@ -157,6 +183,7 @@ td,.hl b,.live b,.clock span,#log b{unicode-bidi:plaintext}
     <button class="b pri" id="play" data-i="play"></button>
     <button class="b" id="reset" data-i="reset"></button>
     <div class="speed" id="speed"></div>
+    <div class="inj"><label for="incT" data-i="injT"></label><input type="range" id="incT" min="0" max="300" step="5" value="120"><b id="incV">120 s</b><button class="b pri" id="injNow" data-i="injNow"></button><button class="b" id="injReset" data-i="injReset"></button></div>
     <div class="clock"><span id="clk">0 s</span><small data-i="simtime"></small></div>
     <div class="leg inbar"><span><i class="ic" style="background:#242526"></i><span data-i="legT"></span></span>
     <span><i class="ic" style="background:#FFB715;outline:1px solid #242526"></i><span data-i="legQ"></span></span>
@@ -206,11 +233,25 @@ td,.hl b,.live b,.clock span,#log b{unicode-bidi:plaintext}
     </div>
   </section>
 
-  <div class="warn"><b data-i="scopeT"></b> <span data-i="honesty"></span></div>
-  <footer data-i="footer"></footer>
 </main>
 
+
+<div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modalT">
+  <div class="mbox">
+    <div class="mhead"><h2 id="modalT" data-i="sysBtn"></h2><button class="b" id="mClose" data-i="close"></button></div>
+    <div class="mbody">
+      <h3 data-i="m1h"></h3><p data-i="m1"></p>
+      <h3 data-i="m2h"></h3><p data-i="m2"></p>
+      <h3 data-i="m3h"></h3><p data-i="m3"></p>
+      <h3 data-i="m4h"></h3><p data-i="m4"></p>
+      <div class="warn"><b data-i="scopeT"></b> <span data-i="honesty"></span></div>
+      <footer data-i="footer"></footer>
+    </div>
+  </div>
+</div>
+<div class="tip" id="tip" hidden></div>
 <script src="data.js"></script>
+<script src="engine.js"></script>
 <script>
 (function(){
 'use strict';
@@ -223,7 +264,7 @@ var I18N={
   results:'Corridor Performance Summary',chartT:'Point-Queue Flow',chartS:'Vehicles held in a point queue at each moment',
   logT:'Incident Response Epoch Log',logS:'Routing decision at each 30 second epoch (route locked at split point P)',
   xmT:'Model Cross Verification',xmS:'Coordinated gain over independent periodic routing, percent (point queue vs SUMO)',
-  honesty:'Deterministic point queue engine evaluating routing policies on a modelled corridor network with a lane closure at 120 s. Safety invariants are verified in every run: zero closed link entries and zero queue audit violations. Network, demand and corridor capacities are modelled parameters; calibration against Dubai corridor data is the Phase 2 objective. Outputs evaluate the routing logic and are not a field performance forecast.',
+  honesty:'Deterministic point queue engine evaluating routing policies on a modelled corridor network with a lane closure (120 s baseline, adjustable live). Safety invariants are verified in every run: zero closed link entries and zero queue audit violations. Network, demand and corridor capacities are modelled parameters; calibration against Dubai corridor data is the Phase 2 objective. Outputs evaluate the routing logic and are not a field performance forecast.',
   footer:'Independent proof of concept, not an official RTA system. Source: github.com/hudasol/digital-marshal. Data regenerated with tools/build_web_data.py from models/point_queue/wp2_9.',
   static:'Static Routing (Corridor A)',independent_periodic:'Independent Periodic Routing',coordinated_batch:'Dynamic Coordinated Routing',
   staticD:'All vehicles allocated to Corridor A',independentD:'Each epoch batch copies one probe decision',coordD:'Joint allocation of each epoch batch',
@@ -234,7 +275,7 @@ var I18N={
   hlTotal:'Coordinated total fleet time',hlInd:'Change vs independent periodic',hlStat:'Change vs static Route A',
   better:'lower',worse:'higher',same:'no change',
   xmPQ:'Point queue',xmSumo:'SUMO mean',xmCI:'SUMO 95% interval',xmSeeds:'Seeds better',
-  cumT:'Cumulative Throughput at Destination',cumS:'Vehicles that completed the corridor by each moment; a steeper curve clears the fleet sooner',stripT:'Journey Time per Vehicle',stripS:'One marker per vehicle by corridor allocation; coloured tick marks the mean',heatT:'Corridor Capacity Congestion Map',heatS:'Total point queue waiting time per corridor segment, vehicle minutes',barT:'Fleet Delay and Corridor Allocation',barS:'Total fleet travel time (bars) and share of vehicles allocated to each corridor',minutes:'minutes',vm:'veh min',vehs:'vehicles',stCorr:'Corridor status',stNormal:'NORMAL OPERATION',stInc:'INCIDENT ACTIVE · E2 / E3 CLOSED',stEpoch:'Response epoch',stInv:'Safety invariants',stPass:'VERIFIED',stFail:'REVIEW',stQ:'Point queue',stWait:'Awaiting first epoch',scopeT:'Algorithmic Scope & Simulation Boundary:',legT:'Normal transit',n1:'Both models rank coordinated at or below independent, and both below static, in the loaded scenarios.',
+  cumT:'Cumulative Throughput at Destination',cumS:'Vehicles that completed the corridor by each moment; a steeper curve clears the fleet sooner',stripT:'Journey Time per Vehicle',stripS:'One marker per vehicle by corridor allocation; coloured tick marks the mean',heatT:'Corridor Capacity Congestion Map',heatS:'Total point queue waiting time per corridor segment, vehicle minutes',barT:'Fleet Delay and Corridor Allocation',barS:'Total fleet travel time (bars) and share of vehicles allocated to each corridor',minutes:'minutes',vm:'veh min',vehs:'vehicles',stCorr:'Corridor status',stNormal:'NORMAL OPERATION',stInc:'INCIDENT ACTIVE · E2 / E3 CLOSED',stEpoch:'Response epoch',stInv:'Safety invariants',stPass:'VERIFIED',stFail:'REVIEW',stQ:'Point queue',stWait:'Awaiting first epoch',sysBtn:'System Architecture & Bounds',close:'Close',injT:'Incident time',injNow:'Inject incident now',injReset:'Baseline',m1h:'Engine',m1:'Deterministic point queue engine. Every corridor segment serves vehicles in arrival order at its capacity: exit time equals the later of arrival plus free flow time and the previous exit plus the service headway. No randomness, no tuning of results.',m2h:'Routing policies',m2:'Static routing allocates every vehicle to Corridor A. Independent periodic routing lets each 30 second epoch batch copy a single probe decision. Dynamic coordinated routing searches every joint split of each epoch batch and keeps the one with the lowest total fleet travel time.',m3h:'Verification',m3:'Each run is checked for closed link entries and queue discipline violations. Incident injection recomputes all three policies live with a JavaScript port of the engine, verified against the frozen results at the 120 s baseline.',m4h:'Data lineage',m4:'Frozen results come from models/point_queue/wp2_9 and are packed by tools/build_web_data.py. The SUMO figures are historical aggregates from the cross model reconciliation.',hlIdle:'Collective idling time under the stress test (60 vehicles): coordinated batch routing cuts it by {s}% against static routing and {i}% against independent periodic routing, saving {n} vehicle minutes of idling.',pre:'pre',scopeT:'Algorithmic Scope & Simulation Boundary:',legT:'Normal transit',n1:'Both models rank coordinated at or below independent, and both below static, in the loaded scenarios.',
   n2:'Gains over independent periodic routing are modest (0.5 to 2.6 percent across both engines), while gains over static routing reach 24 percent under overload in the point queue engine.',
   n3:'Policy definitions differ between the two engines, so the columns serve as independent cross checks rather than a replication.',
   sc:{manageable_primary:'Manageable primary (10 vehicles)',near_branch_capacity:'Near branch capacity (24 vehicles)',overload_stress:'Overload stress (60 vehicles)',primary_half_capacity:'Half capacity (10 vehicles)',primary_double_capacity:'Double capacity (10 vehicles)'}},
@@ -244,7 +285,7 @@ var I18N={
   results:'ملخص أداء الممرات',chartT:'تدفق الطابور النقطي',chartS:'المركبات المحتجزة في طابور نقطي في كل لحظة',
   logT:'سجل دورات الاستجابة للحوادث',logS:'قرار التوجيه في كل دورة مدتها 30 ثانية (يُثبَّت المسار عند نقطة التفرع)',
   xmT:'التحقق المتقاطع بين النماذج',xmS:'تحسن التوجيه المنسق مقارنة بالتوجيه المستقل الدوري، بالنسبة المئوية (الطوابير النقطية و SUMO)',
-  honesty:'محرك طوابير نقطية حتمي يقيّم سياسات التوجيه على شبكة ممرات مُنمذجة مع إغلاق مسار عند 120 ثانية. تُتحقق ثوابت السلامة في كل تشغيل: عدم دخول أي رابط مغلق وعدم وجود مخالفات في تدقيق الطابور. الشبكة والطلب وسعات الممرات معاملات مُنمذجة، ومعايرتها على بيانات ممرات دبي هي هدف المرحلة الثانية. تقيّم المخرجات منطق التوجيه ولا تمثل توقعاً للأداء الميداني.',
+  honesty:'محرك طوابير نقطية حتمي يقيّم سياسات التوجيه على شبكة ممرات مُنمذجة مع إغلاق مسار (الأساس 120 ثانية وقابل للتعديل مباشرة). تُتحقق ثوابت السلامة في كل تشغيل: عدم دخول أي رابط مغلق وعدم وجود مخالفات في تدقيق الطابور. الشبكة والطلب وسعات الممرات معاملات مُنمذجة، ومعايرتها على بيانات ممرات دبي هي هدف المرحلة الثانية. تقيّم المخرجات منطق التوجيه ولا تمثل توقعاً للأداء الميداني.',
   footer:'إثبات مفهوم مستقل وليس نظاماً رسمياً لهيئة الطرق والمواصلات. المصدر: github.com/hudasol/digital-marshal.',
   static:'توجيه ثابت (الممر أ)',independent_periodic:'توجيه مستقل دوري',coordinated_batch:'توجيه ديناميكي منسق',
   staticD:'جميع المركبات مخصصة للممر أ',independentD:'كل دفعة في الدورة تنسخ قرار مركبة استكشافية',coordD:'تخصيص مشترك لكل دفعة في الدورة',
@@ -255,7 +296,7 @@ var I18N={
   hlTotal:'إجمالي زمن الأسطول المنسق',hlInd:'التغير مقارنة بالمستقل الدوري',hlStat:'التغير مقارنة بالمسار الثابت أ',
   better:'أقل',worse:'أعلى',same:'دون تغير',
   xmPQ:'الطوابير النقطية',xmSumo:'متوسط SUMO',xmCI:'فترة ثقة 95%',xmSeeds:'البذور الأفضل',
-  cumT:'الإنتاجية التراكمية عند الوجهة',cumS:'المركبات التي أتمت الممر في كل لحظة؛ المنحنى الأشد ميلاً يُخلي الأسطول أسرع',stripT:'زمن رحلة كل مركبة',stripS:'علامة لكل مركبة حسب تخصيص الممر؛ الخط الملون يمثل المتوسط',heatT:'خريطة ازدحام السعة التشغيلية للممر',heatS:'إجمالي زمن الانتظار في الطابور النقطي لكل مقطع، بالمركبة دقيقة',barT:'تأخر الأسطول وتخصيص الممرات',barS:'إجمالي زمن رحلات الأسطول (أعمدة) ونسبة المركبات المخصصة لكل ممر',minutes:'دقيقة',vm:'مركبة دقيقة',vehs:'مركبات',n1x:'',stCorr:'حالة الممر',stNormal:'تشغيل اعتيادي',stInc:'حادث نشط · إغلاق E2 / E3',stEpoch:'دورة الاستجابة',stInv:'ثوابت السلامة',stPass:'تم التحقق',stFail:'مراجعة',stQ:'الطابور النقطي',stWait:'بانتظار الدورة الأولى',scopeT:'النطاق الخوارزمي وحدود المحاكاة:',legT:'عبور اعتيادي',n1:'يضع النموذجان المنسق عند مستوى المستقل أو أفضل منه، وكلاهما أفضل من الثابت، في السيناريوهات المحملة.',
+  cumT:'الإنتاجية التراكمية عند الوجهة',cumS:'المركبات التي أتمت الممر في كل لحظة؛ المنحنى الأشد ميلاً يُخلي الأسطول أسرع',stripT:'زمن رحلة كل مركبة',stripS:'علامة لكل مركبة حسب تخصيص الممر؛ الخط الملون يمثل المتوسط',heatT:'خريطة ازدحام السعة التشغيلية للممر',heatS:'إجمالي زمن الانتظار في الطابور النقطي لكل مقطع، بالمركبة دقيقة',barT:'تأخر الأسطول وتخصيص الممرات',barS:'إجمالي زمن رحلات الأسطول (أعمدة) ونسبة المركبات المخصصة لكل ممر',minutes:'دقيقة',vm:'مركبة دقيقة',vehs:'مركبات',n1x:'',stCorr:'حالة الممر',stNormal:'تشغيل اعتيادي',stInc:'حادث نشط · إغلاق E2 / E3',stEpoch:'دورة الاستجابة',stInv:'ثوابت السلامة',stPass:'تم التحقق',stFail:'مراجعة',stQ:'الطابور النقطي',stWait:'بانتظار الدورة الأولى',sysBtn:'البنية المعمارية والحدود',close:'إغلاق',injT:'وقت الحادث',injNow:'حقن حادث الآن',injReset:'الأساس',m1h:'المحرك',m1:'محرك طوابير نقطية حتمي. يخدم كل مقطع في الممر المركبات بترتيب الوصول وفق سعته: زمن الخروج هو الأكبر بين زمن الوصول مضافاً إليه زمن العبور الحر وزمن الخروج السابق مضافاً إليه فاصل الخدمة. لا عشوائية ولا ضبط للنتائج.',m2h:'سياسات التوجيه',m2:'يخصص التوجيه الثابت كل المركبات للممر أ. يجعل التوجيه المستقل الدوري كل دفعة في دورة مدتها 30 ثانية تنسخ قرار مركبة استكشافية واحدة. يبحث التوجيه الديناميكي المنسق في كل تقسيم مشترك لدفعة الدورة ويختار الأقل في إجمالي زمن رحلات الأسطول.',m3h:'التحقق',m3:'يُفحص كل تشغيل بحثاً عن دخول الروابط المغلقة ومخالفات انضباط الطابور. يعيد حقن الحادث حساب السياسات الثلاث مباشرة بنسخة جافاسكربت من المحرك جرى التحقق منها مقابل النتائج المجمدة عند الأساس 120 ثانية.',m4h:'مصدر البيانات',m4:'تأتي النتائج المجمدة من models/point_queue/wp2_9 وتُجمع بواسطة tools/build_web_data.py. أرقام SUMO مجاميع تاريخية من المطابقة بين النماذج.',hlIdle:'زمن التوقف الجماعي في اختبار الضغط (60 مركبة): يخفضه التوجيه الدفعي المنسق بنسبة {s}% مقارنة بالتوجيه الثابت و{i}% مقارنة بالمستقل الدوري، بتوفير {n} مركبة دقيقة من التوقف.',pre:'قبل',scopeT:'النطاق الخوارزمي وحدود المحاكاة:',legT:'عبور اعتيادي',n1:'يضع النموذجان المنسق عند مستوى المستقل أو أفضل منه، وكلاهما أفضل من الثابت، في السيناريوهات المحملة.',
   n2:'مكاسب التوجيه المنسق على المستقل الدوري متواضعة (من 0.5 إلى 2.6 بالمئة في المحركين)، وتبلغ على التوجيه الثابت نحو 24 بالمئة تحت الحمل الزائد في محرك الطوابير النقطية.',
   n3:'تختلف تعريفات السياسات بين المحركين، لذلك تعمل الأعمدة كفحوص متقاطعة مستقلة وليست تكراراً.',
   sc:{manageable_primary:'أساسي قابل للإدارة (10 مركبات)',near_branch_capacity:'قرب سعة الفرع (24 مركبة)',overload_stress:'ضغط زائد (60 مركبة)',primary_half_capacity:'نصف السعة (10 مركبات)',primary_double_capacity:'ضعف السعة (10 مركبات)'}}
@@ -274,7 +315,8 @@ function $(s,r){return (r||document).querySelector(s);}
 function el(t,a,p){var e=document.createElementNS('http://www.w3.org/2000/svg',t);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;}
 function T(k){return I18N[LANG][k]!==undefined?I18N[LANG][k]:k;}
 
-var state={scn:'near_branch_capacity',t:0,playing:false,speed:20,last:0,tMax:600};
+var state={scn:'near_branch_capacity',t:0,playing:false,speed:20,last:0,tMax:600,inc:D.graph.incident_s};
+var BASE=D.graph.incident_s,LIVE={};
 var P={}; // per policy view objects
 
 function applyLang(){
@@ -325,7 +367,9 @@ function buildPanels(){
   });
 }
 
-function runOf(p){return D.runs[state.scn+'|'+p];}
+function runOf(p){var k=state.scn+'|'+p;return (state.inc!==BASE&&LIVE[k])||D.runs[k];}
+function refreshLive(){LIVE={};if(state.inc!==BASE&&window.DM_ENGINE){POL.forEach(function(p){LIVE[state.scn+'|'+p]=window.DM_ENGINE.compute(D,state.scn,p,state.inc);});}}
+function applyIncident(v){state.inc=v;$('#incT').value=v;$('#incV').textContent=v+' s';refreshLive();computeTMax();ensureDots();renderStatic();if(state.t>state.tMax)state.t=state.tMax;draw();}
 function vlist(p){var r=runOf(p);return Object.keys(r.vehicles).sort().map(function(k){return r.vehicles[k];});}
 
 function ensureDots(){
@@ -357,7 +401,7 @@ function posOf(v,t){
 }
 
 function draw(){
-  var t=state.t,inc=D.graph.incident_s;
+  var t=state.t,inc=state.inc;
   $('#clk').textContent=Math.round(t)+' s';
   $('#scrub').value=t;
   var cnt={};
@@ -387,7 +431,7 @@ function draw(){
       d.b.setAttribute('fill',ps.waiting?'#FFB715':'#242526');d.b.setAttribute('stroke',ps.waiting?'#242526':'#fff');d.b.setAttribute('stroke-width',ps.waiting?1.8:1.3);
     });
     // route counts decided so far = vehicles whose p time has passed (epoch granularity ignored)
-    vlist(p).forEach(function(v){if(t>=v.p){if(v.r==='A')a++;else b++;}});
+    vlist(p).forEach(function(v){if(t>=v.p){if(v.r==='A')a++;else if(v.r==='B')b++;}});
     Object.keys(o.heat).forEach(function(id){var n=eq[id]||0;o.heat[id].setAttribute('opacity',Math.min(0.9,n*0.16));o.heat[id].setAttribute('stroke',n>=5?'#DA291C':'#FFB715');});
     cnt[p]=q;o.vals[0].textContent=q;o.vals[1].textContent=arr+' / '+vlist(p).length;o.vals[2].textContent=a;o.vals[3].textContent=b;
   });
@@ -399,7 +443,7 @@ function draw(){
 
 
 function renderStatus(cnt){
-  var t=state.t,inc=D.graph.incident_s,active=t>=inc;
+  var t=state.t,inc=state.inc,active=t>=inc;
   var ep=t>=180?Math.floor((t-180)/30)+1:null;
   var ok=true;POL.forEach(function(p){var m=runOf(p).metrics;if(+m.closed_link_entries!==0||+m.fifo_violations!==0)ok=false;});
   var q=POL.map(function(p){return '<b>'+(cnt[p]||0)+'</b>';}).join('<span class="k">/</span>');
@@ -429,7 +473,7 @@ function renderChart(){
   function y(v){return top+(1-v/mx)*(H-top-bot);}
   for(var g=0;g<=4;g++){var v=mx*g/4,yy=y(v);el('line',{x1:36,x2:510,y1:yy,y2:yy,stroke:'#E2E8F0'},svg);var tx=el('text',{x:30,y:yy+4,'text-anchor':'end','font-size':10,fill:'#64748B'},svg);tx.textContent=Math.round(v);}
   for(var g2=0;g2<=5;g2++){var tt=state.tMax*g2/5,xx=chartX(tt);var tx2=el('text',{x:xx,y:H-10,'text-anchor':'middle','font-size':10,fill:'#64748B'},svg);tx2.textContent=Math.round(tt)+'s';}
-  var ix=chartX(D.graph.incident_s);el('line',{x1:ix,x2:ix,y1:top,y2:H-bot,stroke:'#DA291C','stroke-dasharray':'4 3'},svg);
+  var ix=chartX(state.inc);el('line',{x1:ix,x2:ix,y1:top,y2:H-bot,stroke:'#DA291C','stroke-dasharray':'4 3'},svg);
   POL.forEach(function(p){
     var pts=series[p].map(function(d){return chartX(d[0]).toFixed(1)+','+y(d[1]).toFixed(1);}).join(' ');
     el('polyline',{points:pts,fill:'none',stroke:POLCOL[p],'stroke-width':p==='coordinated_batch'?3:2.2,'stroke-linejoin':'round'},svg);
@@ -448,8 +492,12 @@ function renderStatic(){
   function lab(x){return (x<0?'':'+')+f2(x)+'%';}
   $('#hl').innerHTML='<div><b>'+f2(tot.coordinated_batch,1)+'</b><span>'+T('hlTotal')+' (veh min)</span></div>'+
     '<div><b>'+lab(vsI)+'</b><span>'+T('hlInd')+'</span></div><div><b>'+lab(vsS)+'</b><span>'+T('hlStat')+'</span></div>';
+  function idle(p){var w=0;Object.keys(D.runs['overload_stress|'+p].vehicles).forEach(function(k){D.runs['overload_stress|'+p].vehicles[k].ev.forEach(function(e){w+=e[3];});});return w/60;}
+  var iS=idle('static'),iI=idle('independent_periodic'),iC=idle('coordinated_batch');
+  var sv=(1-iC/iS)*100,iv=(1-iC/iI)*100;
+  $('#hl').innerHTML+='<div class="idle"><b>-'+sv.toFixed(1)+'%</b><span>'+T('hlIdle').replace('{s}',sv.toFixed(1)).replace('{i}',iv.toFixed(1)).replace('{n}',Math.round(iS-iC))+'</span></div>';
   var rows=[['total',function(p){return f2(M[p].total_fleet_travel_time_vehicle_min);},true],['mean',function(p){return f2(M[p].mean_travel_time_min);},true],['p95',function(p){return f2(M[p].p95_nearest_rank_min);},true],
-    ['split',function(p){return M[p].route_A_count+' / '+M[p].route_B_count;},false],['maxshare',function(p){return f2(M[p].max_30s_batch_dominant_route_share);},false],['closed',function(p){return M[p].closed_link_entries;},false],['fifo',function(p){return M[p].fifo_violations;},false]];
+    ['split',function(p){return M[p].route_A_count+' / '+M[p].route_B_count+(+M[p].route_C_count>0?' (+'+M[p].route_C_count+' '+T('pre')+')':'');},false],['maxshare',function(p){return f2(M[p].max_30s_batch_dominant_route_share);},false],['closed',function(p){return M[p].closed_link_entries;},false],['fifo',function(p){return M[p].fifo_violations;},false]];
   var h='<tr><th></th>'+POL.map(function(p){return '<th>'+T(p)+'</th>';}).join('')+'</tr>';
   rows.forEach(function(r){
     var vals=POL.map(function(p){return parseFloat(M[p][r[0]==='total'?'total_fleet_travel_time_vehicle_min':r[0]==='mean'?'mean_travel_time_min':r[0]==='p95'?'p95_nearest_rank_min':'vehicles']);});
@@ -495,7 +543,7 @@ function renderViz(){
     var mean=0;vs.forEach(function(v){mean+=(v.a-v.d)/60;});mean/=vs.length;
     var bins={};
     vs.slice().sort(function(a,b){return (a.a-a.d)-(b.a-b.d);}).forEach(function(v){var m=(v.a-v.d)/60,k=Math.round(m*4);bins[k]=(bins[k]||0)+1;
-      el('circle',{cx:xs(m),cy:y0-4-(bins[k]-1)*8,r:3.6,fill:v.r==='A'?'#242526':'#94A3B8',stroke:v.r==='A'?'#fff':'#242526','stroke-width':.8},sv);});
+      el('circle',{cx:xs(m),cy:y0-4-(bins[k]-1)*8,r:3.6,fill:v.r==='B'?'#94A3B8':'#242526',stroke:v.r==='B'?'#242526':'#fff','stroke-width':.8},sv);});
     el('line',{x1:xs(mean),x2:xs(mean),y1:y0-30,y2:y0+8,stroke:POLCOL[p],'stroke-width':3},sv);
     tx(sv,xs(mean),y0+20,mean.toFixed(1),{w:700});
   });
@@ -522,10 +570,11 @@ function renderViz(){
     el('rect',{x:150,y:y0,width:250,height:22,fill:'#F1F5F9'},bs);
     el('rect',{x:150,y:y0,width:w,height:22,fill:POLCOL[p]},bs);
     tx(bs,150+w+6,y0+15,tot[i].toFixed(1)+' '+T('vm'),{a:'start',w:700}).setAttribute('fill','#1B1D21');
-    var vm=runOf(p).metrics,A=+vm.route_A_count,B=+vm.route_B_count,N=A+B,sw=250;
+    var vm=runOf(p).metrics,A=+vm.route_A_count,B=+vm.route_B_count,N=+vm.vehicles,Cc=N-A-B,sw=250;
     el('rect',{x:150,y:y0+26,width:sw*A/N,height:10,fill:'#242526'},bs);
     el('rect',{x:150+sw*A/N,y:y0+26,width:sw*B/N,height:10,fill:'#94A3B8'},bs);
-    tx(bs,150+sw+6,y0+35,'A '+A+' · B '+B,{a:'start'});
+    if(Cc>0)el('rect',{x:150+sw*(A+B)/N,y:y0+26,width:sw*Cc/N,height:10,fill:'#CBD5E1'},bs);
+    tx(bs,150+sw+6,y0+35,'A '+A+' · B '+B+(Cc>0?' · '+Cc:''),{a:'start'});
   });
   // delta callouts
   var dI=(tot[2]-tot[1])/tot[1]*100,dS=(tot[2]-tot[0])/tot[0]*100;
@@ -537,15 +586,15 @@ function renderViz(){
 
 function renderTimeline(){
   var tl=$('#tl');tl.innerHTML='';
-  var items=[[0,T('depart').split('.')[0],''],[D.graph.incident_s,'120 s',' inc']];
-  items.forEach(function(it){var i=document.createElement('i');i.className=it[2];i.style.left=(it[0]/state.tMax*100)+'%';i.textContent=it[0]===0?'0 s':'Incident 120 s';tl.appendChild(i);});
+  var items=[[0,T('depart').split('.')[0],''],[state.inc,state.inc+' s',' inc']];
+  items.forEach(function(it){var i=document.createElement('i');i.className=it[2];i.style.left=(it[0]/state.tMax*100)+'%';i.textContent=it[0]===0?'0 s':'Incident '+state.inc+' s';tl.appendChild(i);});
 }
 
 function renderLog(){
   var t=state.t,h='';
   var bi=runOf('independent_periodic').batches,bc=runOf('coordinated_batch').batches;
   var ev=[[0,'<span>'+T('depart')+'</span>','']];
-  ev.push([D.graph.incident_s,T('incident'),'inc']);
+  ev.push([state.inc,T('incident').replace('120',state.inc),'inc']);
   bi.forEach(function(b,i){var c=bc[i];if(!c)return;ev.push([b[0],T('epoch')+' '+b[1]+': '+T('ind')+' A'+b[2]+' B'+b[3]+' · '+T('coo')+' A'+c[2]+' B'+c[3],'']);});
   ev.sort(function(a,b){return a[0]-b[0];});
   var shown=ev.filter(function(e){return e[0]<=t;});
@@ -561,7 +610,7 @@ function computeTMax(){
 }
 
 function setScenario(k){
-  state.scn=k;state.t=0;state.playing=false;computeTMax();ensureDots();$('#play').textContent=T('play');renderStatic();draw();
+  state.scn=k;state.t=0;state.playing=false;refreshLive();computeTMax();ensureDots();$('#play').textContent=T('play');renderStatic();draw();
 }
 
 function frame(ts){
@@ -583,6 +632,27 @@ function init(){
   $('#play').onclick=function(){if(state.t>=state.tMax)state.t=0;state.playing=!state.playing;state.last=performance.now();$('#play').textContent=state.playing?T('pause'):T('play');};
   $('#reset').onclick=function(){state.t=0;state.playing=false;$('#play').textContent=T('play');draw();};
   $('#scrub').oninput=function(e){state.t=parseFloat(e.target.value);draw();};
+  var tip=$('#tip'),ch=$('#chart');
+  function queueAt(p,t){var q=0;vlist(p).forEach(function(v){v.ev.forEach(function(e){var f=EDGE[e[0]].free_min*60,ms=e[2]-f;if(ms-e[1]>1e-6&&t>=e[1]&&t<ms)q++;});});return q;}
+  ch.addEventListener('mousemove',function(e){
+    var pt=ch.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;var q=pt.matrixTransform(ch.getScreenCTM().inverse());
+    var t=Math.round((q.x-36)/(520-46)*state.tMax);
+    if(t<0||t>state.tMax){tip.hidden=true;return;}
+    var hl=ch.querySelector('#hoverLine');if(!hl){hl=el('line',{id:'hoverLine',y1:10,y2:202,stroke:'#DA291C','stroke-width':1,'stroke-dasharray':'3 3'},ch);}
+    hl.setAttribute('x1',chartX(t));hl.setAttribute('x2',chartX(t));
+    tip.innerHTML='<b style="margin:0">'+t+' s</b>'+POL.map(function(p){return '<div><i style="background:'+POLCOL[p]+'"></i>'+T(p)+'<b>'+queueAt(p,t)+'</b></div>';}).join('');
+    tip.hidden=false;var w=tip.offsetWidth,x=e.clientX+14;if(x+w>window.innerWidth-8)x=e.clientX-w-14;tip.style.left=x+'px';tip.style.top=(e.clientY+14)+'px';
+  });
+  ch.addEventListener('mouseleave',function(){tip.hidden=true;var hl=ch.querySelector('#hoverLine');if(hl)hl.remove();});
+  $('#incT').oninput=function(e){applyIncident(parseInt(e.target.value,10));};
+  $('#injNow').onclick=function(){applyIncident(Math.max(0,Math.min(300,Math.round(state.t/5)*5)));};
+  $('#injReset').onclick=function(){applyIncident(BASE);};
+  var md=$('#modal');
+  function closeM(){md.hidden=true;}
+  $('#sysBtn').onclick=function(){md.hidden=false;};
+  $('#mClose').onclick=closeM;
+  md.addEventListener('click',function(e){if(e.target===md)closeM();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeM();});
   $('#langBtn').onclick=function(){LANG=LANG==='en'?'ar':'en';applyLang();};
   document.addEventListener('keydown',function(e){if(e.code==='Space'&&e.target.tagName!=='SELECT'){e.preventDefault();$('#play').click();}});
   applyLang();
