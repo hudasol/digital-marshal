@@ -1,4 +1,7 @@
 import { World } from '../render/World';
+import { CityRenderer } from '../render/city';
+import { getNetwork } from '../core/network/build';
+import { QUALITY } from '../render/quality';
 import { guessTier, lowerTier } from '../render/quality';
 import { useStore, type CamMode, type QualityTier } from './store';
 import { translate } from './i18n';
@@ -36,6 +39,7 @@ class SimClock {
 
 class Controller {
   world: World | null = null;
+  city: CityRenderer | null = null;
   readonly clock = new SimClock();
   private raf = 0;
   private last = 0;
@@ -61,7 +65,13 @@ class Controller {
     w.rig.reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     w.rig.onUserTakeover = () => useStore.getState().setCamMode('free');
     w.onDragState = (d) => host.classList.toggle('dragging', d);
-    this.applyQuality(st.quality === 'auto' ? guessTier() : st.quality);
+    const tier = st.quality === 'auto' ? guessTier() : st.quality;
+    this.city = new CityRenderer(getNetwork(), w.renderer.capabilities.getMaxAnisotropy(), QUALITY[tier]);
+    w.scene.add(this.city.group);
+    const b = getNetwork().bounds;
+    w.rig.bounds = { minX: b.minX, maxX: b.maxX, minZ: -b.maxY, maxZ: -b.minY };
+    w.rig.setObstacleTest((a, c) => this.city?.obstacle(a, c) ?? null);
+    this.applyQuality(tier);
     this.autoQuality = st.quality === 'auto';
     this.installPresets();
     w.rig.setMode('overview');
@@ -71,23 +81,29 @@ class Controller {
       w.rig.pose = { ...ov, dist: ov.dist * 1.6, pitch: ov.pitch + 0.25, yaw: ov.yaw - 0.35 };
       w.rig.flyTo(ov, { duration: w.rig.reducedMotion ? 0.001 : 3.2, hop: false });
     }
+    // overlays follow the store
+    this.city.setLabels(st.overlays.labels);
+    useStore.subscribe((now, prev) => {
+      if (now.overlays.labels !== prev.overlays.labels) this.city?.setLabels(now.overlays.labels);
+    });
     this.start();
     return true;
   }
 
-  /** Camera presets for the district; refined once the city is built. */
+  /** Camera presets for the district (three.js coordinates: z = -north). */
   installPresets(): void {
     const rig = this.world?.rig;
     if (!rig) return;
-    rig.setPreset('overview', { tx: 40, ty: 0, tz: 20, yaw: 0.36, pitch: 0.56, dist: 1250, fov: 40 });
-    rig.setPreset('topdown', { tx: 0, ty: 0, tz: 0, yaw: 0, pitch: 1.53, dist: 2300, fov: 30 });
-    rig.setPreset('street', { tx: 0, ty: 0, tz: 0, yaw: 0.8, pitch: 0.12, dist: 34, fov: 52 });
-    rig.setPreset('incident', { tx: 0, ty: 0, tz: 0, yaw: 0.5, pitch: 0.7, dist: 260, fov: 40 });
-    rig.setPreset('free', { tx: 40, ty: 0, tz: 20, yaw: 0.36, pitch: 0.56, dist: 1250, fov: 40 });
+    rig.setPreset('overview', { tx: 20, ty: 0, tz: -40, yaw: 0.34, pitch: 0.54, dist: 1720, fov: 40 });
+    rig.setPreset('topdown', { tx: 0, ty: 0, tz: 0, yaw: 0, pitch: 1.53, dist: 2150, fov: 30 });
+    rig.setPreset('street', { tx: 25, ty: 0, tz: 6, yaw: -1.36, pitch: 0.07, dist: 38, fov: 52 });
+    rig.setPreset('incident', { tx: 5, ty: 0, tz: 120, yaw: 0.45, pitch: 0.66, dist: 360, fov: 40 });
+    rig.setPreset('free', { tx: 20, ty: 0, tz: -40, yaw: 0.34, pitch: 0.54, dist: 1720, fov: 40 });
   }
 
   applyQuality(tier: QualityTier): void {
     this.world?.setQuality(tier);
+    this.city?.setQuality(QUALITY[tier]);
     useStore.getState().setEffectiveQuality(tier);
   }
 
@@ -183,7 +199,10 @@ class Controller {
     const simMs = performance.now() - t0;
     const st = useStore.getState();
     let stats = null;
-    if (this.world && st.view === 'twin') stats = this.world.frame(dt);
+    if (this.world && st.view === 'twin') {
+      this.city?.update(this.clock.t);
+      stats = this.world.frame(dt);
+    }
 
     // statistics and adaptive quality (only real display frames count; timer frames are a fallback)
     if (fromRaf) {

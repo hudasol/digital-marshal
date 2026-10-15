@@ -23,6 +23,12 @@ export interface ClockFrame {
   horizon: number; // furthest simulated time
 }
 
+export interface Overlays {
+  labels: boolean; // junction ids and names in the 3D view
+  v2x: boolean; // illustrative information-flow overlays
+  routes: boolean; // planned routes of selected and affected vehicles
+}
+
 export interface Toast {
   id: number;
   text: string;
@@ -45,8 +51,10 @@ interface UIState {
   toasts: Toast[];
   scenarioLabel: string;
   alertLevel: 'normal' | 'warn' | 'critical';
+  overlays: Overlays;
 
   setView: (v: View) => void;
+  setOverlay: (k: keyof Overlays, on: boolean) => void;
   setLang: (l: 'en' | 'ar') => void;
   toggleLeft: () => void;
   toggleRight: () => void;
@@ -99,8 +107,10 @@ export const useStore = create<UIState>((set, get) => ({
   toasts: [],
   scenarioLabel: '',
   alertLevel: 'normal',
+  overlays: { labels: false, v2x: true, routes: true },
 
   setView: (view) => set({ view }),
+  setOverlay: (k, on) => set({ overlays: { ...get().overlays, [k]: on } }),
   setLang: (lang) => {
     try {
       localStorage.setItem('dm.lang', lang);

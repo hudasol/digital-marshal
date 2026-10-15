@@ -46,6 +46,31 @@ function GraphicsSection() {
   );
 }
 
+function DisplaySection() {
+  const t = useT();
+  const overlays = useStore((s) => s.overlays);
+  const setOverlay = useStore((s) => s.setOverlay);
+  return (
+    <Section title={t('display.title')}>
+      <label className="toggle">
+        <span>{t('display.labels')}</span>
+        <input type="checkbox" checked={overlays.labels} onChange={(e) => setOverlay('labels', e.target.checked)} />
+      </label>
+    </Section>
+  );
+}
+
+function DistrictCaption() {
+  const t = useT();
+  const rightOpen = useStore((s) => s.rightOpen);
+  return (
+    <div className={`district-caption ${rightOpen ? 'shifted' : ''}`} aria-hidden="true">
+      <b>{t('caption.district')}</b>
+      <span>{t('caption.district.sub')}</span>
+    </div>
+  );
+}
+
 function TwinStage() {
   const host = useRef<HTMLDivElement>(null);
   const webgl = useStore((s) => s.webgl);
@@ -142,16 +167,17 @@ export function App() {
           <CameraToolbar available={{ incident: false, follow: false, emergency: false }} />
           <SidePanel side="left" title={t('panel.ops')}>
             <div id="main-controls" />
+            <DisplaySection />
             <GraphicsSection />
           </SidePanel>
           <SidePanel side="right" title={t('panel.intel')}>
-            <Section title="Network">
+            <Section title={t('intel.network')}>
               <p className="note">
-                <Icon name="info" /> Traffic simulation attaches in the next milestone. The camera, graphics tiers and
-                views are live.
+                <Icon name="info" /> {t('intel.pending')}
               </p>
             </Section>
           </SidePanel>
+          <DistrictCaption />
           <PlaybackBar length={900} />
           <PerfOverlay />
         </>

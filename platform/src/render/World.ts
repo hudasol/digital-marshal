@@ -68,7 +68,7 @@ export class World {
     });
     r.outputColorSpace = THREE.SRGBColorSpace;
     r.toneMapping = THREE.ACESFilmicToneMapping;
-    r.toneMappingExposure = 0.5;
+    r.toneMappingExposure = 1.0;
     r.shadowMap.enabled = true;
     r.shadowMap.type = THREE.PCFShadowMap;
     r.shadowMap.autoUpdate = true;
@@ -79,8 +79,8 @@ export class World {
     this.rig = new CameraRig(1);
 
     // atmosphere
-    const fogColor = new THREE.Color(0xc6b7a2);
-    this.scene.fog = new THREE.FogExp2(fogColor, 0.00026);
+    const fogColor = new THREE.Color(0xcfc8bd);
+    this.scene.fog = new THREE.FogExp2(fogColor, 0.000165);
     this.scene.background = fogColor.clone();
 
     // sky box follows the camera and is drawn first; everything else draws over it
@@ -97,12 +97,13 @@ export class World {
     u['cloudDensity'].value = 0.3;
     const sd = sunDirection();
     u['sunPosition'].value.copy(sd);
+    scaleSky(this.sky, SKY_SCALE);
     this.scene.add(this.sky);
 
     // lights
-    this.hemi = new THREE.HemisphereLight(0xc4d6f2, 0x9c8466, 1.6);
+    this.hemi = new THREE.HemisphereLight(0xbfd3f0, 0x8f7a60, 0.5);
     this.scene.add(this.hemi);
-    this.sun = new THREE.DirectionalLight(0xffd9ae, 5.6);
+    this.sun = new THREE.DirectionalLight(0xffd3a2, 3.35);
     this.sun.position.copy(sd).multiplyScalar(1200);
     this.sun.castShadow = true;
     this.sun.shadow.bias = -0.00035;
@@ -132,6 +133,7 @@ export class World {
       su[k].value = u[k].value;
     su['sunPosition'].value.copy(u['sunPosition'].value);
     su['showSunDisc'].value = 0;
+    scaleSky(sky, SKY_SCALE);
     envScene.add(sky);
     // a warm ground bounce in the lower hemisphere of the environment
     const ground = new THREE.Mesh(
@@ -141,7 +143,7 @@ export class World {
     envScene.add(ground);
     this.envTarget = pmrem.fromScene(envScene, 0.02, 1, 2000);
     this.scene.environment = this.envTarget.texture;
-    this.scene.environmentIntensity = 1.0;
+    this.scene.environmentIntensity = 0.5;
     pmrem.dispose();
     sky.geometry.dispose();
     sky.material.dispose();
@@ -207,7 +209,8 @@ export class World {
     const c = new EffectComposer(this.renderer, rt);
     c.addPass(new RenderPass(this.scene, this.rig.camera));
     if (this.profile.bloom) {
-      this.bloom = new UnrealBloomPass(new THREE.Vector2(size.x, size.y), 0.42, 0.38, 1.0);
+      // only genuinely emissive things (lamps, beacons, the sun) exceed the threshold
+      this.bloom = new UnrealBloomPass(new THREE.Vector2(size.x, size.y), 0.42, 0.34, 3.4);
       c.addPass(this.bloom);
     }
     c.addPass(new OutputPass());
@@ -426,10 +429,12 @@ export class World {
       this.sun.target.updateMatrixWorld();
     }
 
+    const info = this.renderer.info;
+    info.autoReset = false;
+    info.reset();
     if (this.composer) this.composer.render(dt);
     else this.renderer.render(this.scene, cam);
 
-    const info = this.renderer.info;
     return {
       calls: info.render.calls,
       tris: info.render.triangles,
@@ -446,6 +451,18 @@ export class World {
     this.renderer.dispose();
     this.renderer.domElement.remove();
   }
+}
+
+/** The Preetham sky is in a much brighter range than the lit city; scale it in the shader so the
+    whole frame can use one physical exposure (and bloom only sees emissive light). */
+const SKY_SCALE = 0.42;
+function scaleSky(sky: Sky, k: number): void {
+  const m = sky.material as THREE.ShaderMaterial;
+  m.onBeforeCompile = (sh) => {
+    sh.fragmentShader = sh.fragmentShader.replace('#include <tonemapping_fragment>', `gl_FragColor.rgb *= ${k.toFixed(3)};
+#include <tonemapping_fragment>`);
+  };
+  m.needsUpdate = true;
 }
 
 /** Procedural fine sand with soft ripples, generated once on a canvas (no external assets). */

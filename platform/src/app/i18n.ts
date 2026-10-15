@@ -59,6 +59,14 @@ const en = {
   'nowebgl.body':
     'This browser or device cannot create a WebGL context, so the 3D city cannot be drawn. The simulation still runs; the map view below shows the same state in 2D.',
   'loading': 'Preparing the district',
+  'display.title': 'Display',
+  'display.labels': 'Junction labels',
+  'display.v2x': 'Information-flow overlays',
+  'display.routes': 'Vehicle routes',
+  'intel.network': 'Network',
+  'intel.pending': 'The traffic simulation attaches in the next milestone. Camera, graphics tiers and views are live.',
+  'caption.district': 'Synthetic Dubai-inspired urban district',
+  'caption.district.sub': 'Invented layout · road names are codes · not real streets',
 } as const;
 
 export type I18nKey = keyof typeof en;
@@ -120,6 +128,14 @@ const ar: Record<I18nKey, string> = {
   'nowebgl.body':
     'لا يستطيع هذا المتصفح أو الجهاز إنشاء سياق WebGL، لذلك لا يمكن رسم المدينة ثلاثية الأبعاد. تستمر المحاكاة في العمل، وتعرض الخريطة أدناه الحالة نفسها بشكل ثنائي الأبعاد.',
   'loading': 'جارٍ تجهيز الحي',
+  'display.title': 'العرض',
+  'display.labels': 'تسميات التقاطعات',
+  'display.v2x': 'طبقات تدفق المعلومات',
+  'display.routes': 'مسارات المركبات',
+  'intel.network': 'الشبكة',
+  'intel.pending': 'تُربط محاكاة المرور في المرحلة التالية. الكاميرا ومستويات الرسوميات والعروض تعمل الآن.',
+  'caption.district': 'حي حضري اصطناعي مستوحى من دبي',
+  'caption.district.sub': 'تخطيط مُتخيَّل · أسماء الطرق رموز · ليست شوارع حقيقية',
 };
 
 export const DICTS = { en, ar } as const;
