@@ -1,0 +1,7 @@
+command: PYTHONPATH=src python src/confirmatory.py --out <scratch dir outside repo>   (regeneration check; NOT a confirmatory run; historical results/ not touched)
+      "fifo_violations": 0,
+      "checks_pass": true
+    }
+  ]
+}
+exit_status: 0
