@@ -1,0 +1,4 @@
+# Integrity record for the vendored library. Verify with: python tools/check_vendor.py
+# three.js r149, MIT licence (see three.LICENSE.txt). Source: npm package three@0.149.0, file build/three.min.js
+sha256  8a5f7249903b54d30f79f708699d2fed2d6a1d0741a4cd41377d1f01bb5a2271  three.min.js
+sha384-base64  RRHfJ6w1mTlKUBMYT/hvnRiOzEB/vyRV3DrQOseb6oYfvaZSfdd0byS4bHps0k2R  three.min.js
