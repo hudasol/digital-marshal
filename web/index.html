@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --red:#073EEB; --red-dark:#052EB0; --alert:#DA291C; --route-b:#7F9BF2; --char:#242526; --ink:#1B1D21; --bg:#F8FAFC; --off:#FCFCFC;
+  --red:#DA291C; --red-dark:#B82217; --alert:#DA291C; --route-b:#94A3B8; --char:#242526; --ink:#1B1D21; --bg:#F8FAFC; --off:#FCFCFC;
   --gold:#FFB715; --line:#E2E8F0; --slate:#64748B; --slate-l:#CBD5E1; --card:#FFFFFF;
 }
 *{box-sizing:border-box}
@@ -146,9 +146,9 @@ td,.hl b,.live b,.clock span,#log b{unicode-bidi:plaintext}
     <button class="b" id="reset" data-i="reset"></button>
     <div class="speed" id="speed"></div>
     <div class="clock"><span id="clk">0 s</span><small data-i="simtime"></small></div>
-    <div class="leg inbar"><span><i class="ic" style="background:#073EEB"></i><span data-i="legT"></span></span>
+    <div class="leg inbar"><span><i class="ic" style="background:#242526"></i><span data-i="legT"></span></span>
     <span><i class="ic" style="background:#FFB715;outline:1px solid #242526"></i><span data-i="legQ"></span></span>
-    <span><i class="ic" style="background:#073EEB;position:relative;box-shadow:inset -4px 0 0 -1px #fff"></i><span data-i="legB"></span></span>
+    <span><i class="ic" style="background:#242526;position:relative;box-shadow:inset -4px 0 0 -1px #fff"></i><span data-i="legB"></span></span>
     <span><i style="display:inline-block;width:10px;height:10px;background:repeating-linear-gradient(45deg,#DA291C 0 3px,#fff 3px 6px);vertical-align:-1px;margin-inline-end:5px"></i><span data-i="legX"></span></span></div>
   </div>
   <input class="scrub" id="scrub" type="range" min="0" max="100" value="0" step="1" aria-label="timeline">
@@ -249,7 +249,7 @@ var I18N={
   sc:{manageable_primary:'أساسي قابل للإدارة (10 مركبات)',near_branch_capacity:'قرب سعة الفرع (24 مركبة)',overload_stress:'ضغط زائد (60 مركبة)',primary_half_capacity:'نصف السعة (10 مركبات)',primary_double_capacity:'ضعف السعة (10 مركبات)'}}
 };
 var POL=['static','independent_periodic','coordinated_batch'];
-var POLCOL={static:'#64748B',independent_periodic:'#FFB715',coordinated_batch:'#073EEB'};
+var POLCOL={static:'#64748B',independent_periodic:'#FFB715',coordinated_batch:'#DA291C'};
 var POLD={static:'staticD',independent_periodic:'independentD',coordinated_batch:'coordD'};
 var NODES={O:[0,0],P:[600,0],C:[1200,100],A1:[1100,-100],A2:[1700,-100],B1:[1100,0],B2:[1700,0],B3:[2000,0],M:[2300,-50],D:[2900,-50]};
 var LANES={E1:4,E2:1,E3:1,E4:1,E5:1,E6:1,E7:2,E8:2,E9:2,E10:2,E11:4};
@@ -321,7 +321,7 @@ function ensureDots(){
     var o=P[p];o.dotLayer.innerHTML='';o.dots=[];
     vlist(p).forEach(function(v,i){
       var c=el('g',{opacity:0,transform:'translate(-30,-30)'},o.dotLayer);
-      var body=el('path',{d:'M-9,-5 L6,-5 L11,0 L6,5 L-9,5 Z',fill:'#073EEB',stroke:'#fff','stroke-width':1.3,'stroke-linejoin':'round'},c);
+      var body=el('path',{d:'M-9,-5 L6,-5 L11,0 L6,5 L-9,5 Z',fill:'#242526',stroke:'#fff','stroke-width':1.3,'stroke-linejoin':'round'},c);
       if(v.r==='B')el('circle',{cx:-2,cy:0,r:2,fill:'#fff'},c);
       o.dots.push({v:v,c:c,b:body,i:i});
     });
@@ -372,7 +372,7 @@ function draw(){
       var cx=A[0]+dx*f+ux*off+(-uy)*lane*5.5,cy=A[1]+dy*f+uy*off+ux*lane*5.5;
       var ang=Math.atan2(dy,dx)*180/Math.PI;
       d.c.setAttribute('transform','translate('+cx.toFixed(1)+','+cy.toFixed(1)+') rotate('+ang.toFixed(1)+') scale(1.3)');d.c.setAttribute('opacity',1);
-      d.b.setAttribute('fill',ps.waiting?'#FFB715':'#073EEB');d.b.setAttribute('stroke',ps.waiting?'#242526':'#fff');d.b.setAttribute('stroke-width',ps.waiting?1.8:1.3);
+      d.b.setAttribute('fill',ps.waiting?'#FFB715':'#242526');d.b.setAttribute('stroke',ps.waiting?'#242526':'#fff');d.b.setAttribute('stroke-width',ps.waiting?1.8:1.3);
     });
     // route counts decided so far = vehicles whose p time has passed (epoch granularity ignored)
     vlist(p).forEach(function(v){if(t>=v.p){if(v.r==='A')a++;else b++;}});
@@ -470,7 +470,7 @@ function renderViz(){
     var mean=0;vs.forEach(function(v){mean+=(v.a-v.d)/60;});mean/=vs.length;
     var bins={};
     vs.slice().sort(function(a,b){return (a.a-a.d)-(b.a-b.d);}).forEach(function(v){var m=(v.a-v.d)/60,k=Math.round(m*4);bins[k]=(bins[k]||0)+1;
-      el('circle',{cx:xs(m),cy:y0-4-(bins[k]-1)*8,r:3.6,fill:v.r==='A'?'#242526':'#7F9BF2',stroke:v.r==='A'?'#fff':'#242526','stroke-width':.8},sv);});
+      el('circle',{cx:xs(m),cy:y0-4-(bins[k]-1)*8,r:3.6,fill:v.r==='A'?'#242526':'#94A3B8',stroke:v.r==='A'?'#fff':'#242526','stroke-width':.8},sv);});
     el('line',{x1:xs(mean),x2:xs(mean),y1:y0-30,y2:y0+8,stroke:POLCOL[p],'stroke-width':3},sv);
     tx(sv,xs(mean),y0+20,mean.toFixed(1),{w:700});
   });
@@ -499,7 +499,7 @@ function renderViz(){
     tx(bs,150+w+6,y0+15,tot[i].toFixed(1)+' '+T('vm'),{a:'start',w:700}).setAttribute('fill','#1B1D21');
     var vm=runOf(p).metrics,A=+vm.route_A_count,B=+vm.route_B_count,N=A+B,sw=250;
     el('rect',{x:150,y:y0+26,width:sw*A/N,height:10,fill:'#242526'},bs);
-    el('rect',{x:150+sw*A/N,y:y0+26,width:sw*B/N,height:10,fill:'#7F9BF2'},bs);
+    el('rect',{x:150+sw*A/N,y:y0+26,width:sw*B/N,height:10,fill:'#94A3B8'},bs);
     tx(bs,150+sw+6,y0+35,'A '+A+' · B '+B,{a:'start'});
   });
   // delta callouts
