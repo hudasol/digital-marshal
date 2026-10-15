@@ -243,6 +243,28 @@ def audit_results_dir(results_dir, spec_path=DEFAULT_SPEC):
         for r in groups['batch_allocation_log.csv'].get(key, []):
             if key not in malformed and int(float(r['A_count'])) + int(float(r['B_count'])) != int(float(r['batch_size'])):
                 flag(key, 'batch_row_counts_do_not_sum', file='batch_allocation_log.csv', epoch_s=r['epoch_s']); break
+    # Route labels and route counts are reported in three files; tie them to the path actually driven in the raw edge events.
+    labels = {tuple(path): lab for lab, path in spec['route_labels'].items()}
+    for key in expected:
+        ev = groups['edge_event_records.csv'].get(key)
+        if not ev or key in malformed: continue
+        by_v = defaultdict(list)
+        for e in ev: by_v[e['vehicle']].append(e)
+        driven = {v: labels.get(tuple(x['edge'] for x in sorted(L, key=lambda x: float(x['arrival_s'])))) for v, L in by_v.items()}
+        for r in groups['vehicle_records.csv'].get(key, []):
+            if driven.get(r['vehicle']) != r['route']:
+                flag(key, 'vehicle_route_label_mismatch', file='vehicle_records.csv', vehicle=r['vehicle'], label=r['route'], driven=driven.get(r['vehicle'])); break
+        for r in groups['decision_log.csv'].get(key, []):
+            if driven.get(r['vehicle']) != r['chosen_route']:
+                flag(key, 'decision_route_mismatch', file='decision_log.csv', vehicle=r['vehicle'], chosen=r['chosen_route'], driven=driven.get(r['vehicle'])); break
+        nA = sum(1 for v in driven.values() if v == 'A'); nB = sum(1 for v in driven.values() if v == 'B')
+        mr = groups['confirmatory_metrics.csv'].get(key)
+        if mr and (int(float(mr[0]['route_A_count'])), int(float(mr[0]['route_B_count']))) != (nA, nB):
+            flag(key, 'metrics_route_counts_vs_paths', file='confirmatory_metrics.csv',
+                 reported=(mr[0]['route_A_count'], mr[0]['route_B_count']), driven=(nA, nB))
+        bl = groups['batch_allocation_log.csv'].get(key, [])
+        if bl and (sum(int(float(r['A_count'])) for r in bl), sum(int(float(r['B_count'])) for r in bl)) != (nA, nB):
+            flag(key, 'batch_route_totals_vs_paths', file='batch_allocation_log.csv', driven=(nA, nB))
     out = []
     def entry(key, res):
         counts = defaultdict(int)

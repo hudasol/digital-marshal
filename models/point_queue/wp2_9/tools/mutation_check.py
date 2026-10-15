@@ -37,6 +37,10 @@ MUTANTS = [
  ('audit B-01: batch total not checked against the scenario', 'src/raw_audit.py', "sum(int(float(r['batch_size'])) for r in bl) != n:", 'False:'),
  ('audit B-01: unexpected exceptions no longer reported as failures', 'src/raw_audit.py', '    except Exception as e:', '    except KeyboardInterrupt as e:'),
  ('FIFO headway wrong in model (cap*1.1)', 'src/canonical_model.py', "head=60/e['cap_vpm']", "head=60/(e['cap_vpm']*1.1)"),
+ ('audit review: vehicle route label not tied to paths', 'src/raw_audit.py', "if driven.get(r['vehicle']) != r['route']:", 'if False:'),
+ ('audit review: decision route not tied to paths', 'src/raw_audit.py', "if driven.get(r['vehicle']) != r['chosen_route']:", 'if False:'),
+ ('audit review: metrics route counts not tied to paths', 'src/raw_audit.py', "!= (nA, nB):\n            flag(key, 'metrics_route_counts_vs_paths'", "== (-1, -1):\n            flag(key, 'metrics_route_counts_vs_paths'"),
+ ('audit review: batch route totals not tied to paths', 'src/raw_audit.py', "for r in bl)) != (nA, nB):\n            flag(key, 'batch_route_totals_vs_paths'", "for r in bl)) == (-1, -1):\n            flag(key, 'batch_route_totals_vs_paths'"),
 ]
 killed = 0
 for name, rel, old, new in MUTANTS:

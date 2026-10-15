@@ -49,6 +49,18 @@ class Base(unittest.TestCase):
     def checks(self, out):
         return {(v['scenario'], v['policy']): set(v['counts']) for v in out['violations']}
 
+    def set_cell(self, f, col, value, key=KEY, nth=0):
+        h, rows, si, pi = self.cols(f); ci = h.index(col)
+        hits = [r for r in rows if (r[si], r[pi]) == key]; hits[nth][ci] = value
+        write(self.d / f, h, rows)
+
+    def expect(self, check, key=KEY):
+        code, out, r = self.cli()
+        self.assertIsNotNone(out, 'no JSON diagnostic produced: ' + r.stderr[-300:])
+        self.assertEqual(code, 1, r.stdout[-400:]); self.assertFalse(out['all_pass'])
+        self.assertIn(check, self.checks(out).get(key, set()), out['violations'][:2])
+        return out
+
 
 class Control(Base):
     def test_complete_package_passes_with_exit_zero(self):
@@ -204,17 +216,6 @@ class UnexpectedOrRenamed(Base):
 
 class MalformedValuesAndConsistency(Base):
     """Values that would crash a naive parser, or pass silently, must produce a specific diagnostic and exit 1 (never a traceback)."""
-    def set_cell(self, f, col, value, key=KEY, nth=0):
-        h, rows, si, pi = self.cols(f); ci = h.index(col)
-        hits = [r for r in rows if (r[si], r[pi]) == key]; hits[nth][ci] = value
-        write(self.d / f, h, rows)
-
-    def expect(self, check, key=KEY):
-        code, out, r = self.cli()
-        self.assertIsNotNone(out, 'no JSON diagnostic produced: ' + r.stderr[-300:])
-        self.assertEqual(code, 1, r.stdout[-400:]); self.assertFalse(out['all_pass'])
-        self.assertIn(check, self.checks(out).get(key, set()), out['violations'][:2])
-        return out
 
     def test_non_numeric_and_non_finite_values_are_diagnosed_not_crashed(self):
         for f, col, bad in (('confirmatory_metrics.csv', 'total_fleet_travel_time_vehicle_min', 'abc'),
@@ -301,6 +302,40 @@ class MalformedValuesAndConsistency(Base):
         code, out, _ = self.cli()
         self.assertEqual((code, out['all_pass'], out['runs_audited']), (1, False, 14))
         self.assertEqual(self.checks(out), {('primary_half_capacity', 'independent_periodic'): {'missing_run'}})
+
+
+class RouteLabelsAndCountsMatchTheDrivenPaths(Base):
+    """Found in the post engineering review: route labels and route counts were never tied to the raw edge paths."""
+    def swap(self, f, col, a, b):
+        self.set_cell(f, col, b if self.value(f, col) == a else a)
+
+    def value(self, f, col):
+        h, rows, si, pi = self.cols(f); return next(r for r in rows if (r[si], r[pi]) == KEY)[h.index(col)]
+
+    def test_swapped_route_counts_in_metrics_fail(self):
+        a, b = self.value(FILES[0], 'route_A_count'), self.value(FILES[0], 'route_B_count')
+        self.assertNotEqual(a, b, 'test premise: counts differ')
+        self.set_cell(FILES[0], 'route_A_count', b); self.set_cell(FILES[0], 'route_B_count', a)
+        out = self.expect('metrics_route_counts_vs_paths')
+        self.assertNotIn('metrics_route_counts_do_not_sum', self.checks(out)[KEY])      # sums still add up: only the paths expose it
+
+    def test_wrong_route_label_in_vehicle_records_fails(self):
+        self.swap(FILES[1], 'route', 'A', 'B'); self.expect('vehicle_route_label_mismatch')
+
+    def test_wrong_chosen_route_in_decision_log_fails(self):
+        self.swap('decision_log.csv', 'chosen_route', 'A', 'B'); self.expect('decision_route_mismatch')
+
+    def test_batch_log_route_totals_must_match_paths(self):
+        h, rows, si, pi = self.cols(FILES[4]); ai, bi = h.index('A_count'), h.index('B_count')
+        r = next(r for r in rows if (r[si], r[pi]) == KEY and int(r[ai]) > 0)
+        r[ai], r[bi] = str(int(r[ai]) - 1), str(int(r[bi]) + 1)          # row still sums to batch_size
+        write(self.d / FILES[4], h, rows)
+        out = self.expect('batch_route_totals_vs_paths'); self.assertNotIn('batch_row_counts_do_not_sum', self.checks(out)[KEY])
+
+    def test_spec_route_labels_match_the_model(self):
+        import canonical_model as m
+        spec = ra.load_spec()
+        self.assertEqual({k: v for k, v in spec['route_labels'].items()}, {k: m.ROUTES[k] for k in ('A', 'B')})
 
 
 class LibraryApiFailsClosedToo(Base):

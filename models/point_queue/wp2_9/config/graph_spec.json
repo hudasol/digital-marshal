@@ -1,5 +1,5 @@
 {
-  "provenance": "Nodes, edges, free flow times, capacities, branch scaled edges, closure edges and incident time (120 s) were hand transcribed from FAIR_BASELINE_SPEC.md section 2. The scenario table was transcribed from section 3 but uses the identifiers of the WP2.7 outputs (primary_half_capacity, primary_double_capacity), not the longer names in section 3. The horizon (7200 s) and the policy list come from the WP2.7 metric specification and documents, not from FAIR_BASELINE_SPEC.md; the horizon is a provisional value awaiting owner confirmation. allowed_paths adds the closed critical route E1,E2,E3, which section 2 implies but does not list as a route. Deliberately NOT imported from src/canonical_model.py so that src/raw_audit.py is an independent check. Drift between this file and the model is caught by tests/test_raw_audit.py. See docs/review/graph-spec-traceability.md.",
+  "provenance": "Nodes, edges, free flow times, capacities, branch scaled edges, closure edges and incident time (120 s) were hand transcribed from FAIR_BASELINE_SPEC.md section 2. The scenario table was transcribed from section 3 but uses the identifiers of the WP2.7 outputs (primary_half_capacity, primary_double_capacity), not the longer names in section 3. The horizon (7200 s) and the policy list come from the WP2.7 metric specification and documents, not from FAIR_BASELINE_SPEC.md; the horizon is a provisional value awaiting owner confirmation. allowed_paths adds the closed critical route E1,E2,E3, which section 2 implies but does not list as a route. route_labels names the two open routes A and B (the labels used in the result files). Deliberately NOT imported from src/canonical_model.py so that src/raw_audit.py is an independent check. Drift between this file and the model is caught by tests/test_raw_audit.py. See docs/review/graph-spec-traceability.md.",
   "nodes": ["O", "P", "C", "A1", "A2", "B1", "B2", "B3", "M", "D"],
   "origin": "O",
   "destination": "D",
@@ -25,6 +25,7 @@
     ["E1", "E4", "E5", "E6", "E11"],
     ["E1", "E7", "E8", "E9", "E10", "E11"]
   ],
+  "route_labels": {"A": ["E1", "E4", "E5", "E6", "E11"], "B": ["E1", "E7", "E8", "E9", "E10", "E11"]},
   "policies": ["static", "independent_periodic", "coordinated_batch"],
   "scenarios": {
     "manageable_primary":      {"vehicles": 10, "spacing_s": 10.0, "branch_capacity_scale": 1.0},

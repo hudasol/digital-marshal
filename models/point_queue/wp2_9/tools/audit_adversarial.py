@@ -98,6 +98,19 @@ def case_list():
                       (FILES[1], 'travel_time_s', 'inf'), (FILES[1], 'arrival_s', ''), (FILES[2], 'exit_s', 'x1'), (FILES[4], 'epoch_s', 'later'),
                       (FILES[0], 'completed', '-1'), (FILES[0], 'route_A_count', '3.5'), (FILES[1], 'complete', 'maybe'), (FILES[1], 'vehicle', '')):
         C.append((f'malformed value {col}={v!r} in {f}', 1, 'malformed_value', lambda d, f=f, col=col, v=v: setcell(d, f, col, v)))
+    def flip(d, f, col):
+        h, r = rd(d / f); s, p, i = h.index('scenario'), h.index('policy'), h.index(col)
+        x = next(x for x in r if (x[s], x[p]) == KEY); x[i] = 'B' if x[i] == 'A' else 'A'; wr(d / f, h, r)
+    def swap_counts(d):
+        h, r = rd(d / FILES[0]); s, p = h.index('scenario'), h.index('policy'); a, b = h.index('route_A_count'), h.index('route_B_count')
+        x = next(x for x in r if (x[s], x[p]) == KEY); x[a], x[b] = x[b], x[a]; wr(d / FILES[0], h, r)
+    def shift_batch(d):
+        h, r = rd(d / FILES[4]); s, p = h.index('scenario'), h.index('policy'); a, b = h.index('A_count'), h.index('B_count')
+        x = next(x for x in r if (x[s], x[p]) == KEY and int(x[a]) > 0); x[a], x[b] = str(int(x[a]) - 1), str(int(x[b]) + 1); wr(d / FILES[4], h, r)
+    C.append(('route counts swapped in metrics (sum unchanged)', 1, 'metrics_route_counts_vs_paths', swap_counts))
+    C.append(('route label flipped in vehicle records', 1, 'vehicle_route_label_mismatch', lambda d: flip(d, FILES[1], 'route')))
+    C.append(('chosen route flipped in decision log', 1, 'decision_route_mismatch', lambda d: flip(d, FILES[3], 'chosen_route')))
+    C.append(('batch log moves a vehicle between routes (row sum unchanged)', 1, 'batch_route_totals_vs_paths', shift_batch))
     def leak(d):          # relabel a post incident Route A event as the closed edge E3: a vehicle 'entered' E3 after 120 s
         h, r = rd(d / FILES[2]); s, p, e = h.index('scenario'), h.index('policy'), h.index('edge')
         next(x for x in r if (x[s], x[p]) == KEY and x[e] == 'E4')[e] = 'E3'; wr(d / FILES[2], h, r)
