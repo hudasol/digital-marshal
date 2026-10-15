@@ -188,14 +188,17 @@ Corridor.prototype.build = function () {
     var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
     sp.scale.set(14, 7, 1); sp.position.set(w.x, 9, w.y - (n === 'C' ? -9 : 9)); G.add(sp);
   });
-  // edge capacity decals lying beside the road
+  // edge labels: upright cards beside the road
   this.edgeLabels = new THREE.Group(); G.add(this.edgeLabels);
+  var RC = { E1: ['ENTRY', '#242526'], E2: ['CLOSED', '#64748B'], E3: ['CLOSED', '#64748B'], E4: ['ROUTE A', '#DA291C'], E5: ['ROUTE A', '#DA291C'], E6: ['ROUTE A', '#DA291C'], E7: ['ROUTE B', '#1B1D21'], E8: ['ROUTE B', '#1B1D21'], E9: ['ROUTE B', '#1B1D21'], E10: ['ROUTE B', '#1B1D21'], E11: ['EXIT', '#242526'] };
   ids.forEach(function (id) {
-    var e = self.E[id], tex = textTex(512, 128, function (x, W, H) { x.font = font(62); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = 'rgba(36,37,38,0.88)'; x.fillText(id + '  ' + e.cap + '/min', W / 2, H / 2); });
-    var m = new THREE.Mesh(new THREE.PlaneGeometry(26, 6.5), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
-    m.rotation.x = -Math.PI / 2; m.rotation.z = -e.ang; // text reads along the road
-    var side = (id === 'E2' || id === 'E3') ? 1 : -1, off = e.w / 2 + 5.2;
-    m.position.set((e.a.x + e.b.x) / 2 + e.px * off * side, ROAD_H + 0.1, (e.a.y + e.b.y) / 2 + e.pz * off * side);
+    var e = self.E[id], tex = textTex(512, 160, function (x, W, H) {
+      x.fillStyle = 'rgba(255,255,255,0.95)'; x.strokeStyle = '#242526'; x.lineWidth = 6; x.beginPath(); x.moveTo(24, 6); x.lineTo(W - 24, 6); x.quadraticCurveTo(W - 6, 6, W - 6, 24); x.lineTo(W - 6, H - 24); x.quadraticCurveTo(W - 6, H - 6, W - 24, H - 6); x.lineTo(24, H - 6); x.quadraticCurveTo(6, H - 6, 6, H - 24); x.lineTo(6, 24); x.quadraticCurveTo(6, 6, 24, 6); x.closePath(); x.fill(); x.stroke();
+      x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = RC[id][1]; x.font = font(76); x.fillText(id, W / 2, 56); x.fillStyle = '#242526'; x.font = font(40); x.fillText(RC[id][0] + ' · ' + e.cap + '/min', W / 2, 120); });
+    var m = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false }));
+    m.scale.set(30, 9.4, 1); // upright card that always faces the camera
+    var side = (id === 'E2' || id === 'E3') ? 1 : -1, off = e.w / 2 + 3;
+    m.position.set((e.a.x + e.b.x) / 2 + e.px * off * side, ROAD_H + 7, (e.a.y + e.b.y) / 2 + e.pz * off * side);
     self.edgeLabels.add(m);
   });
 
