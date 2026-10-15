@@ -1,0 +1,10 @@
+scenario,baseline,n,mean_improvement_pct,ci_lo,ci_hi,seeds_coord_better,mean_p95_improvement_pct
+manageable_primary,static,10,-4.141,-5.771,-2.501,0,-11.404
+manageable_primary,measured_periodic,10,-4.141,-5.771,-2.501,0,-11.404
+manageable_primary,independent_periodic,10,0.032,0.0,0.095,1,0.0
+near_branch_capacity,static,20,3.382,3.101,3.663,20,6.956
+near_branch_capacity,measured_periodic,20,3.382,3.101,3.663,20,6.956
+near_branch_capacity,independent_periodic,20,0.53,0.125,0.903,16,0.91
+overload_stress,static,10,15.167,14.709,15.592,10,25.504
+overload_stress,measured_periodic,10,10.554,8.642,12.239,10,19.39
+overload_stress,independent_periodic,10,1.179,0.018,2.43,7,3.636

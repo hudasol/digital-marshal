@@ -1,0 +1,13 @@
+scenario,policy,n_seeds,mean_total_vehicle_min,sd,mean_p95_min,mean_A,mean_B
+manageable_primary,static,10,806.061,12.687,11.895,75,0
+manageable_primary,measured_periodic,10,806.061,12.687,11.895,75,0
+manageable_primary,independent_periodic,10,839.483,15.737,13.244,46.8,28.2
+manageable_primary,coordinated_batch,10,839.209,15.333,13.244,46.9,28.1
+near_branch_capacity,static,20,2216.317,18.409,14.815,180,0
+near_branch_capacity,measured_periodic,20,2216.317,18.409,14.815,180,0
+near_branch_capacity,independent_periodic,20,2152.837,22.171,13.916,109.45,70.55
+near_branch_capacity,coordinated_batch,20,2141.312,18.702,13.784,111.7,68.3
+overload_stress,static,10,7621.599,48.444,24.176,450,0
+overload_stress,measured_periodic,10,7234.564,206.882,22.385,398.2,51.8
+overload_stress,independent_periodic,10,6544.589,111.465,18.72,298.3,151.7
+overload_stress,coordinated_batch,10,6465.606,68.076,18.01,275.8,174.2

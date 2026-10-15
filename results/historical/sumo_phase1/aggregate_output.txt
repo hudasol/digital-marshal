@@ -1,0 +1,29 @@
+=== mean total fleet travel time (vehicle-min) per policy ===
+manageable_primary        static     =   806.1 (p95 11.90, A/B  75.0/  0.0)  measured_pe=   806.1 (p95 11.90, A/B  75.0/  0.0)  independent=   839.5 (p95 13.24, A/B  46.8/ 28.2)  coordinated=   839.2 (p95 13.24, A/B  46.9/ 28.1)
+near_branch_capacity      static     =  2216.3 (p95 14.82, A/B 180.0/  0.0)  measured_pe=  2216.3 (p95 14.82, A/B 180.0/  0.0)  independent=  2152.8 (p95 13.92, A/B 109.5/ 70.5)  coordinated=  2141.3 (p95 13.78, A/B 111.7/ 68.3)
+overload_stress           static     =  7621.6 (p95 24.18, A/B 450.0/  0.0)  measured_pe=  7234.6 (p95 22.38, A/B 398.2/ 51.8)  independent=  6544.6 (p95 18.72, A/B 298.3/151.7)  coordinated=  6465.6 (p95 18.01, A/B 275.8/174.2)
+
+=== paired improvement of coordinated_batch vs baseline, % (mean, bootstrap 95% CI, seeds where coord better) ===
+manageable_primary     vs static                 -4.14%  [ -5.77,  -2.50]  wins 0/10   p95 change -11.40%
+manageable_primary     vs measured_periodic      -4.14%  [ -5.77,  -2.50]  wins 0/10   p95 change -11.40%
+manageable_primary     vs independent_periodic    0.03%  [  0.00,   0.10]  wins 1/10   p95 change   0.00%
+near_branch_capacity   vs static                  3.38%  [  3.10,   3.66]  wins 20/20   p95 change   6.96%
+near_branch_capacity   vs measured_periodic       3.38%  [  3.10,   3.66]  wins 20/20   p95 change   6.96%
+near_branch_capacity   vs independent_periodic    0.53%  [  0.12,   0.90]  wins 16/20   p95 change   0.91%
+overload_stress        vs static                 15.17%  [ 14.71,  15.59]  wins 10/10   p95 change  25.50%
+overload_stress        vs measured_periodic      10.55%  [  8.64,  12.24]  wins 10/10   p95 change  19.39%
+overload_stress        vs independent_periodic    1.18%  [  0.02,   2.43]  wins 7/10   p95 change   3.64%
+
+=== audit roll-up (all computed from the SUMO trace) ===
+('manageable_primary', 'coordinated_batch') {'runs': 10, 'fail': 0, 'closed': 0, 'illegal': 0, 'incomplete': 0, 'collisions': 0}
+('manageable_primary', 'independent_periodic') {'runs': 10, 'fail': 0, 'closed': 0, 'illegal': 0, 'incomplete': 0, 'collisions': 0}
+('manageable_primary', 'measured_periodic') {'runs': 10, 'fail': 0, 'closed': 0, 'illegal': 0, 'incomplete': 0, 'collisions': 0}
+('manageable_primary', 'static') {'runs': 10, 'fail': 0, 'closed': 0, 'illegal': 0, 'incomplete': 0, 'collisions': 0}
+('near_branch_capacity', 'coordinated_batch') {'runs': 20, 'fail': 0, 'closed': 0, 'illegal': 0, 'incomplete': 0, 'collisions': 0}
+('near_branch_capacity', 'independent_periodic') {'runs': 20, 'fail': 0, 'closed': 0, 'illegal': 0, 'incomplete': 0, 'collisions': 0}
+('near_branch_capacity', 'measured_periodic') {'runs': 20, 'fail': 0, 'closed': 0, 'illegal': 0, 'incomplete': 0, 'collisions': 0}
+('near_branch_capacity', 'static') {'runs': 20, 'fail': 0, 'closed': 0, 'illegal': 0, 'incomplete': 0, 'collisions': 0}
+('overload_stress', 'coordinated_batch') {'runs': 10, 'fail': 0, 'closed': 0, 'illegal': 0, 'incomplete': 0, 'collisions': 0}
+('overload_stress', 'independent_periodic') {'runs': 10, 'fail': 0, 'closed': 0, 'illegal': 0, 'incomplete': 0, 'collisions': 0}
+('overload_stress', 'measured_periodic') {'runs': 10, 'fail': 0, 'closed': 0, 'illegal': 0, 'incomplete': 0, 'collisions': 0}
+('overload_stress', 'static') {'runs': 10, 'fail': 0, 'closed': 0, 'illegal': 0, 'incomplete': 0, 'collisions': 0}
