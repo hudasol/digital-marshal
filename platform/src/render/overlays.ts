@@ -59,6 +59,57 @@ export class OverlayLayer {
   }
 
   private camDist = 1000;
+  private corridor: THREE.Mesh | null = null;
+
+  /** A thin ribbon along the ambulance's lane ahead of it (illustrative, fades with distance). */
+  updateCorridor(points: Array<{ x: number; y: number }> | null): void {
+    if (!points || points.length < 2 || !this.enabled) {
+      if (this.corridor) this.corridor.visible = false;
+      return;
+    }
+    const n = points.length;
+    const pos = new Float32Array(n * 2 * 3);
+    const alpha = new Float32Array(n * 2);
+    for (let i = 0; i < n; i++) {
+      const a = points[Math.max(0, i - 1)];
+      const b = points[Math.min(n - 1, i + 1)];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const L = Math.hypot(dx, dy) || 1;
+      const rx = (dy / L) * 0.55;
+      const ry = (-dx / L) * 0.55;
+      const p = points[i];
+      pos.set([p.x - rx, 0.11, -(p.y - ry), p.x + rx, 0.11, -(p.y + ry)], i * 6);
+      const f = 1 - i / (n - 1);
+      alpha[i * 2] = alpha[i * 2 + 1] = f;
+    }
+    const idx: number[] = [];
+    for (let i = 0; i + 1 < n; i++) {
+      const a = i * 2;
+      idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+    }
+    if (!this.corridor) {
+      const mat = new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        uniforms: { uTime: { value: 0 } },
+        vertexShader: `attribute float aAlpha; varying float vA; varying float vS;
+          void main(){ vA = aAlpha; vS = float(gl_VertexID / 2); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+        fragmentShader: `uniform float uTime; varying float vA; varying float vS;
+          void main(){ float dash = step(0.45, fract(vS * 0.5 - uTime * 1.6)); vec3 c = mix(vec3(1.0,0.35,0.3), vec3(1.0,0.95,0.9), dash); gl_FragColor = vec4(c * 1.6, vA * 0.85); }`,
+      });
+      this.corridor = new THREE.Mesh(new THREE.BufferGeometry(), mat);
+      this.corridor.frustumCulled = false;
+      this.corridor.renderOrder = 7;
+      this.group.add(this.corridor);
+    }
+    const g = this.corridor.geometry;
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setAttribute('aAlpha', new THREE.BufferAttribute(alpha, 1));
+    g.setIndex(idx);
+    (this.corridor.material as THREE.ShaderMaterial).uniforms.uTime.value = performance.now() / 1000;
+    this.corridor.visible = true;
+  }
   setCameraDistance(d: number): void {
     this.camDist = d;
   }

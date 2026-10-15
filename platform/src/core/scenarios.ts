@@ -41,6 +41,9 @@ export function applyIntervention(engine: Engine, kind: string, params: Record<s
     case 'restore':
       dm.restore(params.junctions as string[]);
       break;
+    case 'dispatch':
+      dm.dispatch(String(params.from ?? 'hospital'), String(params.to ?? 'scene'));
+      break;
     case 'inject':
       dm.inject(structuredClone(params.message as SignedMessage));
       break;

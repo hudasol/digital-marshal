@@ -11,6 +11,7 @@ import type { Policy } from '../../core/dm/types';
 const CARDS: Array<{ key: ScenarioKey; icon: IconName; ready: boolean }> = [
   { key: 'normal', icon: 'city', ready: true },
   { key: 'blackout', icon: 'signal', ready: true },
+  { key: 'emergency', icon: 'ambulance', ready: true },
 ];
 
 export function ScenarioCards() {
@@ -92,6 +93,34 @@ export function BlackoutControls() {
       </div>
       {dark.length > 0 && <div className="status-line critical">{t('bo.active', { list: dark.join(', ') })}</div>}
       <p className="note">{t('bo.note', { lanes: odd })}</p>
+    </Section>
+  );
+}
+
+export function EmergencyControls() {
+  const t = useT();
+  const dm = useStore((s) => s.dm);
+  const net = getNetwork();
+  const ev = dm?.ev;
+  const active = !!ev?.active;
+  return (
+    <Section title={t('scn.emergency')}>
+      <div className="kv small" style={{ marginBottom: 10 }}>
+        <span>{t('ev.from')}</span>
+        <b>{net.places.hospital.label}</b>
+        <span>{t('ev.to')}</span>
+        <b>{net.places.scene.label}</b>
+      </div>
+      <div className="btn-row">
+        <button className="btn danger" onClick={() => controller.dispatchAmbulance()} disabled={active}>
+          <Icon name="ambulance" /> {t('ev.dispatch')}
+        </button>
+        <button className="btn" onClick={() => controller.setCamMode('emergency')} disabled={!active}>
+          <Icon name="car" /> {t('ev.follow')}
+        </button>
+      </div>
+      {active && ev && <div className="status-line critical">{t('ev.active', { tag: ev.tag })}</div>}
+      <p className="note">{t('ev.notePolicy')}</p>
     </Section>
   );
 }
@@ -198,6 +227,7 @@ export function ScenarioPanel() {
     <>
       <ScenarioCards />
       {scenario === 'blackout' && <BlackoutControls />}
+      {scenario === 'emergency' && <EmergencyControls />}
       <PolicyControls />
       <label className="toggle eng-toggle">
         <span>

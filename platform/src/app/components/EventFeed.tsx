@@ -18,6 +18,9 @@ const SHOWN = new Set([
   'inject-rejected',
   'inject-accepted',
   'hard-brake',
+  'ev-dispatched',
+  'ev-preempt',
+  'ev-arrived',
 ]);
 
 export function eventText(t: ReturnType<typeof useT>, e: SimEvent): string {

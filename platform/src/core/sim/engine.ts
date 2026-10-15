@@ -56,6 +56,10 @@ export interface EngineHooks {
   afterStep?(): void;
   /** a vehicle left the simulation */
   onExit?(v: Vehicle): void;
+  /** has this vehicle accepted a corridor message for this emergency vehicle (early warning)? */
+  evInformed?(v: Vehicle, ev: Vehicle): boolean;
+  /** outcome of a yield decision */
+  onYield?(v: Vehicle, ev: Vehicle, ok: boolean, reason: string): void;
 }
 
 const MAX_LOG = 40;
@@ -100,7 +104,7 @@ export class Engine {
       conns: {},
       pending: {},
       awsc: {},
-      road: { dark: [], closures: [] },
+      road: { dark: [], closures: [], preempt: {} },
       densityScale: this.cfg.density,
       trips: [],
       series: [],
@@ -181,13 +185,23 @@ export class Engine {
 
   private sigTick = -1;
   private sigCache: Record<string, SignalState> = {};
+
+  /** Call after changing what signals show (dark junctions, pre-emption) within a step. */
+  invalidateSignals(): void {
+    this.sigTick = -1;
+  }
   /** Signal state of a junction at the current time (cached per step). */
   signal(junction: string): SignalState {
     if (this.sigTick !== this.state.tick) {
       this.sigTick = this.state.tick;
       this.sigCache = {};
     }
-    return (this.sigCache[junction] ??= signalState(this.net.junctions[junction], this.state.t, this.isDark(junction)));
+    return (this.sigCache[junction] ??= signalState(
+      this.net.junctions[junction],
+      this.state.t,
+      this.isDark(junction),
+      this.state.road.preempt[junction],
+    ));
   }
 
   log(v: Vehicle, code: LogCode, p: LogEntry['p'] = {}): void {
@@ -380,6 +394,8 @@ export class Engine {
       reroutes: 0,
       laneChanges: 0,
       lastGate: '',
+      evAware: -1,
+      evYield: '',
     };
     if (!this.plan(v, null)) return null;
     v.ffT = this.freeFlow(v.route);
@@ -615,10 +631,143 @@ export class Engine {
 
   // ------------------------------------------------------------------ lane changes (MOBIL)
 
+  /** Nearest emergency vehicle approaching this vehicle from behind along its own route, if any. */
+  evBehind(v: Vehicle): { ev: Vehicle; dist: number; via: 'perception' | 'v2x' } | null {
+    if (v.cls === 'ambulance' || v.seg.k !== 'L' || !this.evList.length) return null;
+    let best: { ev: Vehicle; dist: number; via: 'perception' | 'v2x' } | null = null;
+    for (const id of this.evList) {
+      const e = this.state.vehicles[id];
+      if (!e) continue;
+      const link = e.seg.k === 'L' ? e.seg.id : this.net.connectors[e.seg.id].outLink;
+      let pos = e.seg.k === 'L' ? e.s : -(this.net.connectors[e.seg.id].length - e.s);
+      const idx = e.route.indexOf(link);
+      if (idx < 0) continue;
+      let acc = 0;
+      let dist = -1;
+      for (let k = idx; k < e.route.length && k <= idx + 3; k++) {
+        const L = e.route[k];
+        if (L === v.seg.id) {
+          dist = acc + v.s - pos;
+          break;
+        }
+        acc += this.net.links[L].length - pos + 25;
+        pos = 0;
+        if (acc > 460) break;
+      }
+      if (dist <= 0) continue;
+      const informed = this.hooks.evInformed?.(v, e) ?? false;
+      const via: 'perception' | 'v2x' | null = dist < 140 ? 'perception' : informed && dist < 420 ? 'v2x' : null;
+      if (!via) continue;
+      if (!best || dist < best.dist) best = { ev: e, dist, via: informed ? 'v2x' : via };
+    }
+    return best;
+  }
+
+  /** Why moving into `lane` is not safe right now (for the record of an infeasible yield). */
+  private blockedReason(v: Vehicle, lane: number): { reason: string; by: string; gap: number } {
+    const list = this.laneList(v.seg.id, lane);
+    let by = '';
+    let gap = Infinity;
+    for (const id of list) {
+      const w = this.veh(id);
+      const g = w.s > v.s ? w.s - w.len - v.s : v.s - v.len - w.s;
+      if (g < gap) {
+        gap = g;
+        by = w.tag;
+      }
+    }
+    return { reason: 'adjacent_lane_occupied', by, gap: Number.isFinite(gap) ? Math.round(gap * 10) / 10 : -1 };
+  }
+
+  /** Yield to an emergency vehicle behind, if one is close enough and this vehicle is in its way. */
+  private yieldToEv(v: Vehicle): boolean {
+    const enc = this.evBehind(v);
+    if (!enc) {
+      v.evAware = -1;
+      return false;
+    }
+    const { ev, via } = enc;
+    if (v.evAware < 0) v.evAware = this.state.t;
+    const reaction = via === 'v2x' ? 0.3 : v.av ? 0.6 : 1.5;
+    if (this.state.t - v.evAware < reaction) return true;
+    const link = this.net.links[v.seg.id];
+    const evLane = ev.seg.k === 'L' && ev.seg.id === link.id ? ev.seg.lane : 0;
+    if (v.seg.lane !== evLane) return true; // not in its way; hold the lane
+    if (v.evYield === `ok:${ev.tag}`) return true;
+    let reason = '';
+    let by = '';
+    let gap = -1;
+    if (v.mode === 'mrc') reason = 'stopped_minimal_risk';
+    else if (link.lanes < 2) reason = 'single_lane_no_shoulder';
+    else if (v.v < 0.3 && v.bind.kind === 'signal') reason = 'held_at_red_signal';
+    else {
+      const target = evLane < link.lanes - 1 ? evLane + 1 : evLane - 1;
+      if (this.tryChange(v, target, true, 1, 3.0)) {
+        this.log(v, 'YIELD', { ev: ev.tag, to: target + 1, via });
+        v.evYield = `ok:${ev.tag}`;
+        this.hooks.onYield?.(v, ev, true, via);
+        return true;
+      }
+      const b = this.blockedReason(v, target);
+      reason = b.reason;
+      by = b.by;
+      gap = b.gap;
+    }
+    if (v.evYield !== `no:${ev.tag}`) {
+      v.evYield = `no:${ev.tag}`;
+      this.log(v, 'YIELD_INFEASIBLE', by ? { ev: ev.tag, reason, by, gap } : { ev: ev.tag, reason });
+      this.hooks.onYield?.(v, ev, false, reason);
+    }
+    return true;
+  }
+
+  /** The emergency vehicle prefers the lane with the most free road ahead (inner lane on ties). */
+  private evLaneChoice(v: Vehicle): void {
+    const link = this.net.links[v.seg.id];
+    const D = link.length - v.s;
+    const next = v.ri < v.route.length - 1 ? v.route[v.ri + 1] : null;
+    const allowed: number[] = [];
+    if (next) for (const c of connectorsBetween(this.net, link.id, next)) allowed.push(this.net.connectors[c].inLane);
+    else for (let k = 0; k < link.lanes; k++) allowed.push(k);
+    if (D < 120 && v.conn && !allowed.includes(v.seg.lane)) return; // the turn-lane logic handles it
+    const freeAhead = (lane: number) => {
+      let g = Infinity;
+      for (const id of this.laneList(link.id, lane)) {
+        const w = this.veh(id);
+        if (w.s > v.s) g = Math.min(g, w.s - w.len - v.s);
+      }
+      return Math.min(g, D + 40);
+    };
+    const cur = freeAhead(v.seg.lane);
+    let best = v.seg.lane;
+    let bestGap = cur;
+    for (const lane of [v.seg.lane - 1, v.seg.lane + 1]) {
+      if (lane < 0 || lane >= link.lanes || (D < 120 && !allowed.includes(lane))) continue;
+      const g = freeAhead(lane);
+      if (g > bestGap + 20 || (lane < best && g >= bestGap && g > 60)) {
+        best = lane;
+        bestGap = g;
+      }
+    }
+    if (best !== v.seg.lane && this.tryChange(v, best, true, 1, 4.0)) {
+      this.log(v, 'LANE_CHANGE', { from: v.seg.lane + (best > v.seg.lane ? -1 : 1), to: v.seg.lane, reason: 'clear_lane' });
+    }
+  }
+
   private laneChange(v: Vehicle): void {
-    if (v.seg.k !== 'L' || v.mode !== 'drive') return;
+    if (v.seg.k !== 'L') return;
+    // yielding to an emergency vehicle comes before anything else
+    if (v.cls !== 'ambulance' && this.yieldToEv(v)) return;
+    if (v.mode !== 'drive') return;
     const link = this.net.links[v.seg.id];
     if (link.lanes < 2) return;
+    if (v.cls === 'ambulance') {
+      const target = v.conn ? this.net.connectors[v.conn].inLane : null;
+      if (target === null || target === v.seg.lane || link.length - v.s > 120) {
+        this.evLaneChoice(v);
+        return;
+      }
+    }
     const D = link.length - v.s;
     const target = v.conn ? this.net.connectors[v.conn].inLane : null;
     let mandatoryDir = 0;
@@ -729,11 +878,15 @@ export class Engine {
 
   // ------------------------------------------------------------------ step
 
+  /** emergency vehicles currently driving (refreshed every step) */
+  private evList: number[] = [];
+
   step(): void {
     const st = this.state;
     st.t = Math.round((st.t + DT) * 1000) / 1000;
     st.tick++;
     this.spawnDemand();
+    this.evList = st.order.filter((id) => st.vehicles[id].cls === 'ambulance' && st.vehicles[id].mode !== 'arrived');
 
     // 1. accelerations from a consistent snapshot of positions
     const ids = st.order;

@@ -56,6 +56,8 @@ const MARKER_KINDS: Record<string, Marker['tone']> = {
   'incident-resolved': 'ok',
   'inject-rejected': 'info',
   'inject-accepted': 'critical',
+  'ev-dispatched': 'critical',
+  'ev-arrived': 'ok',
 };
 
 class Controller {
@@ -184,6 +186,14 @@ class Controller {
     }
     if (mode === 'incident') {
       if (!this.focusIncident()) rig.setMode('overview');
+      return;
+    }
+    if (mode === 'emergency') {
+      if (!this.evTarget()) {
+        rig.setMode('overview');
+        return;
+      }
+      rig.setMode('emergency', () => this.evTarget());
       return;
     }
     rig.setMode(mode);
@@ -393,6 +403,28 @@ class Controller {
     this.afterIntervention();
   }
 
+  /** Emergency dispatch from the hospital to the medical call. */
+  dispatchAmbulance(): void {
+    this.session.intervene('dispatch', { from: 'hospital', to: 'scene' }, this.session.t);
+    this.afterIntervention();
+    // the ambulance exists from the next step; follow it
+    const rec = dmFor(this.engine).s.ev;
+    if (rec && this.engine.state.vehicles[rec.id]) {
+      useStore.getState().select({ kind: 'vehicle', id: rec.id });
+      this.setCamMode('emergency');
+    }
+  }
+
+  /** Interpolated world pose of the active ambulance for the emergency camera. */
+  private evTarget(): FollowTarget | null {
+    const rec = dmFor(this.engine).s.ev;
+    if (!rec || !this.vehicles) return null;
+    const p = this.vehicles.pose(rec.id, this.alpha());
+    if (!p) return null;
+    const v = this.engine.state.vehicles[rec.id];
+    return { x: p.x, y: 0, z: -p.y, heading: p.h, speed: v ? v.v : 0 };
+  }
+
   /** Remove every scenario trigger and start again from the beginning. */
   resetScenario(): void {
     this.session.removeInterventions((iv) => iv.kind !== 'density');
@@ -424,6 +456,30 @@ class Controller {
     this.vehicles?.refresh(this.engine, true);
     this.publishClock();
     this.publishFrames();
+  }
+
+  /** Points along the ambulance's remaining route, ahead of it, for the corridor ribbon. */
+  private corridorPath(): Array<{ x: number; y: number }> | null {
+    const rec = dmFor(this.engine).s.ev;
+    if (!rec || rec.arrivedAt !== null || !useStore.getState().overlays.v2x) return null;
+    const v = this.engine.state.vehicles[rec.id];
+    if (!v || !this.vehicles) return null;
+    const net = getNetwork();
+    const pts: Array<{ x: number; y: number }> = [];
+    const p0 = this.vehicles.pose(rec.id, this.alpha());
+    if (p0) pts.push({ x: p0.x, y: p0.y });
+    let budget = 360;
+    const cur = v.seg.k === 'L' ? v.seg.id : net.connectors[v.seg.id].outLink;
+    const start = Math.max(0, v.route.indexOf(cur));
+    for (let i = start; i < v.route.length && budget > 0; i++) {
+      const l = net.links[v.route[i]];
+      const from = i === start && v.seg.k === 'L' ? v.s : 0;
+      const to = Math.min(l.length, from + budget);
+      const off = l.laneOffsets[0];
+      for (let s = from; s <= to; s += 6) pts.push({ x: l.start.x + l.dir.x * s + l.right.x * off, y: l.start.y + l.dir.y * s + l.right.y * off });
+      budget -= to - from;
+    }
+    return pts;
   }
 
   centroid(junctions: string[]): { x: number; y: number } {
@@ -498,9 +554,10 @@ class Controller {
     let stats = null;
     if (this.world && st.view === 'twin') {
       this.city?.setDark(this.engine.state.road.dark);
-      this.city?.update(this.renderT);
+      this.city?.update(this.renderT, (j) => this.engine.signal(j));
       this.overlays?.setCameraDistance(this.world.rig.pose.dist);
       this.overlays?.update(this.engine.state.road.dark, dmFor(this.engine).s.pulses, this.renderT, wall);
+      this.overlays?.updateCorridor(this.corridorPath());
       this.vehicles?.setCameraDistance(this.world.rig.pose.dist);
       this.vehicles?.draw(this.engine, this.alpha(), wall);
       stats = this.world.frame(dt);

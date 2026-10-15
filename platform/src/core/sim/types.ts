@@ -114,6 +114,9 @@ export interface Vehicle {
   laneChanges: number;
   /** last junction gate decision, for change-only logging */
   lastGate: string;
+  /** emergency vehicle encounter: when it first became aware, and the outcome logged for which vehicle */
+  evAware: number;
+  evYield: string;
 }
 
 export interface TripRecord {
@@ -164,6 +167,8 @@ export interface Closure {
 export interface RoadPhysical {
   dark: string[]; // junctions whose signal controllers have failed
   closures: Closure[]; // cones and barriers physically on the road
+  /** emergency signal pre-emption granted per junction */
+  preempt: Record<string, { inLink: string; since: number; wasGreen: boolean; basePhase: number }>;
 }
 
 export interface SimState {

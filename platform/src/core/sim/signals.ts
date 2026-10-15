@@ -3,20 +3,43 @@ import type { JunctionDef, Turn } from '../network/types';
 /* Fixed-time signal plans evaluated as pure functions of simulation time, so the renderer and the
    simulation always agree on what each signal shows. A junction whose controller has failed shows
    nothing (DARK). Aspects are per movement: an approach can show a green arrow for its left-turn
-   lane while its through lanes are red. */
+   lane while its through lanes are red.
+
+   Emergency pre-emption (a common infrastructure capability, requested by the coordination layer
+   under policy C): the running phase ends through its normal amber and all-red, then the emergency
+   vehicle's approach gets green until the request is released. */
 
 export type Aspect = 'G' | 'A' | 'R' | 'DARK';
+
+export interface Preempt {
+  inLink: string; // the emergency vehicle's approach
+  since: number; // simulation time the request was granted
+  wasGreen: boolean; // the approach already had green when the request arrived
+  basePhase: number; // phase running when the request arrived
+}
 
 export interface SignalState {
   phase: number; // index of the phase currently running (green, amber, or the all-red after it)
   interval: 'green' | 'amber' | 'allred';
   remaining: number; // seconds left in the interval
   dark: boolean;
+  pre?: { inLink: string; basePhase: number; stage: 'amber' | 'clear' | 'green' };
 }
 
-export function signalState(j: JunctionDef, t: number, dark = false): SignalState {
+export function signalState(j: JunctionDef, t: number, dark = false, pre?: Preempt): SignalState {
   if (dark) return { phase: -1, interval: 'allred', remaining: Infinity, dark: true };
   const plan = j.plan;
+  if (pre) {
+    const age = t - pre.since;
+    const stage = pre.wasGreen ? 'green' : age < plan.amber ? 'amber' : age < plan.amber + plan.allRed ? 'clear' : 'green';
+    return {
+      phase: -2,
+      interval: stage === 'amber' ? 'amber' : stage === 'clear' ? 'allred' : 'green',
+      remaining: Infinity,
+      dark: false,
+      pre: { inLink: pre.inLink, basePhase: pre.basePhase, stage },
+    };
+  }
   let local = (t + plan.offset) % plan.cycle;
   if (local < 0) local += plan.cycle;
   for (let i = 0; i < plan.phases.length; i++) {
@@ -32,7 +55,7 @@ export function signalState(j: JunctionDef, t: number, dark = false): SignalStat
   return { phase: 0, interval: 'green', remaining: 0, dark: false };
 }
 
-function phaseServes(j: JunctionDef, phase: number, inLink: string, turn: Turn): boolean {
+export function phaseServes(j: JunctionDef, phase: number, inLink: string, turn: Turn): boolean {
   const p = j.plan.phases[phase];
   return !!p && p.moves.some((m) => m.inLink === inLink && m.turns.includes(turn));
 }
@@ -40,6 +63,11 @@ function phaseServes(j: JunctionDef, phase: number, inLink: string, turn: Turn):
 /** Aspect shown to a movement (incoming link and turn) in a given signal state. */
 export function aspectFor(j: JunctionDef, st: SignalState, inLink: string, turn: Turn): Aspect {
   if (st.dark) return 'DARK';
+  if (st.pre) {
+    if (st.pre.stage === 'green') return inLink === st.pre.inLink ? 'G' : 'R';
+    if (st.pre.stage === 'amber') return phaseServes(j, st.pre.basePhase, inLink, turn) ? 'A' : 'R';
+    return 'R';
+  }
   if (!phaseServes(j, st.phase, inLink, turn)) return 'R';
   return st.interval === 'green' ? 'G' : st.interval === 'amber' ? 'A' : 'R';
 }

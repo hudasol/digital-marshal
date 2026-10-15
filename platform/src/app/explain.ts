@@ -35,6 +35,9 @@ export function logText(t: T, e: LogEntry): string {
   const key = `log.${e.code}` as I18nKey;
   const p: Record<string, string | number> = {};
   for (const [k, v] of Object.entries(e.p)) p[k] = typeof v === 'number' ? Math.round(v * 10) / 10 : String(v);
+  if (e.code === 'YIELD_INFEASIBLE' && typeof e.p.reason === 'string') {
+    p.reason = t(`yield.${e.p.reason}` as I18nKey, { by: String(e.p.by ?? ''), gap: Number(e.p.gap ?? 0) });
+  }
   return t(key, p);
 }
 

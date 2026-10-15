@@ -172,6 +172,7 @@ export function App() {
   const rightOpen = useStore((s) => s.rightOpen);
   const selection = useStore((s) => s.selection);
   const hasIncidents = useStore((s) => (s.dm?.incidents.length ?? 0) > 0);
+  const evActive = useStore((s) => !!s.dm?.ev?.active);
   const markers = useStore((s) => s.markers);
 
   // language and direction on the document element
@@ -228,7 +229,7 @@ export function App() {
       <Header />
       {view === 'twin' && (
         <>
-          <CameraToolbar available={{ incident: hasIncidents, follow: selection?.kind === 'vehicle', emergency: false }} />
+          <CameraToolbar available={{ incident: hasIncidents, follow: selection?.kind === 'vehicle', emergency: evActive }} />
           <SidePanel side="left" title={t('panel.ops')}>
             <div id="main-controls" />
             <ScenarioPanel />

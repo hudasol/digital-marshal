@@ -4,7 +4,42 @@ import { useT, type I18nKey } from '../i18n';
 import { Icon } from './Icons';
 import { Section } from './SidePanel';
 import { controller, formatClock, formatRel } from '../controller';
-import type { DmFrame, IncidentFrame, MessageView, VehicleDmView } from '../dmframes';
+import type { DmFrame, EvFrame, IncidentFrame, MessageView, VehicleDmView } from '../dmframes';
+
+export function EvMission({ ev }: { ev: EvFrame }) {
+  const t = useT();
+  const total = ev.obstructed.vehicle + ev.obstructed.signal + ev.obstructed.junction + ev.obstructed.other;
+  return (
+    <div className={`now tone-${ev.active ? 'critical' : 'ok'}`}>
+      <div className="now-label">
+        {t('ev.mission')} {'\u00b7'} {ev.tag} {ev.active ? '' : `\u00b7 ${t('ev.arrived')}`}
+      </div>
+      <div className="kv small" style={{ marginTop: 6 }}>
+        <span>{ev.active ? t('ev.elapsed') : t('ev.travel')}</span>
+        <b className="num">{ev.elapsed.toFixed(0)} s</b>
+        <span>{t('ev.ffT')}</span>
+        <b className="num">{ev.ffT.toFixed(0)} s</b>
+        {!ev.active && (
+          <>
+            <span>{t('ev.delay')}</span>
+            <b className="num">{(ev.elapsed - ev.ffT).toFixed(1)} s</b>
+          </>
+        )}
+        <span>{t('ev.obstructed')}</span>
+        <b className="num">
+          {total.toFixed(0)} s{' '}
+          <span className="muted">
+            ({t('ev.obs.vehicle')} {ev.obstructed.vehicle.toFixed(0)} {'\u00b7'} {t('ev.obs.signal')} {ev.obstructed.signal.toFixed(0)})
+          </span>
+        </b>
+        <span>{t('ev.yields')}</span>
+        <b>{t('ev.yieldsText', { ok: ev.yields.ok, no: ev.yields.infeasible })}</b>
+        <span>{t('ev.preempts')}</span>
+        <b className="num">{ev.preempts}</b>
+      </div>
+    </div>
+  );
+}
 
 function statusChip(t: ReturnType<typeof useT>, status: string) {
   const cls = status === 'active' ? 'red' : status === 'resolved' ? 'green' : 'muted';
@@ -15,6 +50,7 @@ export function DmOverview({ dm }: { dm: DmFrame }) {
   const t = useT();
   return (
     <Section title={t('dm.title')} extra={<span className="chip cyan">{t('dm.policy')} {dm.policy}</span>}>
+      {dm.ev && <EvMission ev={dm.ev} />}
       <div className="mini-title">{t('dm.incidents')}</div>
       {dm.incidents.length === 0 ? (
         <p className="note">{t('dm.none')}</p>

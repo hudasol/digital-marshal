@@ -157,6 +157,24 @@ export interface Pulse {
   ref: string;
 }
 
+export interface EvRecord {
+  id: number;
+  tag: string;
+  from: string;
+  to: string;
+  dispatchedAt: number;
+  arrivedAt: number | null;
+  /** travel time with the road to itself at the ambulance's own desired speed, s */
+  ffT: number;
+  incidentId: string;
+  route: string[];
+  /** seconds the ambulance was held below 80% of its desired speed, by cause */
+  obstructed: { vehicle: number; signal: number; junction: number; other: number };
+  yields: { ok: number; infeasible: number; byReason: Record<string, number> };
+  preempts: number;
+  lastUpdate: number;
+}
+
 export interface DmParams {
   policy: Policy;
   detectionDelay: number; // s from controller failure to detection
@@ -199,6 +217,9 @@ export interface DmState {
   pendingKeys: Record<string, true>; // `${veh}|${msgId}` deliveries in flight
   lastAdvice: number;
   lastRefresh: Record<string, number>;
+  /** the current (or last) emergency run */
+  ev: EvRecord | null;
+  evRuns: EvRecord[];
   /** cumulative reach per incident: vehicles that received, accepted or rejected any of its messages */
   reach: Record<string, { received: Record<string, true>; accepted: Record<string, true>; rejected: Record<string, true> }>;
   stats: {

@@ -108,11 +108,11 @@ export class CityRenderer {
     this.darkJunctions = new Set(junctions);
   }
 
-  /** Update live elements for simulation time t. */
-  update(t: number): void {
+  /** Update live elements for simulation time t; `stateOf` supplies the simulation's own signal state. */
+  update(t: number, stateOf?: (jid: string) => SignalState): void {
     const states: Record<string, SignalState> = {};
     for (const jid of this.net.junctionIds) {
-      states[jid] = signalState(this.net.junctions[jid], t, this.darkJunctions.has(jid));
+      states[jid] = stateOf ? stateOf(jid) : signalState(this.net.junctions[jid], t, this.darkJunctions.has(jid));
     }
     this.furniture.setAspects((jid, inLink, turn) => aspectFor(this.net.junctions[jid], states[jid], inLink, turn), false);
     // roadside units: a slow breathing glow, dark when their junction has lost power

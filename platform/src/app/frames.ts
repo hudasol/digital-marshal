@@ -48,6 +48,7 @@ export interface VehicleFrame {
   laneChanges: number;
   exited: boolean;
   lengthM: number;
+  inJunction: boolean;
 }
 
 export function networkFrame(e: Engine): NetworkFrame {
@@ -117,7 +118,7 @@ export function vehicleFrame(e: Engine, id: number, last: VehicleFrame | null): 
     lane: v.seg.lane,
     lanes: link ? link.lanes : 1,
     bind: v.bind,
-    origin: (origin && net.nodes[origin]?.label) || origin || net.links[v.route[0]]?.from || '',
+    origin: (origin && (net.nodes[origin]?.label ?? net.places[origin]?.label)) || origin || net.links[v.route[0]]?.from || '',
     dest: v.dest,
     destLabel: destNode ? destNode.label : net.places[v.dest]?.label ?? v.dest,
     route: v.route.map((l, i) => ({
@@ -136,5 +137,6 @@ export function vehicleFrame(e: Engine, id: number, last: VehicleFrame | null): 
     laneChanges: v.laneChanges,
     exited: false,
     lengthM: CLASSES[v.cls].len,
+    inJunction: !onLink,
   };
 }

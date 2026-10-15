@@ -6,7 +6,7 @@ import { bindText, bindTone, fmtDuration, logText } from '../explain';
 import { controller, formatRel } from '../controller';
 import type { NetworkFrame, VehicleFrame } from '../frames';
 import type { VehicleClass } from '../../core/sim/types';
-import { DmOverview, IncidentInspector, VehicleDmSection } from './IncidentInspector';
+import { DmOverview, EvMission, IncidentInspector, VehicleDmSection } from './IncidentInspector';
 
 const CLASS_COLOR: Record<VehicleClass, string> = {
   robotaxi: '#45d4e8',
@@ -101,6 +101,7 @@ export function VehicleInspector({ v }: { v: VehicleFrame }) {
   const t = useT();
   const select = useStore((s) => s.select);
   const vdm = useStore((s) => s.vehicleDm);
+  const evFrame = useStore((s) => s.dm?.ev ?? null);
   const camMode = useStore((s) => s.camMode);
   const tone = v.exited ? 'info' : bindTone(v.bind.kind);
   const junctionSteps = v.route.slice(0, -1);
@@ -134,7 +135,8 @@ export function VehicleInspector({ v }: { v: VehicleFrame }) {
         <div className="now-text">{v.exited ? t('veh.exited') : bindText(t, v.bind, v.speedKmh)}</div>
       </div>
 
-      <VehicleDmSection d={vdm} connected={v.connected} />
+      {v.cls === 'ambulance' && evFrame && evFrame.id === v.id && <EvMission ev={evFrame} />}
+      {v.cls !== 'ambulance' && <VehicleDmSection d={vdm} connected={v.connected} />}
 
       <Section title={t('veh.motion')}>
         <div className="kv">
@@ -145,7 +147,7 @@ export function VehicleInspector({ v }: { v: VehicleFrame }) {
           <span>{t('veh.road')}</span>
           <b>{v.road}</b>
           <span>{t('veh.lane')}</span>
-          <b className="num">{t('veh.laneOf', { lane: v.lane + 1, lanes: v.lanes })}</b>
+          <b className="num">{v.inJunction ? '\u2014' : t('veh.laneOf', { lane: v.lane + 1, lanes: v.lanes })}</b>
         </div>
       </Section>
 

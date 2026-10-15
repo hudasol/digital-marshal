@@ -1,7 +1,8 @@
 import type { Engine } from '../sim/engine';
 import type { Vehicle } from '../sim/types';
 import { DT, DARK_JUNCTION_PENALTY } from '../sim/params';
-import { planRoute, junctionsOf, type RouteOptions } from '../sim/router';
+import { planRoute, junctionsOf, connectorsBetween, type RouteOptions } from '../sim/router';
+import { aspectFor, signalState } from '../sim/signals';
 import { connectorPose, lanePose } from '../network/geometry';
 import { makeRng, rand, randRange } from '../rng';
 import { digestHex, sign, signedBytes } from './crypto';
@@ -95,6 +96,8 @@ export function initDmState(params: DmParams, seed: number): DmState {
     lastAdvice: -Infinity,
     lastRefresh: {},
     reach: {},
+    ev: null,
+    evRuns: [],
   };
 }
 
@@ -109,6 +112,8 @@ export class DigitalMarshal {
     engine.hooks.authorized = (v, j) => this.authorized(v, j);
     engine.hooks.onMrc = (v, j) => this.onMrc(v, j);
     engine.hooks.onExit = (v) => this.onExit(v);
+    engine.hooks.evInformed = (v, ev) => this.evInformed(v, ev);
+    engine.hooks.onYield = (v, ev, ok, reason) => this.onYield(v, ev, ok, reason);
     engine.hooks.afterStep = () => {
       prevAfter?.();
       this.tick();
@@ -136,6 +141,7 @@ export class DigitalMarshal {
     if (!added.length) return;
     road.dark.push(...added);
     road.dark.sort();
+    this.engine.invalidateSignals();
     this.engine.event('power-loss', 'critical', added.join(' '), { junctions: added.join(', ') });
     this.s.pending.push({ at: this.now + this.s.params.detectionDelay, kind: 'detect_outage', params: { junctions: added } });
   }
@@ -146,6 +152,7 @@ export class DigitalMarshal {
     const removed = junctions.filter((j) => st.road.dark.includes(j));
     if (!removed.length) return;
     st.road.dark = st.road.dark.filter((j) => !removed.includes(j));
+    this.engine.invalidateSignals();
     for (const j of removed) {
       const q = st.awsc[j] ?? [];
       for (const e of q) {
@@ -156,6 +163,163 @@ export class DigitalMarshal {
     }
     this.engine.event('power-restored', 'ok', removed.join(' '), { junctions: removed.join(', ') });
     this.s.pending.push({ at: this.now + this.s.params.detectionDelay, kind: 'detect_restore', params: { junctions: removed } });
+  }
+
+  // ================================================================== emergency vehicle
+
+  /** Emergency dispatch: an ambulance leaves the hospital for a call. Returns false if it cannot start now. */
+  dispatch(from: string, to: string): boolean {
+    const net = this.engine.net;
+    const place = net.places[from];
+    if (!place) return false;
+    const ev = this.engine.makeVehicle('ambulance', to, place.link, place.lane);
+    if (!ev) return false;
+    if (!this.engine.place(ev, place.link, place.lane, place.s, 0)) {
+      // the access point is occupied right now: try again shortly
+      this.engine.state.nextId--; // keep ids dense when the placement is retried
+      this.s.pending.push({ at: this.now + 1, kind: 'dispatch', params: { from, to } });
+      return false;
+    }
+    const ffT = this.evFreeFlow(ev.route);
+    const inc = this.newIncident(
+      'emergency_corridor',
+      { links: [...ev.route] },
+      `Emergency corridor for ${ev.tag}`,
+      `Dispatch request from EMS-DISPATCH: ${ev.tag} from ${place.label} to ${net.places[to]?.label ?? to}`,
+    );
+    inc.issuer = 'DM-TMC';
+    this.s.ev = {
+      id: ev.id,
+      tag: ev.tag,
+      from,
+      to,
+      dispatchedAt: this.now,
+      arrivedAt: null,
+      ffT,
+      incidentId: inc.id,
+      route: [...ev.route],
+      obstructed: { vehicle: 0, signal: 0, junction: 0, other: 0 },
+      yields: { ok: 0, infeasible: 0, byReason: {} },
+      preempts: 0,
+      lastUpdate: this.now,
+    };
+    this.engine.log(ev, 'SPAWN', { from, to, waited: 0 });
+    this.engine.log(ev, 'ROUTE', { to, links: ev.route.length, ff: Math.round(ffT) });
+    this.engine.event('ev-dispatched', 'critical', ev.tag, { incident: inc.id, to: net.places[to]?.label ?? to });
+    this.publish(inc, 'EMERGENCY_CORRIDOR', { ev: ev.tag, route: [...ev.route] }, `Emergency vehicle ${ev.tag} approaching on this route: keep its lane clear where it is safe`, 5, 600);
+    return true;
+  }
+
+  private evFreeFlow(route: string[]): number {
+    const net = this.engine.net;
+    let t = 0;
+    for (let i = 0; i < route.length; i++) {
+      const l = net.links[route[i]];
+      t += l.length / Math.min(22, l.speed * 1.35);
+      if (i > 0) {
+        const c = connectorsBetween(net, route[i - 1], route[i])[0];
+        if (c) t += net.connectors[c].length / net.connectors[c].speedLimit;
+      }
+    }
+    return t;
+  }
+
+  private evInformed(v: Vehicle, ev: Vehicle): boolean {
+    const rec = this.s.ev;
+    if (!rec || rec.id !== ev.id || !v.connected) return false;
+    const k = this.s.knowledge[v.id];
+    return !!k?.incidents[rec.incidentId]?.active;
+  }
+
+  private onYield(_v: Vehicle, ev: Vehicle, ok: boolean, reason: string): void {
+    const rec = this.s.ev;
+    if (!rec || rec.id !== ev.id) return;
+    if (ok) rec.yields.ok++;
+    else {
+      rec.yields.infeasible++;
+      rec.yields.byReason[reason] = (rec.yields.byReason[reason] ?? 0) + 1;
+    }
+  }
+
+  /** Corridor upkeep, signal priority (policy C), obstruction accounting and arrival. */
+  private evTick(): void {
+    const rec = this.s.ev;
+    const st = this.engine.state;
+    const net = this.engine.net;
+    if (!rec || rec.arrivedAt !== null) {
+      // release any pre-emption that outlived its vehicle
+      if (Object.keys(st.road.preempt).length) {
+        st.road.preempt = {};
+        this.engine.invalidateSignals();
+      }
+      return;
+    }
+    const ev = st.vehicles[rec.id];
+    const inc = this.s.incidents[rec.incidentId];
+    if (!ev) return;
+    if (ev.mode === 'arrived') {
+      rec.arrivedAt = this.now;
+      st.road.preempt = {};
+      this.engine.invalidateSignals();
+      if (inc) {
+        inc.version++;
+        inc.updatedAt = this.now;
+        this.publish(inc, 'CORRIDOR_CLEARED', { ev: ev.tag }, `${ev.tag} has arrived; corridor no longer needed`, 1, 300);
+        inc.status = 'resolved';
+        inc.resolvedAt = this.now;
+      }
+      this.s.evRuns.push(structuredClone(rec));
+      this.engine.event('ev-arrived', 'ok', ev.tag, { travel: Math.round(this.now - rec.dispatchedAt), ff: Math.round(rec.ffT) });
+      return;
+    }
+    // obstruction: held below 80% of its desired speed, by what binds it
+    const limit = ev.seg.k === 'L' ? net.links[ev.seg.id].speed : net.connectors[ev.seg.id].speedLimit;
+    const v0 = Math.min(22, limit * ev.p.vf);
+    if (ev.v < 0.8 * v0) {
+      const k = ev.bind.kind;
+      const cat = k === 'leader' ? 'vehicle' : k === 'signal' || k === 'awsc' ? 'signal' : k === 'box' || k === 'exit' ? 'junction' : k === 'free' || k === 'curve' || k === 'arrive' ? null : 'other';
+      if (cat) rec.obstructed[cat] += DT;
+    }
+    // corridor message: remaining route, refreshed as the ambulance progresses
+    if (inc && this.now - rec.lastUpdate >= 10 - 1e-9) {
+      rec.lastUpdate = this.now;
+      const cur = ev.seg.k === 'L' ? ev.seg.id : net.connectors[ev.seg.id].outLink;
+      const rest = ev.route.slice(Math.max(0, ev.route.indexOf(cur)));
+      inc.area = { links: rest };
+      inc.version++;
+      inc.updatedAt = this.now;
+      this.publish(inc, 'EMERGENCY_CORRIDOR', { ev: ev.tag, route: rest }, `Emergency vehicle ${ev.tag} approaching on this route: keep its lane clear where it is safe`, 5, 600);
+    }
+    // policy C: request signal priority for the next junction when the ambulance is close
+    if (this.policy === 'C' && ev.seg.k === 'L') {
+      const link = net.links[ev.seg.id];
+      const j = link.to;
+      if (link.endsAtJunction && !st.road.dark.includes(j) && !st.road.preempt[j] && ev.conn) {
+        const D = link.length - ev.s;
+        if (D / Math.max(ev.v, 6) < 22) {
+          const jd = net.junctions[j];
+          const base = signalState(jd, this.now);
+          const turn = net.connectors[ev.conn].turn;
+          st.road.preempt[j] = { inLink: link.id, since: this.now, wasGreen: aspectFor(jd, base, link.id, turn) === 'G', basePhase: base.phase };
+          rec.preempts++;
+          this.engine.invalidateSignals();
+          this.engine.event('ev-preempt', 'info', j, { ev: ev.tag });
+        }
+      }
+    }
+    // release pre-emption once the ambulance has left that approach
+    for (const j of Object.keys(st.road.preempt)) {
+      const p = st.road.preempt[j];
+      if (ev.seg.k === 'L' && ev.seg.id !== p.inLink) {
+        delete st.road.preempt[j];
+        this.engine.invalidateSignals();
+      }
+    }
+    // requests from vehicles stopped on the ambulance's remaining route are emergency-critical
+    const routeJunctions = new Set(ev.route.slice(Math.max(0, ev.ri)).map((l) => net.links[l].to));
+    for (const e of Object.values(this.s.exceptions)) {
+      if (e.status === 'open' || e.status === 'in_progress') e.emergencyRoute = routeJunctions.has(e.junction);
+    }
   }
 
   // ================================================================== incident management
@@ -804,7 +968,7 @@ export class DigitalMarshal {
     // repetition and refresh of active messages
     for (const incId of Object.keys(s.incidents)) {
       const inc = s.incidents[incId];
-      if (inc.status !== 'active' || !inc.messages.length) continue;
+      if (inc.status !== 'active' || !inc.messages.length || inc.type === 'emergency_corridor') continue;
       const lastId = this.latestIncidentMessage(inc);
       if (!lastId) continue;
       if (this.policy !== 'A' && now - (s.lastBroadcast[lastId] ?? -Infinity) >= s.params.repeatEvery - 1e-9) this.broadcast(s.messages[lastId]);
@@ -818,6 +982,9 @@ export class DigitalMarshal {
       s.lastAdvice = now;
       this.adviseDetours();
     }
+
+    // emergency corridor
+    this.evTick();
 
     // remote assistance
     this.reviewExceptions();
@@ -849,6 +1016,10 @@ export class DigitalMarshal {
 
   private runAction(a: { kind: string; params: Record<string, unknown> }): void {
     const st = this.engine.state;
+    if (a.kind === 'dispatch') {
+      this.dispatch(String(a.params.from), String(a.params.to));
+      return;
+    }
     if (a.kind === 'detect_outage') {
       const js = (a.params.junctions as string[]).filter((j) => st.road.dark.includes(j));
       if (!js.length) return;

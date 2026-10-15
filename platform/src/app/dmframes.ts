@@ -15,6 +15,21 @@ export interface IncidentSummary {
   links: string[];
 }
 
+export interface EvFrame {
+  id: number;
+  tag: string;
+  active: boolean;
+  dispatchedAt: number;
+  arrivedAt: number | null;
+  elapsed: number;
+  ffT: number;
+  obstructed: { vehicle: number; signal: number; junction: number; other: number };
+  yields: { ok: number; infeasible: number; byReason: Record<string, number> };
+  preempts: number;
+  route: string[];
+  incidentId: string;
+}
+
 export interface DmFrame {
   policy: Policy;
   incidents: IncidentSummary[];
@@ -24,6 +39,7 @@ export interface DmFrame {
   stats: { published: number; delivered: number; lost: number; rejected: number; flagged: number; meanLatencyMs: number; mrcVehicleSeconds: number; operatorBusy: number; reroutes: number };
   mrcNow: number;
   dark: string[];
+  ev: EvFrame | null;
 }
 
 export interface MessageView {
@@ -105,6 +121,22 @@ export function dmFrame(e: Engine): DmFrame {
     },
     mrcNow,
     dark: [...e.state.road.dark],
+    ev: s.ev
+      ? {
+          id: s.ev.id,
+          tag: s.ev.tag,
+          active: s.ev.arrivedAt === null,
+          dispatchedAt: s.ev.dispatchedAt,
+          arrivedAt: s.ev.arrivedAt,
+          elapsed: (s.ev.arrivedAt ?? e.state.t) - s.ev.dispatchedAt,
+          ffT: s.ev.ffT,
+          obstructed: { ...s.ev.obstructed },
+          yields: { ok: s.ev.yields.ok, infeasible: s.ev.yields.infeasible, byReason: { ...s.ev.yields.byReason } },
+          preempts: s.ev.preempts,
+          route: [...s.ev.route],
+          incidentId: s.ev.incidentId,
+        }
+      : null,
   };
 }
 
