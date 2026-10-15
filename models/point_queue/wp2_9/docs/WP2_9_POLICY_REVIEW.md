@@ -37,6 +37,8 @@ Exploratory comparison at the frozen timing (coordinated improvement over each, 
 | primary_half_capacity | 2.10 | 1.20 | 1.20 | 0.27 |
 | primary_double_capacity | 0.00 | 0.00 | 0.00 | 0.00 |
 
+Scope: these exploratory results do not replace the frozen `independent_periodic` comparator and do not decide the confirmatory pass or fail. The B-05 limitation (coordinated_batch is a restricted optimiser, not proven globally optimal) and the B-06 limitation (the frozen comparator has intentionally weak peer information, which can overstate the value of coordination relative to the peer aware baseline) stand.
+
 Reading: in this synthetic model most of the benefit of coordination over the frozen independent policy is obtained by letting vehicles see their peers' commitments. This is exploratory screening, not a PASS/FAIL result.
 
 ## 4. Correction to the earlier review
