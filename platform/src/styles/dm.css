@@ -773,3 +773,37 @@ html[lang='ar'] .tour-badge {
   gap: 6px;
   justify-content: flex-end;
 }
+
+/* engineering inspector */
+.eng-status {
+  color: var(--text-2);
+  margin-top: -10px;
+}
+.eng-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.eng-head h2 {
+  margin: 0;
+}
+.eng-head .seg {
+  width: auto;
+}
+.eng-exports {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+table.data td.ok {
+  color: var(--green);
+}
+table.data td.bad {
+  color: var(--red);
+}
+table.data tr.click {
+  cursor: pointer;
+}

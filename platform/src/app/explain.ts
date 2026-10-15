@@ -1,5 +1,5 @@
 import type { Bind, LogEntry } from '../core/sim/types';
-import type { I18nKey } from './i18n';
+import { hasKey, type I18nKey } from './i18n';
 
 type T = (key: I18nKey, params?: Record<string, string | number>) => string;
 
@@ -31,14 +31,49 @@ export function bindText(t: T, b: Bind, speedKmh: number): string {
   }
 }
 
+/** A recorded reason or channel word in the reader's language (codes without a translation stay as they are). */
+export function why(t: T, value: string): string {
+  const key = `why.${value}`;
+  return hasKey(key) ? t(key as I18nKey) : value;
+}
+
+/** A named place (hospital access, the medical call) in the reader's language. */
+export function placeName(t: T, id: string, fallback: string): string {
+  const key = `place.${id}`;
+  return hasKey(key) ? t(key as I18nKey) : fallback;
+}
+
 export function logText(t: T, e: LogEntry): string {
   const key = `log.${e.code}` as I18nKey;
   const p: Record<string, string | number> = {};
   for (const [k, v] of Object.entries(e.p)) p[k] = typeof v === 'number' ? Math.round(v * 10) / 10 : String(v);
   if (e.code === 'YIELD_INFEASIBLE' && typeof e.p.reason === 'string') {
     p.reason = t(`yield.${e.p.reason}` as I18nKey, { by: String(e.p.by ?? ''), gap: Number(e.p.gap ?? 0) });
+  } else if ((e.code === 'REROUTE' || e.code === 'NO_ALTERNATIVE' || e.code === 'LANE_CHANGE' || e.code === 'MRC') && typeof e.p.reason === 'string') {
+    p.reason = why(t, e.p.reason);
   }
+  if (e.code === 'YIELD' && typeof e.p.via === 'string') p.via = why(t, e.p.via);
+  if (e.code === 'ASSIST_GRANTED' && typeof e.p.by === 'string') p.by = why(t, e.p.by);
+  if (e.code === 'ARRIVED' && typeof e.p.place === 'string') p.place = placeName(t, e.p.place, e.p.place);
   return t(key, p);
+}
+
+/** Exception resolutions are recorded as fixed sentences by the core; show them in the reader's language. */
+export function resolutionText(t: T, r: string): string {
+  let m: RegExpMatchArray | null;
+  if (r === 'Individual authorisation by an operator') return t('res.individual');
+  if ((m = r.match(/^Covered by junction authorisation (M-[0-9a-f]+)$/))) return t('res.covered', { msg: m[1] });
+  if ((m = r.match(/^Junction authorisation (M-[0-9a-f]+)$/))) return t('res.junction', { msg: m[1] });
+  if (r === 'Vehicle left the district') return t('res.left');
+  if (r === 'Released') return t('res.released');
+  if (r === 'Signals restored before an operator was free') return t('res.restored');
+  return r;
+}
+
+/** Validation check names (the details stay technical). */
+export function checkName(t: T, name: string): string {
+  const key = `chk.${name.toLowerCase().replace(/[^a-z]+/g, '_').replace(/^_|_$/g, '')}`;
+  return hasKey(key) ? t(key as I18nKey) : name;
 }
 
 export function bindTone(kind: Bind['kind']): 'ok' | 'info' | 'warn' | 'critical' {

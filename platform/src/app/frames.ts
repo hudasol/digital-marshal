@@ -36,6 +36,9 @@ export interface VehicleFrame {
   lanes: number;
   bind: Bind;
   origin: string;
+  /** named places (hospital access, medical call) by id, so the interface can name them in its language */
+  originPlace?: string;
+  destPlace?: string;
   dest: string;
   destLabel: string;
   route: Array<{ link: string; road: string; to: string; done: boolean; current: boolean }>;
@@ -119,6 +122,8 @@ export function vehicleFrame(e: Engine, id: number, last: VehicleFrame | null): 
     lanes: link ? link.lanes : 1,
     bind: v.bind,
     origin: (origin && (net.nodes[origin]?.label ?? net.places[origin]?.label)) || origin || net.links[v.route[0]]?.from || '',
+    originPlace: origin && net.places[origin] ? origin : undefined,
+    destPlace: net.places[v.dest] ? v.dest : undefined,
     dest: v.dest,
     destLabel: destNode ? destNode.label : net.places[v.dest]?.label ?? v.dest,
     route: v.route.map((l, i) => ({

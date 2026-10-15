@@ -3,6 +3,8 @@ import { useT, type I18nKey } from '../i18n';
 import { formatClock } from '../controller';
 import { controller } from '../controller';
 import type { SimEvent } from '../../core/sim/types';
+import { placeName } from '../explain';
+import { getNetwork } from '../../core/network/build';
 
 const SHOWN = new Set([
   'power-loss',
@@ -33,6 +35,11 @@ export function eventText(t: ReturnType<typeof useT>, e: SimEvent): string {
   const p: Record<string, string | number> = { ref: e.ref ?? '' };
   for (const [k, v] of Object.entries(e.p ?? {})) p[k] = typeof v === 'number' ? Math.round(v * 10) / 10 : String(v);
   if (p.stage === 'lane' || p.stage === 'full') p.stage = t(`rw.stage.${p.stage}` as I18nKey);
+  if (p.kind === 'individual' || p.kind === 'group') p.kind = t(`ev.kind.${p.kind}` as I18nKey);
+  if (e.kind === 'ev-dispatched' && typeof p.to === 'string') {
+    const place = Object.values(getNetwork().places).find((x) => x.label === p.to);
+    if (place) p.to = placeName(t, place.id, place.label);
+  }
   return t(`ev.${e.kind}` as I18nKey, p);
 }
 

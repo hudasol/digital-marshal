@@ -28,6 +28,8 @@ cd platform && npm ci && npm run dev                      # http://localhost:517
 
 The platform is a separate application. It does not change the point queue or SUMO studies; its Evidence view shows the corridor study exactly as recorded, with the original policy names.
 
+It runs three scenarios (signal blackout, emergency vehicle, roadworks) on one incident and coordination core, under three policies (A: no shared city information, B: validated broadcast, C: B plus fleet coordination), with signed messages, a message security test panel, a guided judge mode and an exploratory A/B/C benchmark (`npm run experiments`). The benchmark is separate from the confirmatory protocol of the research track above and does not change its status or its provisional target.
+
 ## Run
 
 ```

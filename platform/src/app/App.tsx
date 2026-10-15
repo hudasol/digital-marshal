@@ -11,6 +11,7 @@ import { IntelPanel } from './components/Intel';
 import { ScenarioPanel } from './components/Scenario';
 import { EventFeed } from './components/EventFeed';
 import { TourCard } from './components/Tour';
+import { MapFallback } from './components/MapFallback';
 // the evidence view carries the benchmark data; load it only when it is opened
 const EvidenceView = lazy(() => import('./views/EvidenceView').then((m) => ({ default: m.EvidenceView })));
 import { EngineeringView } from './views/EngineeringView';
@@ -112,7 +113,7 @@ function BusyOverlay() {
   const busy = useStore((s) => s.busy);
   if (!busy) return null;
   return (
-    <div className="busy glass" role="status" aria-live="polite">
+    <div className="busy-overlay glass" role="status" aria-live="polite">
       {busy.label}
       <div className="bar-line">
         <i style={{ width: `${Math.round(busy.progress * 100)}%` }} />
@@ -139,6 +140,7 @@ function TwinStage() {
   const t = useT();
   useEffect(() => {
     if (host.current && webgl) controller.mount(host.current);
+    else if (!webgl) controller.startHeadless();
   }, [webgl]);
   return (
     <>
@@ -155,12 +157,13 @@ function TwinStage() {
       <div className="stage-vignette" />
       <div className={`stage-fade ${ready ? 'done' : ''}`} aria-hidden="true" />
       {!webgl && (
-        <div className="fallback">
-          <div className="card">
-            <h2>{t('nowebgl.title')}</h2>
-            <p className="muted">{t('nowebgl.body')}</p>
+        <>
+          <MapFallback />
+          <div className="fallback-banner glass" role="status">
+            <b>{t('nowebgl.title')}</b>
+            <span>{t('nowebgl.body')}</span>
           </div>
-        </div>
+        </>
       )}
     </>
   );

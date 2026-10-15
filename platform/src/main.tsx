@@ -11,7 +11,8 @@ import { useStore } from './app/store';
 import { controller } from './app/controller';
 import { tour } from './app/tour';
 
-if (!hasWebGL2()) useStore.getState().setWebgl(false);
+// ?nowebgl shows the fallback page, so it can be checked on machines that do have WebGL
+if (!hasWebGL2() || new URLSearchParams(location.search).has('nowebgl')) useStore.getState().setWebgl(false);
 
 // Read-only engineering hook for automated browser checks and the engineering inspector.
 (window as unknown as { digitalMarshal: typeof controller }).digitalMarshal = controller;

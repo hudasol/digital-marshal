@@ -4,7 +4,35 @@ import { useT, type I18nKey } from '../i18n';
 import { Icon } from './Icons';
 import { Section } from './SidePanel';
 import { controller, formatClock, formatRel } from '../controller';
-import type { DmFrame, EvFrame, IncidentFrame, MessageView, VehicleDmView } from '../dmframes';
+import type { DmFrame, EvFrame, IncidentFrame, IncidentSummary, MessageView, VehicleDmView } from '../dmframes';
+import { checkName, placeName, resolutionText } from '../explain';
+import { getNetwork } from '../../core/network/build';
+
+type T = ReturnType<typeof useT>;
+
+/** Title and cause of an incident in the reader's language, built from its structured data. */
+export function incidentText(t: T, inc: IncidentSummary & { issuer?: string }): { title: string; cause: string } {
+  const sep = t('list.sep');
+  const net = getNetwork();
+  const place = (id?: string) => (id ? placeName(t, id, net.places[id]?.label ?? id) : '');
+  switch (inc.type) {
+    case 'signal_outage': {
+      const area = inc.junctions.join(sep);
+      return { title: t('incT.signal_outage', { area }), cause: t('incC.signal_outage', { area }) };
+    }
+    case 'roadworks': {
+      const road = inc.subject.road ?? inc.links[0] ?? '';
+      return {
+        title: t('incT.roadworks', { road }),
+        cause: t('incC.roadworks', { issuer: inc.issuer ?? '', road, link: inc.subject.link ?? inc.links[0] ?? '' }),
+      };
+    }
+    case 'emergency_corridor': {
+      const ev = inc.subject.ev ?? '';
+      return { title: t('incT.emergency_corridor', { ev }), cause: t('incC.emergency_corridor', { ev, from: place(inc.subject.from), to: place(inc.subject.to) }) };
+    }
+  }
+}
 
 export function EvMission({ ev }: { ev: EvFrame }) {
   const t = useT();
@@ -91,7 +119,7 @@ export function DmOverview({ dm }: { dm: DmFrame }) {
           <div key={i} className={`op ${o.busy ? 'busy' : ''}`}>
             <Icon name="users" />
             <span>#{i + 1}</span>
-            <b>{o.busy ? `${o.kind} · ${o.junction}` : t('dm.idle')}</b>
+            <b>{o.busy ? `${t(o.kind === 'group' ? 'op.group' : 'op.individual')} · ${o.junction}` : t('dm.idle')}</b>
           </div>
         ))}
       </div>
@@ -135,7 +163,7 @@ function MessageRow({ m }: { m: MessageView }) {
                 {m.verdict.checks.map((c, i) => (
                   <li key={i} className={c.pass ? 'pass' : 'fail'}>
                     <Icon name={c.pass ? 'check' : 'x'} />
-                    <b>{c.name}</b>
+                    <b>{checkName(t, c.name)}</b>
                     <span>{c.detail}</span>
                   </li>
                 ))}
@@ -153,6 +181,7 @@ export function IncidentInspector({ f }: { f: IncidentFrame }) {
   const select = useStore((s) => s.select);
   const dm = useStore((s) => s.dm);
   const inc = f.incident;
+  const text = incidentText(t, inc);
   return (
     <div className="inspector">
       <div className="insp-head">
@@ -173,8 +202,8 @@ export function IncidentInspector({ f }: { f: IncidentFrame }) {
         </button>
       </div>
       <div className={`now tone-${inc.status === 'active' ? 'critical' : 'ok'}`}>
-        <div className="now-label">{inc.title}</div>
-        <div className="now-text small">{inc.cause}</div>
+        <div className="now-label">{text.title}</div>
+        <div className="now-text small">{text.cause}</div>
       </div>
       {dm?.policy === 'A' && <div className="callout small-callout">{t('inc.notPublished')}</div>}
       <Section title={t('inc.title')}>
@@ -233,7 +262,7 @@ export function IncidentInspector({ f }: { f: IncidentFrame }) {
                 <span className="mono">{x.id}</span>
                 <span className="mono">{x.tag}</span>
                 <span>{x.junction}</span>
-                <span className="exc-status">{x.status.replace('_', ' ')}</span>
+                <span className="exc-status">{t(`exc.${x.status}` as I18nKey)}</span>
                 <span className="exc-wait num">{x.resolvedAt !== null ? `${(x.resolvedAt - x.raisedAt).toFixed(0)} s` : ''}</span>
               </li>
             ))}
@@ -285,8 +314,8 @@ export function VehicleDmSection({ d, connected }: { d: VehicleDmView | null; co
               <li key={x.id} className={`exc-${x.status}`}>
                 <span className="mono">{x.id}</span>
                 <span>{x.junction}</span>
-                <span className="exc-status">{x.status.replace('_', ' ')}</span>
-                <span className="exc-wait num">{x.resolution}</span>
+                <span className="exc-status">{t(`exc.${x.status}` as I18nKey)}</span>
+                <span className="exc-wait num">{resolutionText(t, x.resolution)}</span>
               </li>
             ))}
           </ol>

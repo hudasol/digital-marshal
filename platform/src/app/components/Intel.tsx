@@ -2,7 +2,7 @@ import { useStore } from '../store';
 import { useT, type I18nKey } from '../i18n';
 import { Icon } from './Icons';
 import { Section } from './SidePanel';
-import { bindText, bindTone, fmtDuration, logText } from '../explain';
+import { bindText, bindTone, fmtDuration, logText, placeName } from '../explain';
 import { controller, formatRel } from '../controller';
 import type { NetworkFrame, VehicleFrame } from '../frames';
 import type { VehicleClass } from '../../core/sim/types';
@@ -154,9 +154,9 @@ export function VehicleInspector({ v }: { v: VehicleFrame }) {
       <Section title={t('veh.route')}>
         <div className="kv">
           <span>{t('veh.from')}</span>
-          <b>{v.origin}</b>
+          <b>{v.originPlace ? placeName(t, v.originPlace, v.origin) : v.origin}</b>
           <span>{t('veh.to')}</span>
-          <b>{v.destLabel}</b>
+          <b>{v.destPlace ? placeName(t, v.destPlace, v.destLabel) : v.destLabel}</b>
           <span>{t('veh.remaining')}</span>
           <b className="num">{(v.remainingM / 1000).toFixed(2)} km</b>
         </div>

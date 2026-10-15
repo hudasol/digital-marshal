@@ -8,6 +8,8 @@ import { INJECTIONS } from '../core/dm/inject';
 export interface IncidentSummary {
   id: string;
   type: Incident['type'];
+  /** structured subject for a localised title: emergency vehicle tag and its places, or the works road */
+  subject: { ev?: string; from?: string; to?: string; road?: string; link?: string };
   status: Incident['status'];
   title: string;
   version: number;
@@ -19,6 +21,8 @@ export interface IncidentSummary {
 export interface EvFrame {
   id: number;
   tag: string;
+  from: string;
+  to: string;
   active: boolean;
   dispatchedAt: number;
   arrivedAt: number | null;
@@ -107,10 +111,21 @@ export interface VehicleDmView {
   avoid: string[];
 }
 
-function summary(inc: Incident): IncidentSummary {
+function summary(inc: Incident, e?: Engine): IncidentSummary {
+  const subject: IncidentSummary['subject'] = {};
+  if (e && inc.type === 'emergency_corridor') {
+    const s = dmFor(e).s;
+    const run = s.ev?.incidentId === inc.id ? s.ev : s.evRuns.find((r) => r.incidentId === inc.id);
+    if (run) Object.assign(subject, { ev: run.tag, from: run.from, to: run.to });
+  }
+  if (e && inc.type === 'roadworks') {
+    const link = inc.area.lanes?.[0]?.link ?? '';
+    Object.assign(subject, { link, road: e.net.links[link]?.roadName ?? link });
+  }
   return {
     id: inc.id,
     type: inc.type,
+    subject,
     status: inc.status,
     title: inc.title,
     version: inc.version,
@@ -194,7 +209,9 @@ function securityRows(e: Engine): SecurityRow[] {
 export function dmFrame(e: Engine): DmFrame {
   const dm = dmFor(e);
   const s = dm.s;
-  const incidents = Object.values(s.incidents).map(summary).reverse();
+  const incidents = Object.values(s.incidents)
+    .map((i) => summary(i, e))
+    .reverse();
   const ex = Object.values(s.exceptions);
   let mrcNow = 0;
   for (const id of e.state.order) if (e.state.vehicles[id].mode === 'mrc') mrcNow++;
@@ -239,6 +256,8 @@ export function dmFrame(e: Engine): DmFrame {
       ? {
           id: s.ev.id,
           tag: s.ev.tag,
+          from: s.ev.from,
+          to: s.ev.to,
           active: s.ev.arrivedAt === null,
           dispatchedAt: s.ev.dispatchedAt,
           arrivedAt: s.ev.arrivedAt,
@@ -292,7 +311,7 @@ export function incidentFrame(e: Engine, id: string): IncidentFrame | null {
     }
   }
   return {
-    incident: { ...summary(inc), cause: inc.cause, issuer: inc.issuer, resolvedAt: inc.resolvedAt, updatedAt: inc.updatedAt },
+    incident: { ...summary(inc, e), cause: inc.cause, issuer: inc.issuer, resolvedAt: inc.resolvedAt, updatedAt: inc.updatedAt },
     messages: msgs.slice(-14).reverse(),
     reach: dm.affectedVehicles(id),
     exceptions: Object.values(dm.s.exceptions)

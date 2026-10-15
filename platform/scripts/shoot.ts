@@ -16,6 +16,10 @@ interface Shot {
   size?: [number, number];
   hideUi?: boolean;
   lang?: 'en' | 'ar';
+  /** appended to the URL, for example "?nowebgl" */
+  query?: string;
+  /** the page has no 3D world (WebGL fallback): do not wait for it */
+  noWorld?: boolean;
 }
 
 async function launch(): Promise<Browser> {
@@ -50,16 +54,18 @@ async function main() {
         /* ignore */
       }
     }, shot.lang ?? 'en');
-    await page.goto(url, { waitUntil: 'load' });
-    await page.waitForFunction(() => !!(window as unknown as { digitalMarshal?: { world?: unknown } }).digitalMarshal?.world, null, {
-      timeout: 30000,
-    });
+    await page.goto(url + (shot.query ?? ''), { waitUntil: 'load' });
+    if (!shot.noWorld) {
+      await page.waitForFunction(() => !!(window as unknown as { digitalMarshal?: { world?: unknown } }).digitalMarshal?.world, null, {
+        timeout: 30000,
+      });
+    }
     await page.evaluate(
       ({ quality, pose, mode, hideUi }) => {
         const dm = (window as unknown as { digitalMarshal: any }).digitalMarshal;
-        if (quality) dm.setQualityChoice(quality);
+        if (quality && dm.world) dm.setQualityChoice(quality);
         if (mode) dm.setCamMode(mode);
-        if (pose) dm.world.rig.flyTo(pose, { duration: 0.001 });
+        if (pose && dm.world) dm.world.rig.flyTo(pose, { duration: 0.001 });
         const fade = document.querySelector('.stage-fade') as HTMLElement | null;
         if (fade) fade.style.display = 'none';
         if (hideUi) document.querySelectorAll('.panel, .bar, .cam-toolbar, .panel-toggle').forEach((e) => ((e as HTMLElement).style.display = 'none'));
@@ -72,8 +78,8 @@ async function main() {
     await page.screenshot({ path: file });
     const stats = await page.evaluate(() => {
       const dm = (window as unknown as { digitalMarshal: any }).digitalMarshal;
-      const i = dm.world.renderer.info;
-      return { calls: i.render.calls, tris: i.render.triangles, t: dm.renderT ?? 0, n: dm.engine?.state.order.length ?? 0 };
+      const i = dm.world?.renderer.info;
+      return { calls: i?.render.calls ?? 0, tris: i?.render.triangles ?? 0, t: dm.renderT ?? 0, n: dm.engine?.state.order.length ?? 0 };
     });
     console.log(`${shot.name}: ${file}  calls=${stats.calls} tris=${stats.tris} t=${stats.t.toFixed(1)} vehicles=${stats.n}`);
     await page.close();

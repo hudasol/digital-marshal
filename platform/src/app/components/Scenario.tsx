@@ -10,6 +10,7 @@ import { INJECTIONS } from '../../core/dm/inject';
 import { TRUST_STORE } from '../../core/dm/trust';
 import type { Policy } from '../../core/dm/types';
 import type { WorksFrame } from '../dmframes';
+import { placeName } from '../explain';
 
 const CARDS: Array<{ key: ScenarioKey; icon: IconName; ready: boolean }> = [
   { key: 'normal', icon: 'city', ready: true },
@@ -111,9 +112,9 @@ export function EmergencyControls() {
     <Section title={t('scn.emergency')}>
       <div className="kv small" style={{ marginBottom: 10 }}>
         <span>{t('ev.from')}</span>
-        <b>{net.places.hospital.label}</b>
+        <b>{placeName(t, 'hospital', net.places.hospital.label)}</b>
         <span>{t('ev.to')}</span>
-        <b>{net.places.scene.label}</b>
+        <b>{placeName(t, 'scene', net.places.scene.label)}</b>
       </div>
       <div className="btn-row">
         <button className="btn danger" onClick={() => controller.dispatchAmbulance()} disabled={active}>

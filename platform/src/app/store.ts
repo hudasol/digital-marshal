@@ -133,8 +133,9 @@ function initialQuality(): QualityChoice {
 export const useStore = create<UIState>((set, get) => ({
   view: 'twin',
   lang: initialLang(),
-  leftOpen: true,
-  rightOpen: true,
+  // on phone-sized screens the panels start closed so the city is what you see first
+  leftOpen: typeof window === 'undefined' || window.innerWidth >= 860,
+  rightOpen: typeof window === 'undefined' || window.innerWidth >= 860,
   camMode: 'overview',
   quality: initialQuality(),
   effectiveQuality: 'balanced',

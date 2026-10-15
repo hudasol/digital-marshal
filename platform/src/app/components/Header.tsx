@@ -30,12 +30,12 @@ export function Header() {
 
       <div className="header-center">
         <div className="status-cluster" role="status" aria-live="off">
-          <div className="status-item hide-sm">
+          <div className="status-item scn hide-sm">
             <span className={`status-dot ${alertLevel === 'critical' ? 'critical' : alertLevel === 'warn' ? 'paused' : ''}`} />
             <span className="muted">{t('status.scenario')}</span>
             <b>{scenarioLabel || t('scenario.normal')}</b>
           </div>
-          <div className="status-item">
+          <div className="status-item run">
             <span className={`status-dot ${clock.playing ? '' : 'paused'}`} />
             <span>{clock.playing ? t('status.running') : t('status.paused')}</span>
           </div>

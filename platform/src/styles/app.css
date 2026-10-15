@@ -197,6 +197,24 @@ html[lang='ar'] .brand-name {
   align-items: center;
   gap: 10px;
   min-width: 0;
+  overflow: hidden;
+}
+/* a long scenario name shrinks rather than running under the controls */
+.status-item.scn {
+  min-width: 0;
+  overflow: hidden;
+}
+.status-item.scn b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 1440px) {
+  .status-item.run {
+    display: none !important;
+  }
+  .brand-sub {
+    display: none;
+  }
 }
 
 .status-cluster {
@@ -1077,16 +1095,35 @@ ul.clean {
 
 /* ------------------------------------------------------------------ fallback */
 
-.fallback {
+.map2d {
   position: absolute;
   inset: var(--header-h) 0 0 0;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  z-index: 3;
+  width: 100%;
+  height: calc(100% - var(--header-h));
+  display: block;
+  z-index: 2;
 }
-.fallback .card {
-  max-width: 560px;
+.fallback-banner {
+  position: absolute;
+  top: calc(var(--header-h) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  width: min(560px, calc(100% - 32px));
+  display: grid;
+  gap: 3px;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  border: 1px solid rgba(244, 183, 64, 0.4);
+  font-size: 12px;
+  color: var(--text-1);
+}
+.fallback-banner b {
+  color: var(--amber);
+}
+/* the camera has nothing to move in the 2D fallback */
+body:has(.map2d) .cam-toolbar {
+  display: none;
 }
 
 /* ------------------------------------------------------------------ responsive */
@@ -1124,6 +1161,37 @@ ul.clean {
   }
   .cam-toolbar .label {
     display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .header {
+    gap: 8px;
+    padding: 0 8px;
+  }
+  .brand-text {
+    display: none;
+  }
+  /* the playback bar carries the clock on phones */
+  .header-center {
+    display: none;
+  }
+  .header-right {
+    margin-inline-start: auto;
+  }
+  .header-right {
+    flex-shrink: 1;
+    min-width: 0;
+    gap: 6px;
+  }
+  .tabs {
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tab {
+    padding: 5px 8px;
+    font-size: 11.5px;
   }
 }
 
@@ -1336,7 +1404,7 @@ html[lang='ar'] .now-label {
   padding-top: 1px;
 }
 
-.busy {
+.busy-overlay {
   position: absolute;
   z-index: 25;
   left: 50%;
@@ -1347,15 +1415,33 @@ html[lang='ar'] .now-label {
   text-align: center;
   font-size: 12.5px;
 }
-.busy .bar-line {
+.busy-overlay .bar-line {
   height: 4px;
   border-radius: 2px;
   margin-top: 10px;
   background: rgba(148, 163, 184, 0.2);
   overflow: hidden;
 }
-.busy .bar-line i {
+.busy-overlay .bar-line i {
   display: block;
   height: 100%;
   background: var(--cyan);
+}
+
+/* honour the reduced-motion preference everywhere (the camera rig also skips its flights) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* numbers, units, ids and codes read left to right inside Arabic text */
+html[dir='rtl'] .mono,
+html[dir='rtl'] .num {
+  unicode-bidi: plaintext;
 }

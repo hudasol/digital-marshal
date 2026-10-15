@@ -80,8 +80,60 @@ simulation code, go to `src/data/experiments.json`. The Evidence view shows them
 paired per-seed differences, and can re-run any seed in the browser to check it against the committed
 numbers. The benchmark is exploratory: synthetic district, one demand level, not a confirmatory evaluation.
 
-## Honesty labels
+## How it works
 
-* The district, roads, demand and signal plans are synthetic. Street names are codes, not real streets.
-* Radio transport is modelled, not measured. Overlays that show information flow are illustrative.
-* Every metric is computed from recorded runs; unavailable metrics are shown as unavailable.
+* **Network** (`src/core/network`): one road network (12 junctions, 62 directed links, 14 gateways) built
+  from `district.ts`. The 3D city, the simulation and the 2D fallback map are all drawn from it.
+* **Traffic** (`src/core/sim`): fixed 0.1 s steps with a synchronous update. IDM car following, MOBIL lane
+  changes, dual-ring signal plans with a boulevard green wave, all-way stops at dark junctions, and a
+  junction safety layer (no conflicting box occupancy, no blocking the box). Every slowdown records the
+  constraint that binds it, which the inspector shows as the reason. Snapshots every 10 s make seeking
+  and replay exact.
+* **Digital Marshal services** (`src/core/dm`): incident management (stable ids, versions, lifecycle);
+  a V2X message service (roadside units within range, cellular otherwise, seeded latency and loss,
+  repetition and re-signing); trust and validation (ECDSA P-256 via `@noble/curves`, issuer permissions and
+  scope, freshness, version ordering, with a reason code for every rejection); a vehicle adapter that turns
+  accepted messages into planning constraints while final movement authority stays on board; and exception
+  coordination (first come first served under A and B; grouped, prioritised, junction-scoped authorisations
+  under C).
+* **Measurement** (`src/core/experiments.ts`): the benchmark definitions and metrics, shared by the headless
+  runner and the in-browser re-run.
+
+## Metric definitions
+
+| Metric | Definition |
+|---|---|
+| System time | Vehicle-hours spent in the district or waiting to enter it over the horizon. Demand is identical in every variant, so this is the fair total. |
+| Delay per trip | Travel time minus free-flow time, over trips completed within the horizon. It can flatter a worse policy when fewer trips complete. |
+| Minimal risk stops | Vehicle-minutes AVs spent stopped in a minimal risk condition. |
+| Operator time | Operator-minutes spent on remote assistance tasks. |
+| Ambulance delay | Arrival time minus dispatch time minus the ambulance's free-flow time on its route, for runs where it arrived; arrivals are reported separately. |
+| Late discoveries | Vehicles that learned of a closure on their path only when they saw it. |
+| Safety invariants | Unauthorised AV entries into a dark junction outside their domain (excluding vehicles already committed when the power failed), conflicting box occupancy, and entries into a closed lane. Expected 0 in every run. |
+
+## Verification
+
+* `npm test`: determinism and exact replay, safety invariants under every policy, message validation
+  (one test per rejection rule), the roadworks lifecycle, all 13 security tests, the benchmark runner and
+  the committed results.
+* The Evidence view re-runs any benchmark seed in a background thread and compares every metric with the
+  committed results.
+* The Engineering view exports the run (seed, configuration and interventions to reproduce it, plus every
+  message, exception, trip and event) as JSON and CSV.
+* `scripts/shoot.ts` drives the app in a local Chrome or Edge for visual checks; `?nowebgl` shows the 2D
+  fallback map; `window.digitalMarshal` is a read-only hook for such checks.
+
+## Known limitations
+
+* The district, roads, demand and signal plans are synthetic and Dubai-inspired; nothing is calibrated to
+  real traffic. Street names are codes, not real streets.
+* Vehicle behaviour is IDM and MOBIL with rule-based junction logic; there are no pedestrians, cyclists,
+  bus stops, parking manoeuvres or driver errors.
+* Radio transport is modelled (latency, loss, range), not measured propagation. Overlays that show
+  information flow are illustrative.
+* Message keys are demo keys derived from fixed labels: no PKI, revocation or key rotation.
+* Remote assistance capacity and handling times are assumptions; that a fleet accepts a junction-scoped
+  authorisation (policy C) is the assumption under test, not an operator agreement.
+* One emergency vehicle at a time; signal priority is simplified to amber, all-red, then green.
+* The benchmark is exploratory (10 seeds, one demand level). Every metric is computed from recorded runs;
+  unavailable metrics are shown as unavailable.

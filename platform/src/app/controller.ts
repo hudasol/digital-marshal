@@ -156,6 +156,11 @@ class Controller {
     return true;
   }
 
+  /** No WebGL: run the simulation and publish frames without the 3D world; the 2D map draws the state. */
+  startHeadless(): void {
+    this.start();
+  }
+
   /** Camera presets for the district (three.js coordinates: z = -north). */
   installPresets(): void {
     const rig = this.world?.rig;
