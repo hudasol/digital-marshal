@@ -142,33 +142,92 @@ def audit_run(spec, edge_events, vehicle_rows, *, scale, expected_vehicles, spac
             'vehicles_checked': len(set(ids)), 'recomputed': recomputed}
 
 
+RESULT_FILES = ('confirmatory_metrics.csv', 'vehicle_records.csv', 'edge_event_records.csv', 'decision_log.csv',
+                'batch_allocation_log.csv')
+
+
+def _read(d, name, pkg):
+    path = d / name
+    if not path.exists():
+        pkg.append({'check': 'results_file_missing', 'file': name}); return []
+    with path.open(newline='') as f: rows = list(csv.DictReader(f))
+    if not rows:
+        pkg.append({'check': 'results_file_empty', 'file': name}); return []
+    if not {'scenario', 'policy'} <= set(rows[0]):
+        pkg.append({'check': 'missing_scenario_or_policy_column', 'file': name}); return []
+    return rows
+
+
 def audit_results_dir(results_dir, spec_path=DEFAULT_SPEC):
-    """Audit every (scenario, policy) in a results directory written by confirmatory.py."""
+    """Audit a results directory written by confirmatory.py. FAILS CLOSED on an incomplete package.
+
+    The expected matrix is every scenario in the spec crossed with every policy in the spec (15 runs for the frozen
+    experiment). Each of the five result files must contain every expected (scenario, policy) group, the metrics file
+    exactly once, and nothing else. A missing, duplicated or unexpected group, or a missing file, makes the returned
+    list contain a failing entry that names the file, scenario and policy. One entry per expected run is always returned,
+    plus one per unexpected group and one '(package)' entry for file level problems."""
     spec = load_spec(spec_path); d = Path(results_dir)
-    def rd(name):
-        with (d / name).open(newline='') as f: return list(csv.DictReader(f))
-    veh, evt, met = rd('vehicle_records.csv'), rd('edge_event_records.csv'), rd('confirmatory_metrics.csv')
-    gv, ge = defaultdict(list), defaultdict(list)
-    for r in veh: gv[(r['scenario'], r['policy'])].append(r)
-    for r in evt: ge[(r['scenario'], r['policy'])].append(r)
+    expected = [(s, p) for s in spec['scenarios'] for p in spec['policies']]
+    pkg = []
+    data = {name: _read(d, name, pkg) for name in RESULT_FILES}
+    groups = {}
+    for name, rows in data.items():
+        g = defaultdict(list)
+        for r in rows: g[(r['scenario'], r['policy'])].append(r)
+        groups[name] = g
+    per_key = defaultdict(list)
+    def flag(key, check, **kw): per_key[key].append({'check': check, **kw})
+    for name in RESULT_FILES:
+        for key in expected:
+            if key not in groups[name]: flag(key, 'missing_run', file=name)
+        for key in groups[name]:
+            if key not in expected: flag(key, 'unexpected_run', file=name)
+    for key, rows in groups['confirmatory_metrics.csv'].items():
+        if len(rows) > 1: flag(key, 'duplicate_metrics_row', file='confirmatory_metrics.csv', copies=len(rows))
+    for key in expected:
+        n = spec['scenarios'][key[0]]['vehicles']
+        dl = len(groups['decision_log.csv'].get(key, []))
+        if dl and dl != n: flag(key, 'decision_log_row_count', found=dl, expected=n)
+        bl = groups['batch_allocation_log.csv'].get(key, [])
+        if bl and sum(int(r['batch_size']) for r in bl) != n:
+            flag(key, 'batch_log_total_mismatch', found=sum(int(r['batch_size']) for r in bl), expected=n)
     out = []
-    for m in met:
-        key = (m['scenario'], m['policy']); sc = spec['scenarios'][m['scenario']]
-        res = audit_run(spec, ge[key], gv[key], scale=sc['branch_capacity_scale'], expected_vehicles=sc['vehicles'],
-                        spacing_s=sc['spacing_s'], reported={k: m[k] for k in (
-                            'total_fleet_travel_time_vehicle_min', 'mean_travel_time_min', 'median_travel_time_min',
-                            'p95_nearest_rank_min', 'completed', 'incomplete')})
+    def entry(key, res):
+        counts = defaultdict(int)
+        for v in res['violations']: counts[v['check']] += 1
+        res['violation_counts'] = dict(counts); res['pass'] = not res['violations']
         out.append({'scenario': key[0], 'policy': key[1], **res})
+    empty = {'violations': [], 'events_checked': 0, 'vehicles_checked': 0, 'recomputed': {}}
+    for key in expected:
+        have = all(key in groups[n] for n in ('confirmatory_metrics.csv', 'vehicle_records.csv', 'edge_event_records.csv'))
+        if have:
+            sc = spec['scenarios'][key[0]]; m = groups['confirmatory_metrics.csv'][key][0]
+            res = audit_run(spec, groups['edge_event_records.csv'][key], groups['vehicle_records.csv'][key],
+                            scale=sc['branch_capacity_scale'], expected_vehicles=sc['vehicles'], spacing_s=sc['spacing_s'],
+                            reported={k: m[k] for k in ('total_fleet_travel_time_vehicle_min', 'mean_travel_time_min',
+                                                        'median_travel_time_min', 'p95_nearest_rank_min', 'completed', 'incomplete')})
+        else:
+            res = dict(empty, violations=[])
+        res['violations'] = res['violations'] + per_key.get(key, [])
+        entry(key, res)
+    for key in per_key:
+        if key not in expected: entry(key, dict(empty, violations=per_key[key]))
+    if pkg: entry(('(package)', '(package)'), dict(empty, violations=pkg))
     return out
 
+
+COMPLETENESS_CHECKS = ('missing_run', 'unexpected_run', 'duplicate_metrics_row', 'results_file_missing',
+                       'results_file_empty', 'missing_scenario_or_policy_column')
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser(); ap.add_argument('--results', required=True); ap.add_argument('--spec', default=str(DEFAULT_SPEC))
     a = ap.parse_args()
+    spec = load_spec(a.spec); expected = len(spec['scenarios']) * len(spec['policies'])
     res = audit_results_dir(a.results, a.spec)
-    allpass = all(r['pass'] for r in res)
-    print(json.dumps({'runs_audited': len(res), 'all_pass': allpass,
+    audited = [r for r in res if r['scenario'] != '(package)' and not any(v['check'] in COMPLETENESS_CHECKS for v in r['violations'])]
+    allpass = all(r['pass'] for r in res) and len(audited) == expected and len(res) == expected
+    print(json.dumps({'expected_runs': expected, 'runs_audited': len(audited), 'all_pass': allpass,
                       'events_checked': sum(r['events_checked'] for r in res),
-                      'violations': [{'scenario': r['scenario'], 'policy': r['policy'], 'counts': r['violation_counts']}
-                                     for r in res if not r['pass']]}, indent=2))
+                      'violations': [{'scenario': r['scenario'], 'policy': r['policy'], 'counts': r['violation_counts'],
+                                      'detail': r['violations'][:12]} for r in res if not r['pass']]}, indent=2))
     sys.exit(0 if allpass else 1)

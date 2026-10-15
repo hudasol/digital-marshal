@@ -25,6 +25,7 @@
     ["E1", "E4", "E5", "E6", "E11"],
     ["E1", "E7", "E8", "E9", "E10", "E11"]
   ],
+  "policies": ["static", "independent_periodic", "coordinated_batch"],
   "scenarios": {
     "manageable_primary":      {"vehicles": 10, "spacing_s": 10.0, "branch_capacity_scale": 1.0},
     "near_branch_capacity":    {"vehicles": 24, "spacing_s": 5.0,  "branch_capacity_scale": 1.0},

@@ -19,6 +19,13 @@ MUTANTS = [
  ('audit: teleport check disabled', 'src/raw_audit.py', "if abs(y['arr'] - x['exit']) > EPS:", "if False:"),
  ('audit: work-conservation check disabled', 'src/raw_audit.py', "if y['wait'] > EPS and gap > head + EPS:", "if False:"),
  ('audit: horizon completion check disabled', 'src/raw_audit.py', "if r['complete'] != should_complete:", "if False:"),
+ ('audit B-01: missing run no longer flagged', 'src/raw_audit.py', "if key not in groups[name]: flag(key, 'missing_run'", "if False: flag(key, 'missing_run'"),
+ ('audit B-01: unexpected run no longer flagged', 'src/raw_audit.py', "if key not in expected: flag(key, 'unexpected_run'", "if False: flag(key, 'unexpected_run'"),
+ ('audit B-01: duplicate metrics row no longer flagged', 'src/raw_audit.py', "if len(rows) > 1: flag(key, 'duplicate_metrics_row'", "if False: flag(key, 'duplicate_metrics_row'"),
+ ('audit B-01: decision log count no longer checked', 'src/raw_audit.py', "if dl and dl != n:", "if False:"),
+ ('audit B-01: expected matrix derived from the metrics file again (original defect)', 'src/raw_audit.py',
+  "expected = [(s, p) for s in spec['scenarios'] for p in spec['policies']]\n    pkg = []",
+  "expected = list(dict.fromkeys((r['scenario'], r['policy']) for r in csv.DictReader(open(Path(results_dir) / 'confirmatory_metrics.csv'))))\n    pkg = []"),
  ('FIFO headway wrong in model (cap*1.1)', 'src/canonical_model.py', "head=60/e['cap_vpm']", "head=60/(e['cap_vpm']*1.1)"),
 ]
 killed = 0
