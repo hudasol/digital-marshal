@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --red:#DA291C; --red-dark:#B82217; --char:#242526; --ink:#1B1D21; --bg:#F8FAFC; --off:#FCFCFC;
+  --red:#073EEB; --red-dark:#052EB0; --alert:#DA291C; --route-b:#7F9BF2; --char:#242526; --ink:#1B1D21; --bg:#F8FAFC; --off:#FCFCFC;
   --gold:#FFB715; --line:#E2E8F0; --slate:#64748B; --slate-l:#CBD5E1; --card:#FFFFFF;
 }
 *{box-sizing:border-box}
@@ -34,8 +34,8 @@ select{font:500 13px 'Montserrat','Noto Sans Arabic',sans-serif;border:1px solid
 select:hover{border-color:var(--char)}
 button.b{font:600 13px 'Montserrat','Noto Sans Arabic',sans-serif;border:1px solid var(--char);background:#fff;color:var(--char);padding:7px 14px;cursor:pointer;border-radius:2px}
 button.b:hover{background:var(--char);color:#fff}
-button.b.pri{background:var(--red);border-color:var(--red);color:#fff}
-button.b.pri:hover{background:var(--red-dark);border-color:var(--red-dark)}
+button.b.pri{background:var(--gold);border-color:var(--gold);color:var(--char)}
+button.b.pri:hover{background:var(--char);border-color:var(--char);color:var(--gold)}
 button.b.on{background:var(--char);color:#fff}
 .speed{display:flex}.speed button.b{border-radius:0;margin-inline-start:-1px}
 .clock{margin-inline-start:auto;font-weight:600;font-size:15px;font-variant-numeric:tabular-nums}
@@ -43,7 +43,7 @@ button.b.on{background:var(--char);color:#fff}
 .scrub{width:100%;margin:12px 0 4px;accent-color:var(--red)}
 .timeline{position:relative;height:18px;font-size:11px;color:var(--slate)}
 .timeline i{position:absolute;top:0;transform:translateX(-50%);font-style:normal;font-weight:600;white-space:nowrap}
-.timeline i.inc{color:var(--red)}
+.timeline i.inc{color:var(--alert)}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:12px 14px}
 .card h3{font-size:13px;display:flex;align-items:center;gap:8px}
@@ -54,7 +54,7 @@ svg.map{width:100%;height:auto;display:block;margin-top:6px;background:var(--off
 .live div{border-top:2px solid var(--line);padding-top:4px}
 .live b{display:block;font-size:20px;font-weight:600;line-height:1.2;font-variant-numeric:tabular-nums}
 .live span{font-size:10px;color:var(--slate);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
-.live .q b{color:var(--red)}
+.live .q b{color:var(--alert)}
 .grid2{display:grid;grid-template-columns:1.25fr 1fr;gap:12px;margin-top:12px}
 table{width:100%;border-collapse:collapse;font-size:12.5px}
 th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:end;font-variant-numeric:tabular-nums}
@@ -63,13 +63,13 @@ th{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--sl
 td.best{background:#FFF6DC;font-weight:600}
 td.neg{color:var(--red);font-weight:600}
 .hl{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:8px 0 12px}
-.hl div{border-inline-start:4px solid var(--red);padding:2px 10px}
+.hl div{border-inline-start:4px solid var(--gold);padding:2px 10px}
 .hl b{display:block;font-size:24px;font-weight:600;line-height:1.2}
 .hl span{font-size:11px;color:var(--slate);font-weight:500}
 #log{max-height:238px;overflow:auto;font-size:12px}
 #log div{padding:5px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:64px 1fr;gap:8px}
 #log b{font-variant-numeric:tabular-nums;font-weight:600}
-#log .inc{color:var(--red);font-weight:600}
+#log .inc{color:var(--alert);font-weight:600}
 .note{font-size:12px;color:var(--ink)}
 .note ul{margin:6px 0 0;padding-inline-start:18px}
 .note li{margin:2px 0}
@@ -78,6 +78,55 @@ footer{margin-top:16px;font-size:11px;color:var(--slate);line-height:1.5}
 .leg{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;font-weight:500;margin-top:8px;color:var(--ink)}
 .leg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-inline-end:5px;vertical-align:-1px}
 @media(max-width:1100px){.grid3{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}.hl{grid-template-columns:1fr}.hdr{flex-wrap:wrap;padding:10px 16px}.wrap{padding:12px 16px 24px}}
+
+/* ===== Command and control layer ===== */
+.card,.bar,button.b,select,.chip,.lang,.warn,.scrub{border-radius:0}
+.card{border:1px solid #CBD5E1;border-top:3px solid var(--red)}
+svg{direction:ltr}
+td,.hl b,.live b,.clock span,#log b{unicode-bidi:plaintext}
+.cc-hide{display:none}
+.card h2,.card h3{text-transform:none}
+.leg.inbar{margin:0;gap:12px;font-size:11px}
+.ic{display:inline-block;width:14px;height:9px;margin-inline-end:5px;vertical-align:-1px;clip-path:polygon(0 0,70% 0,100% 50%,70% 100%,0 100%)}
+.bar{padding:6px 12px;gap:10px}
+.bar select{padding:4px 8px;min-width:200px}
+.bar button.b{padding:5px 12px}
+.bar label{display:block}
+@media (min-width:1200px) and (min-height:700px){
+  html,body{height:100%;overflow:hidden}
+  body{font-size:12px;line-height:1.4}
+  .hdr{min-height:48px;gap:16px}
+  .logo{padding:4px 0}.logo b{font-size:15px}.logo span{font-size:13px}
+  .hdr .title h1{font-size:15px}.hdr .title div{font-size:11px}
+  .chip{font-size:10px;padding:1px 8px}
+  .wrap{height:calc(100% - 48px);max-width:none;margin:0;padding-block:6px;display:grid;gap:6px;
+    grid-template-columns:repeat(12,minmax(0,1fr));grid-template-rows:auto auto repeat(3,minmax(0,1fr)) auto auto;}
+  .wrap>.bar{grid-column:1/-1;order:1}
+  .wrap>.scrub{grid-column:1/-1;order:2;margin:0;height:14px}
+  .wrap>.timeline{display:none}
+  .wrap>section,.wrap>section.grid3{display:contents}
+  #panels>.card{grid-column:span 4;order:4}
+  #cResults{order:5}#cQueue{order:6}#cCum{order:7}#cXm{order:8}#cStrip{order:9}#cHeat{order:10}#cBars{order:11}#cLog{order:12}
+  #cResults,#cQueue,#cCum,#cXm,#cStrip,#cHeat,#cBars,#cLog{grid-column:span 3}
+  #cResults{grid-column:span 4}#cCum{grid-column:span 2}
+  .wrap>.warn{grid-column:1/-1;order:20;margin:0;padding:4px 10px;font-size:11px;line-height:1.35}
+  .wrap>footer{grid-column:1/-1;order:21;margin:0;font-size:10px;line-height:1.3}
+  .card{display:flex;flex-direction:column;min-height:0;min-width:0;padding:6px 10px;overflow:hidden}
+  .card h2{font-size:12px !important;text-transform:uppercase;letter-spacing:.04em}
+  .card h3{font-size:12px}
+  .card .sub{font-size:10px;margin-top:0}
+  .card svg{flex:1 1 0;min-height:0;width:100%;height:100% !important;margin-top:4px !important}
+  svg.map{margin-top:4px}
+  .live{margin-top:4px;gap:6px}.live b{font-size:15px}.live span{font-size:9px}
+  th,td{padding:2px 6px;font-size:11px}th{font-size:9px;letter-spacing:.02em}#kpi td:first-child{white-space:nowrap}
+  .hl{margin:4px 0 6px;gap:6px}.hl b{font-size:16px}.hl span{font-size:9.5px;line-height:1.25;display:block}
+  #cResults,#cXm,#cLog{overflow:auto}
+  #log{max-height:none;flex:1;min-height:0;font-size:11px}#log div{padding:2px 0}
+  .note ul{margin:4px 0 0;font-size:10.5px}.note li{margin:0}
+  #xm{margin-top:2px !important}
+  .leg.inbar{margin-inline-start:auto}
+  .clock{margin-inline-start:0;font-size:13px}
+}
 @keyframes pulse{0%{r:6;opacity:.9}100%{r:70;opacity:0}}
 .pulse{animation:pulse 2.4s ease-out infinite}
 </style>
@@ -97,27 +146,24 @@ footer{margin-top:16px;font-size:11px;color:var(--slate);line-height:1.5}
     <button class="b" id="reset" data-i="reset"></button>
     <div class="speed" id="speed"></div>
     <div class="clock"><span id="clk">0 s</span><small data-i="simtime"></small></div>
+    <div class="leg inbar"><span><i class="ic" style="background:#073EEB"></i><span data-i="legT"></span></span>
+    <span><i class="ic" style="background:#FFB715;outline:1px solid #242526"></i><span data-i="legQ"></span></span>
+    <span><i class="ic" style="background:#073EEB;position:relative;box-shadow:inset -4px 0 0 -1px #fff"></i><span data-i="legB"></span></span>
+    <span><i style="display:inline-block;width:10px;height:10px;background:repeating-linear-gradient(45deg,#DA291C 0 3px,#fff 3px 6px);vertical-align:-1px;margin-inline-end:5px"></i><span data-i="legX"></span></span></div>
   </div>
   <input class="scrub" id="scrub" type="range" min="0" max="100" value="0" step="1" aria-label="timeline">
   <div class="timeline" id="tl"></div>
 
   <section class="grid3" id="panels"></section>
 
-  <div class="leg">
-    <span><i style="background:#242526"></i><span data-i="legA"></span></span>
-    <span><i style="background:#FFB715;border:1px solid #242526"></i><span data-i="legB"></span></span>
-    <span><i style="background:#fff;border:2px solid #DA291C"></i><span data-i="legQ"></span></span>
-    <span><i style="background:#DA291C"></i><span data-i="legX"></span></span>
-  </div>
-
   <section class="grid2">
-    <div class="card">
+    <div class="card" id="cResults">
       <h2 style="font-size:15px" data-i="results"></h2>
       <div class="sub" id="resSub"></div>
       <div class="hl" id="hl"></div>
       <table id="kpi"></table>
     </div>
-    <div class="card">
+    <div class="card" id="cQueue">
       <h2 style="font-size:15px" data-i="chartT"></h2>
       <div class="sub" data-i="chartS"></div>
       <svg id="chart" viewBox="0 0 520 230" style="width:100%;height:auto;margin-top:8px"></svg>
@@ -126,21 +172,21 @@ footer{margin-top:16px;font-size:11px;color:var(--slate);line-height:1.5}
   </section>
 
   <section class="grid2" id="viz1">
-    <div class="card"><h2 style="font-size:15px" data-i="cumT"></h2><div class="sub" data-i="cumS"></div><svg id="cum" viewBox="0 0 520 230" style="width:100%;height:auto;margin-top:8px"></svg></div>
-    <div class="card"><h2 style="font-size:15px" data-i="stripT"></h2><div class="sub" data-i="stripS"></div><svg id="strip" viewBox="0 0 520 230" style="width:100%;height:auto;margin-top:8px"></svg></div>
+    <div class="card" id="cCum"><h2 style="font-size:15px" data-i="cumT"></h2><div class="sub" data-i="cumS"></div><svg id="cum" viewBox="0 0 520 230" style="width:100%;height:auto;margin-top:8px"></svg></div>
+    <div class="card" id="cStrip"><h2 style="font-size:15px" data-i="stripT"></h2><div class="sub" data-i="stripS"></div><svg id="strip" viewBox="0 0 520 230" style="width:100%;height:auto;margin-top:8px"></svg></div>
   </section>
   <section class="grid2" id="viz2">
-    <div class="card"><h2 style="font-size:15px" data-i="heatT"></h2><div class="sub" data-i="heatS"></div><svg id="heat" viewBox="0 0 520 300" style="width:100%;height:auto;margin-top:8px"></svg></div>
-    <div class="card"><h2 style="font-size:15px" data-i="barT"></h2><div class="sub" data-i="barS"></div><svg id="bars" viewBox="0 0 520 300" style="width:100%;height:auto;margin-top:8px"></svg></div>
+    <div class="card" id="cHeat"><h2 style="font-size:15px" data-i="heatT"></h2><div class="sub" data-i="heatS"></div><svg id="heat" viewBox="0 0 520 300" style="width:100%;height:auto;margin-top:8px"></svg></div>
+    <div class="card" id="cBars"><h2 style="font-size:15px" data-i="barT"></h2><div class="sub" data-i="barS"></div><svg id="bars" viewBox="0 0 520 300" style="width:100%;height:auto;margin-top:8px"></svg></div>
   </section>
 
   <section class="grid2">
-    <div class="card">
+    <div class="card" id="cLog">
       <h2 style="font-size:15px" data-i="logT"></h2>
       <div class="sub" data-i="logS"></div>
       <div id="log" style="margin-top:6px"></div>
     </div>
-    <div class="card note">
+    <div class="card note" id="cXm">
       <h2 style="font-size:15px" data-i="xmT"></h2>
       <div class="sub" data-i="xmS"></div>
       <table id="xm" style="margin-top:6px"></table>
@@ -148,7 +194,7 @@ footer{margin-top:16px;font-size:11px;color:var(--slate);line-height:1.5}
     </div>
   </section>
 
-  <div class="warn" data-i="honesty"></div>
+  <div class="warn"><b data-i="scopeT"></b> <span data-i="honesty"></span></div>
   <footer data-i="footer"></footer>
 </main>
 
@@ -159,51 +205,51 @@ footer{margin-top:16px;font-size:11px;color:var(--slate);line-height:1.5}
 var D = window.DM_DATA;
 var LANG='en';
 var I18N={
- en:{title:'Digital Marshal: incident coordination for autonomous vehicles',subtitle:'Replay of the frozen point queue model. Three routing policies, one closed corridor, identical demand.',
-  chip1:'SYNTHETIC NETWORK',chip2:'EXPLORATORY',chip3:'NOT AN RTA SYSTEM',scenario:'Scenario',play:'Play',pause:'Pause',reset:'Reset',simtime:'simulated time',
-  legA:'Route A (single lane branch)',legB:'Route B (two lane branch)',legQ:'Waiting in an edge queue',legX:'Closed by incident',
-  results:'Results for the selected scenario',chartT:'Vehicles waiting in queues',chartS:'Count of vehicles held in an edge queue at each moment',
-  logT:'Decision log',logS:'Route decisions at each 30 second epoch (route locked at the split point P)',
-  xmT:'Cross model check (point queue vs SUMO)',xmS:'Coordinated improvement over independent periodic, percent',
-  honesty:'Honest status. The network, demand and capacities are invented for this study and are not calibrated to Dubai. No confirmatory experiment has been run, and the provisional 5 percent target is not met by any result shown here. This viewer replays the output of the deterministic model; it does not estimate field performance.',
+ en:{title:'Digital Marshal: Corridor Incident Command',subtitle:'Incident Response Epoch monitoring. Deterministic point queue replay under a lane closure, identical demand for every routing policy.',
+  chip1:'SYNTHETIC CORRIDOR NETWORK',chip2:'DETERMINISTIC MODEL',chip3:'NOT AN RTA SYSTEM',scenario:'Demand Scenario',play:'Play',pause:'Pause',reset:'Reset',simtime:'simulation clock',
+  legA:'Corridor A (single lane)',legB:'Corridor B marker',legQ:'Queued / delayed',legX:'Lane closure',
+  results:'Corridor Performance Summary',chartT:'Point-Queue Flow',chartS:'Vehicles held in a point queue at each moment',
+  logT:'Incident Response Epoch Log',logS:'Routing decision at each 30 second epoch (route locked at split point P)',
+  xmT:'Model Cross Verification',xmS:'Coordinated gain over independent periodic routing, percent (point queue vs SUMO)',
+  honesty:'Deterministic point queue model on a synthetic corridor network with a lane closure at 120 s. Safety verification is limited to model invariants: zero closed link entries and zero queue audit violations in every run shown. The network, demand and capacities are not calibrated to Dubai infrastructure, no confirmatory experiment has been run, and the provisional 5 percent target is not met. Results support evaluation of the routing logic only and do not estimate field performance.',
   footer:'Student prototype. Not affiliated with, or endorsed by, the Roads and Transport Authority or any other government body. Source: github.com/hudasol/digital-marshal. Data regenerated with tools/build_web_data.py from models/point_queue/wp2_9.',
-  static:'Static (Route A)',independent_periodic:'Independent periodic',coordinated_batch:'Coordinated batch',
-  staticD:'Everyone takes Route A',independentD:'Each batch copies one probe choice',coordD:'Joint split of each batch',
-  inq:'In queue',arr:'Arrived',rtA:'On route A',rtB:'On route B',
-  total:'Total fleet time (veh min)',mean:'Mean trip (min)',p95:'P95 trip (min)',split:'Route split A / B',maxshare:'Max batch share',closed:'Closed link entries',fifo:'Queue audit violations',
-  vsInd:'vs independent',vsStat:'vs static',incident:'Incident at 120 s: edges E2 and E3 closed. Advisory published (simulated).',depart:'Fleet starts leaving the origin.',
-  epoch:'Batch',ind:'Independent',coo:'Coordinated',done:'All vehicles arrived.',
+  static:'Static Routing (Corridor A)',independent_periodic:'Independent Periodic Routing',coordinated_batch:'Dynamic Coordinated Routing',
+  staticD:'All vehicles allocated to Corridor A',independentD:'Each epoch batch copies one probe decision',coordD:'Joint allocation of each epoch batch',
+  inq:'In point queue',arr:'Completed',rtA:'Corridor A',rtB:'Corridor B',
+  total:'Total fleet travel time (veh min)',mean:'Mean journey time (min)',p95:'P95 journey time (min)',split:'Corridor allocation A / B',maxshare:'Max epoch batch share',closed:'Closed link entries',fifo:'Queue audit violations',
+  vsInd:'vs independent',vsStat:'vs static',incident:'Incident at 120 s: segments E2 and E3 closed. Advisory published (simulated).',depart:'Fleet starts leaving the origin.',
+  epoch:'Epoch',ind:'Independent',coo:'Dynamic',done:'All vehicles completed the corridor.',
   hlTotal:'Coordinated total fleet time',hlInd:'Change vs independent periodic',hlStat:'Change vs static Route A',
   better:'lower',worse:'higher',same:'no change',
   xmPQ:'Point queue',xmSumo:'SUMO mean',xmCI:'SUMO 95% interval',xmSeeds:'Seeds better',
-  cumT:'Cumulative arrivals at the destination',cumS:'Vehicles that have completed their trip by each moment; a steeper curve clears the fleet sooner',stripT:'Trip time of every vehicle',stripS:'One dot per vehicle, coloured by route; vertical tick marks the mean',heatT:'Congestion heat grid',heatS:'Total waiting time in each edge queue, in vehicle minutes',barT:'Fleet time and route split',barS:'Total fleet travel time (bars) and share of vehicles on each route',minutes:'minutes',vm:'veh min',vehs:'vehicles',n1:'Both models rank coordinated at or below independent, and both below static, in the loaded scenarios.',
+  cumT:'Cumulative Throughput at Destination',cumS:'Vehicles that completed the corridor by each moment; a steeper curve clears the fleet sooner',stripT:'Journey Time per Vehicle',stripS:'One marker per vehicle by corridor allocation; coloured tick marks the mean',heatT:'Corridor Capacity Congestion Map',heatS:'Total point queue waiting time per corridor segment, vehicle minutes',barT:'Fleet Delay and Corridor Allocation',barS:'Total fleet travel time (bars) and share of vehicles allocated to each corridor',minutes:'minutes',vm:'veh min',vehs:'vehicles',scopeT:'Algorithmic Scope & Simulation Boundary:',legT:'Normal transit',n1:'Both models rank coordinated at or below independent, and both below static, in the loaded scenarios.',
   n2:'The gap to independent periodic is small in both models and far below the provisional 5 percent target.',
   n3:'The two models do not share identical policy semantics, so the figures are not a replication pair.',
   sc:{manageable_primary:'Manageable primary (10 vehicles)',near_branch_capacity:'Near branch capacity (24 vehicles)',overload_stress:'Overload stress (60 vehicles)',primary_half_capacity:'Half capacity (10 vehicles)',primary_double_capacity:'Double capacity (10 vehicles)'}},
- ar:{title:'المارشال الرقمي: تنسيق الحوادث للمركبات ذاتية القيادة',subtitle:'إعادة تشغيل لنموذج الطوابير النقطية المجمّد. ثلاث سياسات توجيه وممر واحد مغلق وطلب متطابق.',
-  chip1:'شبكة افتراضية',chip2:'استكشافي',chip3:'ليس نظاماً لهيئة الطرق',scenario:'السيناريو',play:'تشغيل',pause:'إيقاف مؤقت',reset:'إعادة',simtime:'زمن المحاكاة',
-  legA:'المسار أ (فرع بحارة واحدة)',legB:'المسار ب (فرع بحارتين)',legQ:'في انتظار الطابور',legX:'مغلق بسبب الحادث',
-  results:'نتائج السيناريو المحدد',chartT:'المركبات المنتظرة في الطوابير',chartS:'عدد المركبات المحتجزة في طابور على الطريق في كل لحظة',
-  logT:'سجل القرارات',logS:'قرارات المسار في كل دورة مدتها 30 ثانية (يُثبَّت المسار عند نقطة التفرع)',
-  xmT:'مقارنة بين النموذجين (الطوابير النقطية و SUMO)',xmS:'تحسن التنسيق مقارنة بالمستقل الدوري، بالنسبة المئوية',
-  honesty:'الوضع بصدق. الشبكة والطلب والسعات مفترضة لهذه الدراسة وغير معايرة على دبي. لم تُجرَ تجربة تأكيدية، ولا تحقق أي نتيجة هنا الهدف المؤقت البالغ 5 بالمئة. هذه الأداة تعيد عرض مخرجات النموذج الحتمي ولا تقدّر الأداء الميداني.',
+ ar:{title:'المارشال الرقمي: قيادة الحوادث على الممرات',subtitle:'مراقبة دورات الاستجابة للحوادث. إعادة تشغيل حتمية للطوابير النقطية مع إغلاق مسار وطلب متطابق لكل سياسة توجيه.',
+  chip1:'شبكة ممرات افتراضية',chip2:'نموذج حتمي',chip3:'ليس نظاماً لهيئة الطرق',scenario:'سيناريو الطلب',play:'تشغيل',pause:'إيقاف مؤقت',reset:'إعادة',simtime:'ساعة المحاكاة',
+  legA:'الممر أ (مسار واحد)',legB:'علامة الممر ب',legQ:'في الطابور / متأخرة',legX:'إغلاق مسار',
+  results:'ملخص أداء الممرات',chartT:'تدفق الطابور النقطي',chartS:'المركبات المحتجزة في طابور نقطي في كل لحظة',
+  logT:'سجل دورات الاستجابة للحوادث',logS:'قرار التوجيه في كل دورة مدتها 30 ثانية (يُثبَّت المسار عند نقطة التفرع)',
+  xmT:'التحقق المتقاطع بين النماذج',xmS:'تحسن التوجيه المنسق مقارنة بالتوجيه المستقل الدوري، بالنسبة المئوية (الطوابير النقطية و SUMO)',
+  honesty:'نموذج طوابير نقطية حتمي على شبكة ممرات افتراضية مع إغلاق مسار عند 120 ثانية. يقتصر التحقق من السلامة على ثوابت النموذج: عدم دخول أي رابط مغلق وعدم وجود مخالفات في تدقيق الطابور في كل تشغيل معروض. الشبكة والطلب والسعات غير معايرة على بنية دبي التحتية، ولم تُجرَ تجربة تأكيدية، ولم يتحقق الهدف المؤقت البالغ 5 بالمئة. تدعم النتائج تقييم منطق التوجيه فقط ولا تقدّر الأداء الميداني.',
   footer:'نموذج طلابي أولي. غير تابع لهيئة الطرق والمواصلات أو أي جهة حكومية أخرى وغير معتمد منها. المصدر: github.com/hudasol/digital-marshal.',
-  static:'ثابت (المسار أ)',independent_periodic:'مستقل دوري',coordinated_batch:'دفعات منسقة',
-  staticD:'الجميع يسلكون المسار أ',independentD:'كل دفعة تنسخ قرار مركبة واحدة',coordD:'توزيع مشترك لكل دفعة',
-  inq:'في الطابور',arr:'وصلت',rtA:'على المسار أ',rtB:'على المسار ب',
-  total:'إجمالي زمن الأسطول (مركبة دقيقة)',mean:'متوسط الرحلة (دقيقة)',p95:'الرحلة عند المئين 95 (دقيقة)',split:'توزيع المسارات أ / ب',maxshare:'أعلى حصة في دفعة',closed:'دخول روابط مغلقة',fifo:'مخالفات تدقيق الطابور',
-  vsInd:'مقارنة بالمستقل',vsStat:'مقارنة بالثابت',incident:'حادث عند 120 ثانية: إغلاق الرابطين E2 و E3. نُشر التنبيه (محاكاة).',depart:'بدء انطلاق الأسطول من نقطة الأصل.',
-  epoch:'دفعة',ind:'مستقل',coo:'منسق',done:'وصلت جميع المركبات.',
+  static:'توجيه ثابت (الممر أ)',independent_periodic:'توجيه مستقل دوري',coordinated_batch:'توجيه ديناميكي منسق',
+  staticD:'جميع المركبات مخصصة للممر أ',independentD:'كل دفعة في الدورة تنسخ قرار مركبة استكشافية',coordD:'تخصيص مشترك لكل دفعة في الدورة',
+  inq:'في الطابور النقطي',arr:'أتمت الممر',rtA:'الممر أ',rtB:'الممر ب',
+  total:'إجمالي زمن رحلات الأسطول (مركبة دقيقة)',mean:'متوسط زمن الرحلة (دقيقة)',p95:'زمن الرحلة عند المئين 95 (دقيقة)',split:'توزيع الممرات أ / ب',maxshare:'أعلى حصة دفعة في الدورة',closed:'دخول روابط مغلقة',fifo:'مخالفات تدقيق الطابور',
+  vsInd:'مقارنة بالمستقل',vsStat:'مقارنة بالثابت',incident:'حادث عند 120 ثانية: إغلاق المقطعين E2 و E3. نُشر التنبيه (محاكاة).',depart:'بدء انطلاق الأسطول من نقطة الأصل.',
+  epoch:'دورة',ind:'مستقل',coo:'ديناميكي',done:'أتمت جميع المركبات الممر.',
   hlTotal:'إجمالي زمن الأسطول المنسق',hlInd:'التغير مقارنة بالمستقل الدوري',hlStat:'التغير مقارنة بالمسار الثابت أ',
   better:'أقل',worse:'أعلى',same:'دون تغير',
   xmPQ:'الطوابير النقطية',xmSumo:'متوسط SUMO',xmCI:'فترة ثقة 95%',xmSeeds:'البذور الأفضل',
-  cumT:'الوصول التراكمي إلى الوجهة',cumS:'عدد المركبات التي أتمت رحلتها في كل لحظة؛ المنحنى الأشد ميلاً يُخلي الأسطول أسرع',stripT:'زمن رحلة كل مركبة',stripS:'نقطة لكل مركبة بلون مسارها؛ الخط العمودي يمثل المتوسط',heatT:'خريطة حرارة الازدحام',heatS:'إجمالي زمن الانتظار في طابور كل رابط بالمركبة دقيقة',barT:'زمن الأسطول وتوزيع المسارات',barS:'إجمالي زمن الأسطول (أعمدة) ونسبة المركبات على كل مسار',minutes:'دقيقة',vm:'مركبة دقيقة',vehs:'مركبات',n1x:'',n1:'يضع النموذجان المنسق عند مستوى المستقل أو أفضل منه، وكلاهما أفضل من الثابت، في السيناريوهات المحملة.',
+  cumT:'الإنتاجية التراكمية عند الوجهة',cumS:'المركبات التي أتمت الممر في كل لحظة؛ المنحنى الأشد ميلاً يُخلي الأسطول أسرع',stripT:'زمن رحلة كل مركبة',stripS:'علامة لكل مركبة حسب تخصيص الممر؛ الخط الملون يمثل المتوسط',heatT:'خريطة ازدحام السعة التشغيلية للممر',heatS:'إجمالي زمن الانتظار في الطابور النقطي لكل مقطع، بالمركبة دقيقة',barT:'تأخر الأسطول وتخصيص الممرات',barS:'إجمالي زمن رحلات الأسطول (أعمدة) ونسبة المركبات المخصصة لكل ممر',minutes:'دقيقة',vm:'مركبة دقيقة',vehs:'مركبات',n1x:'',scopeT:'النطاق الخوارزمي وحدود المحاكاة:',legT:'عبور اعتيادي',n1:'يضع النموذجان المنسق عند مستوى المستقل أو أفضل منه، وكلاهما أفضل من الثابت، في السيناريوهات المحملة.',
   n2:'الفارق عن المستقل الدوري صغير في النموذجين وأقل بكثير من الهدف المؤقت البالغ 5 بالمئة.',
   n3:'لا يتطابق تعريف السياسات في النموذجين، لذلك لا تشكل الأرقام زوج تكرار.',
   sc:{manageable_primary:'أساسي قابل للإدارة (10 مركبات)',near_branch_capacity:'قرب سعة الفرع (24 مركبة)',overload_stress:'ضغط زائد (60 مركبة)',primary_half_capacity:'نصف السعة (10 مركبات)',primary_double_capacity:'ضعف السعة (10 مركبات)'}}
 };
 var POL=['static','independent_periodic','coordinated_batch'];
-var POLCOL={static:'#64748B',independent_periodic:'#FFB715',coordinated_batch:'#DA291C'};
+var POLCOL={static:'#64748B',independent_periodic:'#FFB715',coordinated_batch:'#073EEB'};
 var POLD={static:'staticD',independent_periodic:'independentD',coordinated_batch:'coordD'};
 var NODES={O:[0,0],P:[600,0],C:[1200,100],A1:[1100,-100],A2:[1700,-100],B1:[1100,0],B2:[1700,0],B3:[2000,0],M:[2300,-50],D:[2900,-50]};
 var LANES={E1:4,E2:1,E3:1,E4:1,E5:1,E6:1,E7:2,E8:2,E9:2,E10:2,E11:4};
@@ -274,8 +320,10 @@ function ensureDots(){
   POL.forEach(function(p){
     var o=P[p];o.dotLayer.innerHTML='';o.dots=[];
     vlist(p).forEach(function(v,i){
-      var c=el('circle',{r:7,cx:-20,cy:-20,fill:v.r==='A'?'#242526':'#FFB715',stroke:v.r==='A'?'#fff':'#242526','stroke-width':1.2,opacity:0},o.dotLayer);
-      o.dots.push({v:v,c:c,i:i});
+      var c=el('g',{opacity:0,transform:'translate(-30,-30)'},o.dotLayer);
+      var body=el('path',{d:'M-9,-5 L6,-5 L11,0 L6,5 L-9,5 Z',fill:'#073EEB',stroke:'#fff','stroke-width':1.3,'stroke-linejoin':'round'},c);
+      if(v.r==='B')el('circle',{cx:-2,cy:0,r:2,fill:'#fff'},c);
+      o.dots.push({v:v,c:c,b:body,i:i});
     });
   });
 }
@@ -322,10 +370,9 @@ function draw(){
       var f=ps.fr;
       var lanes=LANES[ps.edge],lane=((d.i)%lanes)-(lanes-1)/2;
       var cx=A[0]+dx*f+ux*off+(-uy)*lane*5.5,cy=A[1]+dy*f+uy*off+ux*lane*5.5;
-      d.c.setAttribute('cx',cx);d.c.setAttribute('cy',cy);d.c.setAttribute('opacity',1);
-      d.c.setAttribute('stroke',ps.waiting?'#DA291C':(v.r==='A'?'#fff':'#242526'));
-      d.c.setAttribute('stroke-width',ps.waiting?2.4:1.2);
-      if(ps.waiting)d.c.setAttribute('fill','#fff');else d.c.setAttribute('fill',v.r==='A'?'#242526':'#FFB715');
+      var ang=Math.atan2(dy,dx)*180/Math.PI;
+      d.c.setAttribute('transform','translate('+cx.toFixed(1)+','+cy.toFixed(1)+') rotate('+ang.toFixed(1)+') scale(1.3)');d.c.setAttribute('opacity',1);
+      d.b.setAttribute('fill',ps.waiting?'#FFB715':'#073EEB');d.b.setAttribute('stroke',ps.waiting?'#242526':'#fff');d.b.setAttribute('stroke-width',ps.waiting?1.8:1.3);
     });
     // route counts decided so far = vehicles whose p time has passed (epoch granularity ignored)
     vlist(p).forEach(function(v){if(t>=v.p){if(v.r==='A')a++;else b++;}});
@@ -395,6 +442,7 @@ function renderStatic(){
 }
 
 
+function SH(p){return LANG==='ar'?{static:'ثابت',independent_periodic:'مستقل',coordinated_batch:'ديناميكي'}[p]:{static:'Static',independent_periodic:'Independent',coordinated_batch:'Dynamic'}[p];}
 function renderViz(){
   var NS='http://www.w3.org/2000/svg';
   function tx(svg,x,y,txt,o){var e=el('text',{x:x,y:y,'font-size':10,fill:'#64748B','text-anchor':(o&&o.a)||'middle','font-weight':(o&&o.w)||500},svg);e.textContent=txt;return e;}
@@ -417,12 +465,12 @@ function renderViz(){
   var step=Math.max(1,Math.round((hi-lo)/6));
   for(var m=lo;m<=hi;m+=step){el('line',{x1:xs(m),x2:xs(m),y1:12,y2:190,stroke:'#E2E8F0'},sv);tx(sv,xs(m),210,m+' min');}
   POL.forEach(function(p,i){
-    var y0=52+i*62,vs=vlist(p);tx(sv,8,y0+4,T(p),{a:'start',w:600});
+    var y0=52+i*62,vs=vlist(p);tx(sv,8,y0+4,SH(p),{a:'start',w:600});
     el('line',{x1:150,x2:480,y1:y0,y2:y0,stroke:'#CBD5E1'},sv);
     var mean=0;vs.forEach(function(v){mean+=(v.a-v.d)/60;});mean/=vs.length;
     var bins={};
     vs.slice().sort(function(a,b){return (a.a-a.d)-(b.a-b.d);}).forEach(function(v){var m=(v.a-v.d)/60,k=Math.round(m*4);bins[k]=(bins[k]||0)+1;
-      el('circle',{cx:xs(m),cy:y0-4-(bins[k]-1)*8,r:3.6,fill:v.r==='A'?'#242526':'#FFB715',stroke:v.r==='A'?'#fff':'#242526','stroke-width':.8},sv);});
+      el('circle',{cx:xs(m),cy:y0-4-(bins[k]-1)*8,r:3.6,fill:v.r==='A'?'#242526':'#7F9BF2',stroke:v.r==='A'?'#fff':'#242526','stroke-width':.8},sv);});
     el('line',{x1:xs(mean),x2:xs(mean),y1:y0-30,y2:y0+8,stroke:POLCOL[p],'stroke-width':3},sv);
     tx(sv,xs(mean),y0+20,mean.toFixed(1),{w:700});
   });
@@ -430,7 +478,7 @@ function renderViz(){
   var hs=$('#heat');hs.innerHTML='';var eds=D.graph.edges.map(function(e){return e.id;}),grid={},mx=0;
   POL.forEach(function(p){grid[p]={};eds.forEach(function(e){grid[p][e]=0;});vlist(p).forEach(function(v){v.ev.forEach(function(e){grid[p][e[0]]+=e[3];});});eds.forEach(function(e){grid[p][e]/=60;if(grid[p][e]>mx)mx=grid[p][e];});});
   var cw=118,rh=22;
-  POL.forEach(function(p,j){tx(hs,70+j*cw+cw/2,14,T(p),{w:600});});
+  POL.forEach(function(p,j){tx(hs,70+j*cw+cw/2,14,SH(p),{w:600});});
   eds.forEach(function(e,i){
     tx(hs,60,40+i*rh+4,e+' ('+(LANES[e]||1)+')',{a:'end',w:600});
     POL.forEach(function(p,j){var val=grid[p][e],k=mx?val/mx:0;
@@ -445,13 +493,13 @@ function renderViz(){
   var tmax=Math.max.apply(null,tot);
   POL.forEach(function(p,i){
     var y0=20+i*52,w=(tot[i]/tmax)*250;
-    tx(bs,8,y0+16,T(p),{a:'start',w:600});
+    tx(bs,8,y0+16,SH(p),{a:'start',w:600});
     el('rect',{x:150,y:y0,width:250,height:22,fill:'#F1F5F9'},bs);
     el('rect',{x:150,y:y0,width:w,height:22,fill:POLCOL[p]},bs);
     tx(bs,150+w+6,y0+15,tot[i].toFixed(1)+' '+T('vm'),{a:'start',w:700}).setAttribute('fill','#1B1D21');
     var vm=runOf(p).metrics,A=+vm.route_A_count,B=+vm.route_B_count,N=A+B,sw=250;
     el('rect',{x:150,y:y0+26,width:sw*A/N,height:10,fill:'#242526'},bs);
-    el('rect',{x:150+sw*A/N,y:y0+26,width:sw*B/N,height:10,fill:'#FFB715'},bs);
+    el('rect',{x:150+sw*A/N,y:y0+26,width:sw*B/N,height:10,fill:'#7F9BF2'},bs);
     tx(bs,150+sw+6,y0+35,'A '+A+' · B '+B,{a:'start'});
   });
   // delta callouts
