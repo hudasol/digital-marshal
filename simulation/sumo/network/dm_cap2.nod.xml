@@ -1,0 +1,12 @@
+<nodes>
+  <node id="O" x="0" y="0" type="priority"/>
+  <node id="P" x="600" y="0" type="priority"/>
+  <node id="C" x="1200" y="100" type="priority"/>
+  <node id="A1" x="1100" y="-100" type="priority"/>
+  <node id="A2" x="1700" y="-100" type="priority"/>
+  <node id="B1" x="1100" y="0" type="priority"/>
+  <node id="B2" x="1700" y="0" type="priority"/>
+  <node id="B3" x="2000" y="0" type="priority"/>
+  <node id="M" x="2300" y="-50" type="priority"/>
+  <node id="D" x="2900" y="-50" type="priority"/>
+</nodes>
