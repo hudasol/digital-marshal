@@ -7,10 +7,14 @@ Branch `wp2.9-fixes`, based on tag `wp2.7-baseline` (WP2.7 source, tests, docs a
 | Horizon | One constant `HORIZON_S = 7200.0` in `canonical_model.py`, enforced by `run_fixed_routes(horizon_s=...)`; `confirmatory.py` and `metric_spec.json` read it. The baseline enforced a hard-coded 3600 s. 7200 s is the value in the WP2.7 docs and `metric_spec.json`; confirm this is the intended frozen horizon. | `src/canonical_model.py`, `src/confirmatory.py` |
 | Closure gate | `closure_violation` and `closed_link_entries` are derived from each vehicle's entry time on `E2`/`E3` (entry at or after `closure_start_s`). They were hard-coded `False` / `0`. Audit flags `all_depart_before_incident` and `all_p_arrivals_at_or_after_incident` are computed, not constants. | same |
 | Audit | `audit_fifo` (which re-applied the model's own recurrence) is removed. `src/raw_audit.py` checks properties of the raw records against `config/graph_spec.json`, a separately transcribed spec with no model imports. | `src/raw_audit.py`, `config/graph_spec.json` |
-| Tests | 65 tests (6 original unchanged + 59 new): adversarial closed route (unit and pipeline), horizon enforcement and boundary, hand-computed queue values, pinned results, golden byte-identity of 6 frozen outputs, audit independence, spec drift, 14 fault-injection tests, exploratory separation. | `tests/` |
-| Mutation check | `tools/mutation_check.py` re-breaks each fix in a scratch copy; 13/13 mutants are caught. | `tools/` |
+| Tests | 85 tests (6 original unchanged + 79 new, including 20 audit completeness tests): adversarial closed route (unit and pipeline), horizon enforcement and boundary, hand-computed queue values, pinned results, golden byte-identity of 6 frozen outputs, audit independence, spec drift, 14 fault-injection tests, exploratory separation. | `tests/` |
+| Mutation check | `tools/mutation_check.py` re-breaks each fix in a scratch copy; 18/18 mutants are caught. | `tools/` |
 | Policy review | Independent policy review and corrected epoch grid. | `docs/WP2_9_POLICY_REVIEW.md` |
 | Exploratory baselines | `independent_each_vehicle`, `peer_aware_sequential`; separate runner that refuses to write to `results/`. | `src/exploratory.py` |
+
+## Audit completeness (B-01)
+
+`raw_audit.audit_results_dir` and the command line tool now derive the expected run matrix from `config/graph_spec.json` (scenarios times policies), not from the metrics file under test. They fail closed (exit 1) on a missing or empty result file, a missing, duplicated or unexpected scenario policy group in any of the five result files, and decision or batch log totals that do not match the scenario. Before this change, removing one metrics row still gave `runs_audited: 14`, `all_pass: true` and exit 0.
 
 ## Output compatibility
 
