@@ -35,6 +35,10 @@ PYTHONPATH=src python src/confirmatory.py --out ../../../scratch/check
 python src/raw_audit.py --results ../../../scratch/check
 ```
 
+## Baseline provenance (Track A)
+
+The historical WP2.7 baseline, its source inventory, hashes, migration log, known issues and a prioritised follow up list are documented in `docs/provenance/`, `docs/known-issues.md`, `docs/historical-results.md` and `docs/reproduction-guide.md`. Start with `docs/project-scope.md`. No licence has been chosen yet.
+
 ## Results so far
 
 Numbers are in `docs/CROSS_MODEL_RECONCILIATION.md`, generated from result files. In short, the coordinated advantage over independent periodic is small in both models and below the provisional target, and much of it comes from vehicles seeing their peers' commitments.
