@@ -14,7 +14,8 @@ var LANG = 'en';
 var I18N = {
 en: {
   title: 'Digital Marshal 3D', subtitle: 'Corridor incident response replayed from the frozen point queue model',
-  chip1: 'Synthetic network', chip2: 'Exploratory results', chip3: 'Simulation proposal for the hackathon', resBtn: 'Results', dataBtn: 'Data', dataClose: '3D view', view2d: '2D view',
+  chip1: 'Synthetic network', chip2: 'Exploratory results', chip3: 'Simulation proposal for the hackathon', resBtn: 'Results', dataBtn: 'Data', dataClose: '3D view', skip: 'Skip to controls',
+  stageA: '3D corridor view. Arrow keys orbit, plus and minus zoom, shift with arrow keys pans, Home resets the view.', dockA: 'Simulation controls', camsA: 'Camera views', spdA: 'Playback speed', speedA: 'Speed {s} times', scrubA: 'Simulation time', incA: 'Incident time in seconds', close: 'Close caption', dataA: 'Data tables and charts', timeA: '{t} of {m} seconds', view2d: '2D view',
   resT: 'Corridor Performance Summary', resNote: 'Fleet time is the sum of every vehicle journey. Queue wait is time spent held at the head of a segment. Both come straight from the model output.',
   chartT: 'Vehicles waiting over time', scn: 'Scenario', play: 'Play', pause: 'Pause', restart: 'Restart', incT: 'Incident time', injNow: 'Inject incident now', injReset: 'Baseline',
   labels: 'Labels', tour: 'Guided tour', tourOff: 'Exit tour',
@@ -48,7 +49,8 @@ en: {
 },
 ar: {
   title: 'المارشال الرقمي ثلاثي الأبعاد', subtitle: 'الاستجابة لحادث الممر، إعادة تشغيل من نموذج الطوابير النقطية المجمد',
-  chip1: 'شبكة اصطناعية', chip2: 'نتائج استكشافية', chip3: 'مقترح محاكاة للهاكاثون', resBtn: 'النتائج', dataBtn: 'البيانات', dataClose: 'العرض ثلاثي الأبعاد', view2d: 'العرض الثنائي',
+  chip1: 'شبكة اصطناعية', chip2: 'نتائج استكشافية', chip3: 'مقترح محاكاة للهاكاثون', resBtn: 'النتائج', dataBtn: 'البيانات', dataClose: 'العرض ثلاثي الأبعاد', skip: 'انتقل إلى عناصر التحكم',
+  stageA: 'العرض ثلاثي الأبعاد للممر. مفاتيح الأسهم للدوران، زائد وناقص للتكبير، وShift مع الأسهم للتحريك، وHome لإعادة العرض.', dockA: 'عناصر التحكم في المحاكاة', camsA: 'زوايا الكاميرا', spdA: 'سرعة التشغيل', speedA: 'السرعة {s} أضعاف', scrubA: 'زمن المحاكاة', incA: 'وقت الحادث بالثواني', close: 'إغلاق التعليق', dataA: 'جداول ورسوم البيانات', timeA: '{t} من {m} ثانية', view2d: 'العرض الثنائي',
   resT: 'ملخص أداء الممر', resNote: 'زمن الأسطول هو مجموع زمن رحلات كل المركبات. انتظار الطابور هو الزمن المحتجز عند مقدمة المقطع. كلاهما مأخوذ مباشرة من مخرجات النموذج.',
   chartT: 'المركبات المنتظرة عبر الزمن', scn: 'السيناريو', play: 'تشغيل', pause: 'إيقاف مؤقت', restart: 'إعادة', incT: 'وقت الحادث', injNow: 'حقن حادث الآن', injReset: 'الأساس',
   labels: 'التسميات', tour: 'جولة موجهة', tourOff: 'إنهاء الجولة',
@@ -118,7 +120,7 @@ function stepCam(dt, now) {
     if (!r.g.visible) { state.follow = null; }
     else { want.tx = r.g.position.x; want.ty = 0; want.tz = r.g.position.z; }
   }
-  if (!$('#intro').classList.contains('gone')) { want.yaw = Math.sin(now * 0.12) * 0.28; want.pit = 0.5; want.dist = 900; want.tx = 330; want.tz = 0; }
+  if (!$('#intro').classList.contains('gone')) { want.yaw = REDUCE ? 0 : Math.sin(now * 0.12) * 0.28; want.pit = 0.5; want.dist = 900; want.tx = 330; want.tz = 0; }
   var k = 1 - Math.exp(-dt * 3.2);
   ['tx', 'ty', 'tz', 'yaw', 'pit', 'dist'].forEach(function (a) { cam[a] += (want[a] - cam[a]) * k; });
   var cp = Math.cos(cam.pit);
@@ -200,9 +202,9 @@ function buildBeats() {
 }
 function startTour() {
   state.tour = true; state.t = 0; state.beat = -1; state.userCam = false; state.follow = null; state.speed = Math.max(3, Math.min(25, Math.round(state.tMax / 110 * 10) / 10)); state.playing = true;
-  $('#intro').classList.add('gone'); state.capOpen = true; syncPlay(); syncSpeed(); $('#tourBtn').textContent = T('tourOff'); $('#tourBtn').classList.add('on');
+  state.capOpen = true; syncPlay(); syncSpeed(); $('#tourBtn').textContent = T('tourOff'); $('#tourBtn').classList.add('on'); $('#tourBtn').setAttribute('aria-pressed', 'true'); leaveIntro();
 }
-function stopTour() { state.tour = false; $('#cap').classList.add('off'); $('#tourBtn').textContent = T('tour'); $('#tourBtn').classList.remove('on'); }
+function stopTour() { $('#tourBtn').setAttribute('aria-pressed', 'false'); state.tour = false; $('#cap').classList.add('off'); $('#tourBtn').textContent = T('tour'); $('#tourBtn').classList.remove('on'); }
 function tourFrame() {
   if (!state.tour) return;
   var idx = 0; for (var k = 0; k < beats.length; k++) if (state.t >= beats[k].t) idx = k;
@@ -225,7 +227,7 @@ function buildHud() {
     for (var i = 0; i < 5; i++) { huds[p].b.push($('b', cells[i])); huds[p].l.push($('span', cells[i])); }
   });
 }
-function labelHud() { POL.forEach(function (p) { var h = huds[p]; h.h.textContent = T('pol')[p]; h.s.textContent = T('polD')[p]; for (var i = 0; i < 5; i++) h.l[i].textContent = T('hud')[i]; h.last = []; }); }
+function labelHud() { POL.forEach(function (p) { var h = huds[p]; h.el.setAttribute('role', 'group'); h.el.setAttribute('aria-label', T('pol')[p]); h.h.textContent = T('pol')[p]; h.s.textContent = T('polD')[p]; for (var i = 0; i < 5; i++) h.l[i].textContent = T('hud')[i]; h.last = []; }); }
 function updateHud(counts) {
   POL.forEach(function (p) {
     var h = huds[p], c = counts[p], v = [c.inq, c.arr, c.A, c.B, n1(waitedSoFar(runs[p], state.t))];
@@ -267,7 +269,7 @@ function renderIntro() {
 
 /* ---------- dock ---------- */
 function syncPlay() { $('#play').textContent = state.playing ? T('pause') : T('play'); }
-function syncSpeed() { var sp = $('#spd'); Array.prototype.forEach.call(sp.children, function (b) { b.classList.toggle('on', parseFloat(b.dataset.s) === state.speed); }); }
+function syncSpeed() { var sp = $('#spd'); Array.prototype.forEach.call(sp.children, function (b) { var on = parseFloat(b.dataset.s) === state.speed; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.setAttribute('aria-label', fmt(T('speedA'), { s: b.dataset.s })); }); }
 function buildDock() {
   var sel = $('#scn'); sel.innerHTML = ''; SCN.forEach(function (k) { var o = document.createElement('option'); o.value = k; sel.appendChild(o); });
   var sp = $('#spd'); sp.innerHTML = ''; [1, 5, 20, 60].forEach(function (s) { var b = document.createElement('button'); b.className = 'b'; b.dataset.s = s; b.textContent = s + '×'; b.onclick = function () { state.speed = s; syncSpeed(); }; sp.appendChild(b); });
@@ -283,7 +285,8 @@ function labelDock() {
 function applyLang() {
   document.documentElement.lang = LANG; document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr'; document.body.className = LANG === 'ar' ? 'ar' : '';
   Array.prototype.forEach.call(document.querySelectorAll('[data-i]'), function (n) { var k = n.getAttribute('data-i'), v = T(k); if (k === 'iH') n.innerHTML = v; else n.textContent = v; });
-  $('#langBtn').textContent = LANG === 'ar' ? 'English' : 'العربية'; labelDock(); labelHud(); renderResults(); renderIntro(); drawChart();
+  Array.prototype.forEach.call(document.querySelectorAll('[data-ia]'), function (n) { n.setAttribute('aria-label', T(n.getAttribute('data-ia'))); });
+  $('#langBtn').textContent = LANG === 'ar' ? 'English' : 'العربية'; $('#langBtn').setAttribute('lang', LANG === 'ar' ? 'en' : 'ar'); labelDock(); labelHud(); renderResults(); renderIntro(); drawChart();
   beats = buildBeats(); state.beat = -1; openData(!!state.dataOpen);
   if (state.tour) tourFrame();
 }
@@ -292,7 +295,7 @@ function applyLang() {
 function renderData() {
   window.DM3D_DATA.render($('#data'), { lang: LANG, runs: runs, scn: state.scn, inc: state.inc, tMax: state.tMax, D: D, scnName: I18N[LANG].sc[state.scn], scNames: I18N[LANG].sc, lanes: S.LANES, incLabel: T('incT') + ' ' + state.inc + ' ' + T('second') });
 }
-function openData(on) { state.dataOpen = on; $('#data').hidden = !on; $('#dataBtn').textContent = on ? T('dataClose') : T('dataBtn'); $('#dataBtn').classList.toggle('on', on); if (on) { hideTip(); renderData(); } }
+function openData(on) { state.dataOpen = on; $('#data').hidden = !on; $('#dataBtn').textContent = on ? T('dataClose') : T('dataBtn'); $('#dataBtn').classList.toggle('on', on); $('#dataBtn').setAttribute('aria-pressed', on ? 'true' : 'false'); if (on) { hideTip(); renderData(); $('#data').focus({ preventScroll: true }); } else if (state.dataFocused) { $('#dataBtn').focus(); } state.dataFocused = on; }
 
 /* ---------- apply scenario or incident ---------- */
 function applyRuns(keepT) {
@@ -310,10 +313,40 @@ function frame(ms) {
   tourFrame();
   var counts = world.update(state.t, state.inc, now), c = stepCam(dt, now);
   world.render(c.pos, c.tgt); updateHud(counts);
-  $('#scrub').value = state.t; $('#clock').textContent = (LANG === 'ar' ? '' : 't ') + Math.round(state.t) + ' / ' + state.tMax + ' ' + T('second');
+  ariaTime(now); $('#scrub').value = state.t; $('#clock').textContent = (LANG === 'ar' ? '' : 't ') + Math.round(state.t) + ' / ' + state.tMax + ' ' + T('second');
   drawChart();
   requestAnimationFrame(frame);
 }
+
+/* ---------- accessibility helpers ---------- */
+var REDUCE = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function leaveIntro() { var i = $('#intro'); if (i.classList.contains('gone')) return; i.classList.add('gone'); i.setAttribute('aria-hidden', 'true'); $('#stage').focus({ preventScroll: true }); }
+function initA11y() {
+  var dock = $('#dock'), sync = function () { document.documentElement.style.setProperty('--dockh', dock.offsetHeight + 'px'); };
+  sync(); if (window.ResizeObserver) new ResizeObserver(sync).observe(dock); window.addEventListener('resize', sync);
+  window.addEventListener('keydown', function (e) { if (e.key === 'Tab' || e.key.indexOf('Arrow') === 0) document.body.classList.add('kbd'); }, true);
+  window.addEventListener('pointerdown', function () { document.body.classList.remove('kbd'); }, true);
+  $('#goTour').focus();
+  $('#intro').addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { e.preventDefault(); $('#goFree').click(); return; }
+    if (e.key !== 'Tab') return; var f = [$('#goTour'), $('#goFree')], i = f.indexOf(document.activeElement);
+    e.preventDefault(); f[(i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
+  });
+  $('#stage').addEventListener('keydown', function (e) {
+    var step = e.shiftKey ? 0 : 0.08, pan = e.shiftKey ? want.dist * 0.04 : 0, cy = Math.cos(want.yaw), sy = Math.sin(want.yaw), used = true;
+    if (e.key === 'ArrowLeft') { if (pan) { want.tx -= cy * pan; want.tz += sy * pan; } else want.yaw -= step; }
+    else if (e.key === 'ArrowRight') { if (pan) { want.tx += cy * pan; want.tz -= sy * pan; } else want.yaw += step; }
+    else if (e.key === 'ArrowUp') { if (pan) { want.tx -= sy * pan; want.tz -= cy * pan; } else want.pit = Math.min(1.45, want.pit + step); }
+    else if (e.key === 'ArrowDown') { if (pan) { want.tx += sy * pan; want.tz += cy * pan; } else want.pit = Math.max(0.1, want.pit - step); }
+    else if (e.key === '+' || e.key === '=') want.dist = Math.max(25, want.dist / 1.15);
+    else if (e.key === '-' || e.key === '_') want.dist = Math.min(1800, want.dist * 1.15);
+    else if (e.key === 'Home') { state.follow = null; setShot(SHOT.overview); }
+    else used = false;
+    if (used) { e.preventDefault(); state.userCam = true; if (pan) state.follow = null; }
+  });
+}
+var lastAria = 0;
+function ariaTime(now) { if (now - lastAria < 0.6) return; lastAria = now; $('#scrub').setAttribute('aria-valuetext', fmt(T('timeA'), { t: Math.round(state.t), m: state.tMax })); }
 
 /* ---------- boot ---------- */
 function boot() {
@@ -329,10 +362,10 @@ function boot() {
   $('#injNow').onclick = function () { state.inc = Math.max(0, Math.min(300, Math.round(state.t / 5) * 5)); applyRuns(true); };
   $('#injReset').onclick = function () { state.inc = BASE; applyRuns(true); };
   $('#dataBtn').onclick = function () { openData(!state.dataOpen); };
-  $('#resBtn').onclick = function () { state.resOpen = !state.resOpen; $('#res').classList.toggle('hide', !state.resOpen); };
-  $('#lblBtn').onclick = function () { state.labels = !state.labels; world.setEdgeLabels(state.labels); this.classList.toggle('on', !state.labels); };
+  $('#resBtn').onclick = function () { state.resOpen = !state.resOpen; $('#res').classList.toggle('hide', !state.resOpen); document.body.classList.toggle('res-open', state.resOpen); this.setAttribute('aria-expanded', state.resOpen ? 'true' : 'false'); };
+  $('#lblBtn').onclick = function () { state.labels = !state.labels; world.setEdgeLabels(state.labels); this.classList.toggle('on', !state.labels); this.setAttribute('aria-pressed', state.labels ? 'true' : 'false'); };
   $('#langBtn').onclick = function () { LANG = LANG === 'en' ? 'ar' : 'en'; applyLang(); placeMark(); };
-  $('#goTour').onclick = startTour; $('#goFree').onclick = function () { $('#intro').classList.add('gone'); setShot(SHOT.overview); };
+  $('#goTour').onclick = startTour; $('#goFree').onclick = function () { leaveIntro(); setShot(SHOT.overview); };
   $('#tourBtn').onclick = function () { if (state.tour) stopTour(); else startTour(); };
   $('#capX').onclick = function () { state.capOpen = false; $('#cap').classList.add('off'); };
   window.addEventListener('keydown', function (e) {
@@ -344,6 +377,8 @@ function boot() {
     else if (e.key === 'l' || e.key === 'L') $('#lblBtn').click();
   });
   if (window.innerWidth < 1100) { state.resOpen = false; $('#res').classList.add('hide'); }
+  document.body.classList.toggle('res-open', state.resOpen); $('#resBtn').setAttribute('aria-expanded', state.resOpen ? 'true' : 'false'); $('#lblBtn').setAttribute('aria-pressed', 'true'); $('#dataBtn').setAttribute('aria-pressed', 'false');
+  initA11y();
   window.__dm = { state: state, cam: cam, want: want, world: world, runs: function () { return runs; }, startTour: startTour, setShot: setShot, SHOT: SHOT };
   requestAnimationFrame(frame);
 }

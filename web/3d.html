@@ -11,7 +11,8 @@
 <link rel="stylesheet" href="3d/style.css">
 </head>
 <body>
-<div id="stage"></div>
+<a class="skip" href="#play" data-i="skip"></a>
+<div id="stage" tabindex="0" role="application" data-ia="stageA"></div>
 
 <header id="top">
   <img class="logo" src="assets/rta-logo.png" alt="Roads and Transport Authority" width="148" height="40">
@@ -28,43 +29,43 @@
 
 <div id="huds"></div>
 
-<aside id="res" aria-live="polite">
-  <h2 data-i="resT"></h2><div class="sub" id="resSub"></div>
+<aside id="res" aria-labelledby="resH">
+  <h2 id="resH" data-i="resT"></h2><div class="sub" id="resSub"></div>
   <div class="pr" style="border-top:0;padding-top:0"><div class="n" data-i="chartT"></div><canvas id="chart" width="600" height="190"></canvas></div>
   <div id="prs"></div>
   <div class="ft" data-i="resNote"></div>
 </aside>
 
-<div id="cap" class="off"><span class="k" id="capK"></span><p id="capT"></p><button class="x" id="capX" aria-label="close">×</button></div>
+<div id="cap" class="off" role="status" aria-live="polite" aria-atomic="true"><span class="k" id="capK"></span><p id="capT"></p><button class="x" id="capX" data-ia="close">×</button></div>
 
-<div id="dock">
+<div id="dock" role="group" data-ia="dockA">
   <div class="r">
     <label for="scn" data-i="scn"></label><select id="scn"></select>
     <button class="b pri" id="play"></button><button class="b" id="restart" data-i="restart"></button>
-    <div class="sg hid" id="spd"></div>
+    <div class="sg hid" id="spd" role="group" data-ia="spdA"></div>
     <span class="clock" id="clock"></span>
-    <div class="scrub"><input type="range" id="scrub" min="0" max="600" step="1" value="0"><span class="mk" id="mk"></span></div>
+    <div class="scrub"><input type="range" id="scrub" min="0" max="600" step="1" value="0" data-ia="scrubA"><span class="mk" id="mk"></span></div>
   </div>
   <div class="r">
-    <div class="sg" id="cams"></div>
+    <div class="sg" id="cams" role="group" data-ia="camsA"></div>
     <button class="b hid" id="lblBtn" data-i="labels"></button>
     <button class="b gold" id="tourBtn" data-i="tour"></button>
     <span class="sp2"></span>
-    <label for="incT" data-i="incT"></label><input type="range" id="incT" min="0" max="300" step="5" value="120"><b id="incV" style="min-width:42px;font-size:12px">120 s</b>
+    <label for="incT" data-i="incT"></label><input type="range" id="incT" min="0" max="300" step="5" value="120" data-ia="incA"><b id="incV" style="min-width:42px;font-size:12px">120 s</b>
     <button class="b pri" id="injNow" data-i="injNow"></button><button class="b" id="injReset" data-i="injReset"></button>
   </div>
 </div>
 
 <div id="tip"></div>
 
-<div id="data" hidden></div>
+<div id="data" hidden role="region" tabindex="-1" data-ia="dataA"></div>
 
 <footer id="foot"><b data-i="ft1"></b><span data-i="ft2"></span></footer>
 
-<div id="intro">
+<div id="intro" role="dialog" aria-modal="true" aria-labelledby="introH">
   <div class="card">
     <div class="eyebrow" data-i="iEye"></div>
-    <h2 data-i="iH"></h2>
+    <h2 id="introH" data-i="iH"></h2>
     <p data-i="iP"></p>
     <div class="kp"><div class="t" id="kpT"></div><div id="kpRows"></div></div>
     <div class="btns"><button class="b pri" id="goTour" data-i="goTour"></button><button class="b" id="goFree" data-i="goFree"></button></div>
