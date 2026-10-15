@@ -1,0 +1,351 @@
+{
+  "title": "WP2.7 corridor routing study (point queue) with historical SUMO cross check",
+  "status": "Exploratory. Synthetic network. Not a confirmatory experiment; protocol not frozen; provisional 5% target not met; not independently reviewed.",
+  "sources": {
+    "pointQueue": {
+      "path": "models/point_queue/wp2_9/tests/golden/confirmatory_metrics.csv",
+      "sha256": "b86c106135a18acd69dfdfd1c01f5d8e413807e8eeb1c8d451bace0fe8d86329"
+    },
+    "reconciliation": {
+      "path": "docs/CROSS_MODEL_RECONCILIATION.md",
+      "sha256": "0e90f016fd4d2238858175f958ea596d1802af24834e3e698605818153d99b6c"
+    }
+  },
+  "policies": [
+    "static",
+    "independent_periodic",
+    "coordinated_batch"
+  ],
+  "pointQueue": [
+    {
+      "scenario": "manageable_primary",
+      "policy": "static",
+      "vehicles": 10,
+      "spacingS": 10,
+      "capacityScale": 1,
+      "totalFleetTravelTimeVehMin": 93.75,
+      "meanTravelTimeMin": 9.375,
+      "p95TravelTimeMin": 9.75,
+      "routeA": 10,
+      "routeB": 0,
+      "closedLinkEntries": 0,
+      "fifoViolations": 0,
+      "checksPass": true
+    },
+    {
+      "scenario": "manageable_primary",
+      "policy": "independent_periodic",
+      "vehicles": 10,
+      "spacingS": 10,
+      "capacityScale": 1,
+      "totalFleetTravelTimeVehMin": 93.75,
+      "meanTravelTimeMin": 9.375,
+      "p95TravelTimeMin": 9.75,
+      "routeA": 10,
+      "routeB": 0,
+      "closedLinkEntries": 0,
+      "fifoViolations": 0,
+      "checksPass": true
+    },
+    {
+      "scenario": "manageable_primary",
+      "policy": "coordinated_batch",
+      "vehicles": 10,
+      "spacingS": 10,
+      "capacityScale": 1,
+      "totalFleetTravelTimeVehMin": 93.75,
+      "meanTravelTimeMin": 9.375,
+      "p95TravelTimeMin": 9.75,
+      "routeA": 10,
+      "routeB": 0,
+      "closedLinkEntries": 0,
+      "fifoViolations": 0,
+      "checksPass": true
+    },
+    {
+      "scenario": "near_branch_capacity",
+      "policy": "static",
+      "vehicles": 24,
+      "spacingS": 5,
+      "capacityScale": 1,
+      "totalFleetTravelTimeVehMin": 262,
+      "meanTravelTimeMin": 10.916667,
+      "p95TravelTimeMin": 12.666667,
+      "routeA": 24,
+      "routeB": 0,
+      "closedLinkEntries": 0,
+      "fifoViolations": 0,
+      "checksPass": true
+    },
+    {
+      "scenario": "near_branch_capacity",
+      "policy": "independent_periodic",
+      "vehicles": 24,
+      "spacingS": 5,
+      "capacityScale": 1,
+      "totalFleetTravelTimeVehMin": 254.275,
+      "meanTravelTimeMin": 10.594792,
+      "p95TravelTimeMin": 11.666667,
+      "routeA": 18,
+      "routeB": 6,
+      "closedLinkEntries": 0,
+      "fifoViolations": 0,
+      "checksPass": true
+    },
+    {
+      "scenario": "near_branch_capacity",
+      "policy": "coordinated_batch",
+      "vehicles": 24,
+      "spacingS": 5,
+      "capacityScale": 1,
+      "totalFleetTravelTimeVehMin": 249.95,
+      "meanTravelTimeMin": 10.414583,
+      "p95TravelTimeMin": 11.041667,
+      "routeA": 16,
+      "routeB": 8,
+      "closedLinkEntries": 0,
+      "fifoViolations": 0,
+      "checksPass": true
+    },
+    {
+      "scenario": "overload_stress",
+      "policy": "static",
+      "vehicles": 60,
+      "spacingS": 2,
+      "capacityScale": 1,
+      "totalFleetTravelTimeVehMin": 923.5,
+      "meanTravelTimeMin": 15.391667,
+      "p95TravelTimeMin": 21.133333,
+      "routeA": 60,
+      "routeB": 0,
+      "closedLinkEntries": 0,
+      "fifoViolations": 0,
+      "checksPass": true
+    },
+    {
+      "scenario": "overload_stress",
+      "policy": "independent_periodic",
+      "vehicles": 60,
+      "spacingS": 2,
+      "capacityScale": 1,
+      "totalFleetTravelTimeVehMin": 719.875,
+      "meanTravelTimeMin": 11.997917,
+      "p95TravelTimeMin": 14.133333,
+      "routeA": 30,
+      "routeB": 30,
+      "closedLinkEntries": 0,
+      "fifoViolations": 0,
+      "checksPass": true
+    },
+    {
+      "scenario": "overload_stress",
+      "policy": "coordinated_batch",
+      "vehicles": 60,
+      "spacingS": 2,
+      "capacityScale": 1,
+      "totalFleetTravelTimeVehMin": 701.491667,
+      "meanTravelTimeMin": 11.691528,
+      "p95TravelTimeMin": 13.083333,
+      "routeA": 25,
+      "routeB": 35,
+      "closedLinkEntries": 0,
+      "fifoViolations": 0,
+      "checksPass": true
+    },
+    {
+      "scenario": "primary_half_capacity",
+      "policy": "static",
+      "vehicles": 10,
+      "spacingS": 10,
+      "capacityScale": 0.5,
+      "totalFleetTravelTimeVehMin": 105,
+      "meanTravelTimeMin": 10.5,
+      "p95TravelTimeMin": 12,
+      "routeA": 10,
+      "routeB": 0,
+      "closedLinkEntries": 0,
+      "fifoViolations": 0,
+      "checksPass": true
+    },
+    {
+      "scenario": "primary_half_capacity",
+      "policy": "independent_periodic",
+      "vehicles": 10,
+      "spacingS": 10,
+      "capacityScale": 0.5,
+      "totalFleetTravelTimeVehMin": 104.05,
+      "meanTravelTimeMin": 10.405,
+      "p95TravelTimeMin": 11.666667,
+      "routeA": 9,
+      "routeB": 1,
+      "closedLinkEntries": 0,
+      "fifoViolations": 0,
+      "checksPass": true
+    },
+    {
+      "scenario": "primary_half_capacity",
+      "policy": "coordinated_batch",
+      "vehicles": 10,
+      "spacingS": 10,
+      "capacityScale": 0.5,
+      "totalFleetTravelTimeVehMin": 102.8,
+      "meanTravelTimeMin": 10.28,
+      "p95TravelTimeMin": 11.083333,
+      "routeA": 8,
+      "routeB": 2,
+      "closedLinkEntries": 0,
+      "fifoViolations": 0,
+      "checksPass": true
+    },
+    {
+      "scenario": "primary_double_capacity",
+      "policy": "static",
+      "vehicles": 10,
+      "spacingS": 10,
+      "capacityScale": 2,
+      "totalFleetTravelTimeVehMin": 90,
+      "meanTravelTimeMin": 9,
+      "p95TravelTimeMin": 9,
+      "routeA": 10,
+      "routeB": 0,
+      "closedLinkEntries": 0,
+      "fifoViolations": 0,
+      "checksPass": true
+    },
+    {
+      "scenario": "primary_double_capacity",
+      "policy": "independent_periodic",
+      "vehicles": 10,
+      "spacingS": 10,
+      "capacityScale": 2,
+      "totalFleetTravelTimeVehMin": 90,
+      "meanTravelTimeMin": 9,
+      "p95TravelTimeMin": 9,
+      "routeA": 10,
+      "routeB": 0,
+      "closedLinkEntries": 0,
+      "fifoViolations": 0,
+      "checksPass": true
+    },
+    {
+      "scenario": "primary_double_capacity",
+      "policy": "coordinated_batch",
+      "vehicles": 10,
+      "spacingS": 10,
+      "capacityScale": 2,
+      "totalFleetTravelTimeVehMin": 90,
+      "meanTravelTimeMin": 9,
+      "p95TravelTimeMin": 9,
+      "routeA": 10,
+      "routeB": 0,
+      "closedLinkEntries": 0,
+      "fifoViolations": 0,
+      "checksPass": true
+    }
+  ],
+  "sumoTotals": [
+    {
+      "scenario": "manageable_primary",
+      "policy": "static",
+      "pointQueueVehMin": 93.75,
+      "sumoMeanVehMin": 806.1,
+      "sumoScaled": 107.5
+    },
+    {
+      "scenario": "manageable_primary",
+      "policy": "independent_periodic",
+      "pointQueueVehMin": 93.75,
+      "sumoMeanVehMin": 839.5,
+      "sumoScaled": 111.9
+    },
+    {
+      "scenario": "manageable_primary",
+      "policy": "coordinated_batch",
+      "pointQueueVehMin": 93.75,
+      "sumoMeanVehMin": 839.2,
+      "sumoScaled": 111.9
+    },
+    {
+      "scenario": "near_branch_capacity",
+      "policy": "static",
+      "pointQueueVehMin": 262,
+      "sumoMeanVehMin": 2216.3,
+      "sumoScaled": 295.5
+    },
+    {
+      "scenario": "near_branch_capacity",
+      "policy": "independent_periodic",
+      "pointQueueVehMin": 254.28,
+      "sumoMeanVehMin": 2152.8,
+      "sumoScaled": 287
+    },
+    {
+      "scenario": "near_branch_capacity",
+      "policy": "coordinated_batch",
+      "pointQueueVehMin": 249.95,
+      "sumoMeanVehMin": 2141.3,
+      "sumoScaled": 285.5
+    },
+    {
+      "scenario": "overload_stress",
+      "policy": "static",
+      "pointQueueVehMin": 923.5,
+      "sumoMeanVehMin": 7621.6,
+      "sumoScaled": 1016.2
+    },
+    {
+      "scenario": "overload_stress",
+      "policy": "independent_periodic",
+      "pointQueueVehMin": 719.88,
+      "sumoMeanVehMin": 6544.6,
+      "sumoScaled": 872.6
+    },
+    {
+      "scenario": "overload_stress",
+      "policy": "coordinated_batch",
+      "pointQueueVehMin": 701.49,
+      "sumoMeanVehMin": 6465.6,
+      "sumoScaled": 862.1
+    }
+  ],
+  "coordinatedVsIndependent": [
+    {
+      "scenario": "manageable_primary",
+      "pointQueuePct": 0,
+      "sumoMeanPct": 0.03,
+      "sumoInterval": "[0.0, 0.095]",
+      "seedsBetter": "1 of 10"
+    },
+    {
+      "scenario": "near_branch_capacity",
+      "pointQueuePct": 1.7,
+      "sumoMeanPct": 0.53,
+      "sumoInterval": "[0.125, 0.903]",
+      "seedsBetter": "16 of 20"
+    },
+    {
+      "scenario": "overload_stress",
+      "pointQueuePct": 2.55,
+      "sumoMeanPct": 1.18,
+      "sumoInterval": "[0.018, 2.43]",
+      "seedsBetter": "7 of 10"
+    }
+  ],
+  "coordinatedVsStatic": [
+    {
+      "scenario": "manageable_primary",
+      "pointQueuePct": 0,
+      "sumoMeanPct": -4.14
+    },
+    {
+      "scenario": "near_branch_capacity",
+      "pointQueuePct": 4.6,
+      "sumoMeanPct": 3.38
+    },
+    {
+      "scenario": "overload_stress",
+      "pointQueuePct": 24.04,
+      "sumoMeanPct": 15.17
+    }
+  ]
+}

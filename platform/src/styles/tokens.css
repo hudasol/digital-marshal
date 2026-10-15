@@ -1,0 +1,63 @@
+/* Digital Marshal design tokens.
+   Dark graphite base, realistic city in the canvas, colour used only to carry meaning:
+   cyan = information / V2X, emerald = normal, amber = warning, red = critical. */
+:root {
+  --font-ui: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-ar: 'IBM Plex Sans Arabic', 'Inter Variable', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace;
+
+  --bg-0: #070b11;
+  --bg-1: #0c121b;
+  --bg-2: #111925;
+  --bg-3: #172131;
+  --glass: rgba(12, 18, 27, 0.78);
+  --glass-strong: rgba(10, 15, 23, 0.92);
+  --line: rgba(148, 163, 184, 0.13);
+  --line-strong: rgba(148, 163, 184, 0.24);
+
+  --text-0: #f3f6f9;
+  --text-1: #c3cdd8;
+  --text-2: #8b98a8;
+  --text-3: #5e6b7b;
+
+  --cyan: #45d4e8;
+  --cyan-dim: rgba(69, 212, 232, 0.14);
+  --blue: #5aa9ff;
+  --green: #3ccb8f;
+  --green-dim: rgba(60, 203, 143, 0.14);
+  --amber: #f4b740;
+  --amber-dim: rgba(244, 183, 64, 0.14);
+  --red: #ef5350;
+  --red-dim: rgba(239, 83, 80, 0.15);
+  --violet: #a78bfa;
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.38), 0 2px 8px rgba(0, 0, 0, 0.25);
+  --blur: blur(18px) saturate(1.35);
+
+  --header-h: 56px;
+  --gutter: 12px;
+  --left-w: 324px;
+  --right-w: 372px;
+  --bar-h: 64px;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --t-fast: 140ms;
+  --t-med: 260ms;
+}
+
+@media (max-width: 1280px) {
+  :root {
+    --left-w: 296px;
+    --right-w: 336px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --t-fast: 0ms;
+    --t-med: 0ms;
+  }
+}

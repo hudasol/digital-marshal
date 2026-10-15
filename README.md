@@ -18,6 +18,15 @@ A student built simulation study of how autonomous vehicles could be coordinated
 | `results/historical` | Earlier SUMO aggregates, kept and labelled |
 | `results/manifests` | Execution records, logs and hashes |
 | `docs` | Architecture, acceptance criteria, decisions, reconciliation, incomplete items |
+| `platform` | Interactive digital twin: one synthetic Dubai-inspired district in Three.js, a deterministic traffic simulation and the Digital Marshal incident coordination core (see `platform/README.md`) |
+
+## Interactive digital twin
+
+```
+cd platform && npm ci && npm run dev                      # http://localhost:5173
+```
+
+The platform is a separate application. It does not change the point queue or SUMO studies; its Evidence view shows the corridor study exactly as recorded, with the original policy names.
 
 ## Run
 
