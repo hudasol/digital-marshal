@@ -10,6 +10,7 @@ import { PerfOverlay, Toasts } from './components/Overlays';
 import { IntelPanel } from './components/Intel';
 import { ScenarioPanel } from './components/Scenario';
 import { EventFeed } from './components/EventFeed';
+import { TourCard } from './components/Tour';
 // the evidence view carries the benchmark data; load it only when it is opened
 const EvidenceView = lazy(() => import('./views/EvidenceView').then((m) => ({ default: m.EvidenceView })));
 import { EngineeringView } from './views/EngineeringView';
@@ -255,6 +256,7 @@ export function App() {
       )}
       {view === 'engineering' && <EngineeringView />}
       {view === 'about' && <AboutView />}
+      <TourCard />
       <Toasts />
     </div>
   );

@@ -319,6 +319,11 @@ class Controller {
       this.seekTarget = t;
       return;
     }
+    // an immediate seek supersedes any chunked one still running
+    if (this.seekTarget !== null) {
+      this.seekTarget = null;
+      useStore.getState().setBusy(null);
+    }
     const t0 = performance.now();
     this.session.seek(t);
     this.simMs = performance.now() - t0;

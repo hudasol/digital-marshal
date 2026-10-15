@@ -41,6 +41,14 @@ export interface Marker {
   label: string;
 }
 
+/** Judge mode: which scene of the guided tour is showing. */
+export interface TourState {
+  step: number;
+  elapsed: number;
+  paused: boolean;
+  done: boolean;
+}
+
 export interface Toast {
   id: number;
   text: string;
@@ -75,8 +83,10 @@ interface UIState {
   markers: Marker[];
   scenario: ScenarioKey;
   engineering: boolean;
+  tour: TourState | null;
 
   setView: (v: View) => void;
+  setTour: (t: TourState | null) => void;
   setDmFrames: (dm: DmFrame | null, incident: IncidentFrame | null, vehicleDm: VehicleDmView | null, events: SimEvent[], markers: Marker[]) => void;
   setScenario: (s: ScenarioKey) => void;
   toggleEngineering: () => void;
@@ -148,8 +158,10 @@ export const useStore = create<UIState>((set, get) => ({
   markers: [],
   scenario: 'normal',
   engineering: false,
+  tour: null,
 
   setView: (view) => set({ view }),
+  setTour: (tour) => set({ tour }),
   select: (selection) => set({ selection, vehicle: selection?.kind === 'vehicle' ? get().vehicle : null }),
   setFrames: (network, vehicle) => set({ network, vehicle }),
   setBusy: (busy) => set({ busy }),

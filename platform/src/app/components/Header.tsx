@@ -2,6 +2,8 @@ import { useStore, type View } from '../store';
 import { useT } from '../i18n';
 import { BrandMark } from './Icons';
 import { formatClock, formatRel } from '../controller';
+import { Icon } from './Icons';
+import { tour } from '../tour';
 
 const VIEWS: View[] = ['twin', 'compare', 'engineering', 'about'];
 
@@ -14,6 +16,7 @@ export function Header() {
   const clock = useStore((s) => s.clock);
   const scenarioLabel = useStore((s) => s.scenarioLabel);
   const alertLevel = useStore((s) => s.alertLevel);
+  const touring = useStore((s) => s.tour !== null);
 
   return (
     <header className="header" role="banner">
@@ -44,6 +47,14 @@ export function Header() {
       </div>
 
       <div className="header-right">
+        <button
+          className={`btn sm judge ${touring ? 'on' : ''}`}
+          onClick={() => (touring ? tour.stop() : tour.start(0))}
+          title={t('tour.startTitle')}
+          aria-pressed={touring}
+        >
+          <Icon name="flag" /> <span className="hide-sm">{touring ? t('tour.exit') : t('tour.start')}</span>
+        </button>
         <nav className="tabs" role="tablist" aria-label="Views">
           {VIEWS.map((v) => (
             <button

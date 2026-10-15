@@ -47,6 +47,7 @@ npm run preview    # serve the production build on http://localhost:4173
 | Home | Reset camera |
 | `[` and `]` | Collapse the operations and intelligence panels |
 | Shift + P | Performance monitor |
+| Judge mode (header) | Guided tour of about five minutes that drives the live simulation; Esc leaves it |
 
 ## Scenarios
 

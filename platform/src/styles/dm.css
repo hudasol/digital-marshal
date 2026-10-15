@@ -660,3 +660,116 @@ html[lang='ar'] .feed-title {
 .bm-rerun-rows li.running {
   color: var(--amber);
 }
+
+/* judge mode */
+.btn.judge {
+  border-color: rgba(69, 212, 232, 0.45);
+  color: var(--cyan);
+}
+.btn.judge.on {
+  background: var(--cyan-dim);
+}
+/* beside the intelligence panel, clear of the live event feed; logical insets mirror it in Arabic */
+.tour {
+  position: fixed;
+  inset-inline-end: calc(var(--right-w) + var(--gutter) * 2 + 6px);
+  bottom: calc(var(--bar-h) + 26px);
+  width: min(560px, calc(100vw - 32px));
+  z-index: 40;
+  border-radius: var(--r-lg);
+  padding: 14px 16px 12px;
+  border: 1px solid rgba(69, 212, 232, 0.35);
+  box-shadow: var(--shadow);
+  animation: tour-in var(--t-med) var(--ease-out);
+}
+@keyframes tour-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+body:has(.panel.right.closed) .tour {
+  inset-inline-end: 24px;
+}
+body:has(.view) .tour {
+  inset-inline-end: 24px;
+  bottom: 24px;
+}
+@media (max-width: 1100px) {
+  .tour {
+    inset-inline-end: 16px;
+    bottom: calc(var(--bar-h) + 16px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour {
+    animation: none;
+  }
+}
+.tour-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.tour-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cyan);
+}
+html[lang='ar'] .tour-badge {
+  letter-spacing: 0;
+}
+.tour-badge .icon-svg {
+  width: 13px;
+  height: 13px;
+}
+.tour-count {
+  font-size: 11px;
+  color: var(--text-2);
+}
+.tour h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 660;
+  color: var(--text-0);
+}
+.tour p {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-1);
+}
+.tour-steps {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.tour-steps i {
+  position: relative;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(148, 163, 184, 0.2);
+  overflow: hidden;
+}
+.tour-steps i.past {
+  background: rgba(69, 212, 232, 0.6);
+}
+.tour-steps i b {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  background: var(--cyan);
+}
+.tour-controls {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
