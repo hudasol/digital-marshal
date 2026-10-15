@@ -66,6 +66,8 @@ export interface EngineHooks {
 
 const MAX_LOG = 40;
 const LOOKAHEAD = 160;
+/** an emergency vehicle positions for its next movement this far before the junction, m */
+const EV_TURN_PREP = 230;
 
 function idm(v: number, v0: number, gap: number, dv: number, a: number, b: number, T: number, s0: number): number {
   const vr = v0 > 0.1 ? v / v0 : 1;
@@ -310,10 +312,19 @@ export class Engine {
       v.conn = null;
       return;
     }
+    // plan two junctions ahead: prefer a movement whose exit lane already serves the turn after it
+    const after = v.ri + 2 < v.route.length ? v.route[v.ri + 2] : null;
+    const need = after ? connectorsBetween(this.net, next, after).map((c) => this.net.connectors[c].inLane) : [];
     let best = cands[0];
     let bd = Infinity;
     for (const c of cands) {
-      const d = Math.abs(this.net.connectors[c].inLane - v.seg.lane);
+      const cc = this.net.connectors[c];
+      let d = Math.abs(cc.inLane - v.seg.lane);
+      if (need.length) {
+        let m = Infinity;
+        for (const k of need) m = Math.min(m, Math.abs(cc.outLane - k));
+        d += 1.5 * m;
+      }
       if (d < bd) {
         bd = d;
         best = c;
@@ -775,7 +786,7 @@ export class Engine {
     const allowed: number[] = [];
     if (next) for (const c of connectorsBetween(this.net, link.id, next)) allowed.push(this.net.connectors[c].inLane);
     else for (let k = 0; k < link.lanes; k++) allowed.push(k);
-    if (D < 120 && v.conn && !allowed.includes(v.seg.lane)) return; // the turn-lane logic handles it
+    if (D < EV_TURN_PREP && v.conn && !allowed.includes(v.seg.lane)) return; // the turn-lane logic handles it
     const freeAhead = (lane: number) => {
       let g = Infinity;
       for (const id of this.laneList(link.id, lane)) {
@@ -788,7 +799,7 @@ export class Engine {
     let best = v.seg.lane;
     let bestGap = cur;
     for (const lane of [v.seg.lane - 1, v.seg.lane + 1]) {
-      if (lane < 0 || lane >= link.lanes || (D < 120 && !allowed.includes(lane))) continue;
+      if (lane < 0 || lane >= link.lanes || (D < EV_TURN_PREP && !allowed.includes(lane))) continue;
       const g = freeAhead(lane);
       if (g > bestGap + 20 || (lane < best && g >= bestGap && g > 60)) {
         best = lane;
@@ -809,7 +820,7 @@ export class Engine {
     if (link.lanes < 2) return;
     if (v.cls === 'ambulance') {
       const target = v.conn ? this.net.connectors[v.conn].inLane : null;
-      if (target === null || target === v.seg.lane || link.length - v.s > 120) {
+      if (target === null || target === v.seg.lane || link.length - v.s > EV_TURN_PREP) {
         this.evLaneChoice(v);
         return;
       }
@@ -854,7 +865,8 @@ export class Engine {
       }
     }
     if (mandatoryDir !== 0) {
-      if (this.tryChange(v, v.seg.lane + mandatoryDir, true, urgency)) {
+      // drivers make room for an ambulance that has to reach its turn lane: accept a firmer merge
+      if (this.tryChange(v, v.seg.lane + mandatoryDir, true, urgency, v.cls === 'ambulance' ? 4.5 : undefined)) {
         this.log(v, 'LANE_CHANGE', { from: v.seg.lane - mandatoryDir, to: v.seg.lane, reason });
       }
       return;
@@ -1091,8 +1103,9 @@ export class Engine {
         if (!this.plan(v, 'closure_seen')) this.log(v, 'NO_ALTERNATIVE', { reason: 'closure_seen' });
       }
 
-      // missed lane for the planned turn: take any movement from this lane and re-plan
-      if (c && c.inLane !== v.seg.lane && D < 18 && v.mode === 'drive') {
+      // missed lane for the planned turn: take any movement from this lane and re-plan. An ambulance
+      // does not: it holds at the line until it can reach its lane rather than drive a long detour.
+      if (c && c.inLane !== v.seg.lane && D < 18 && v.mode === 'drive' && v.cls !== 'ambulance') {
         // never a movement into a segment that is closed, or that the vehicle knows is about to close
         const avoid = this.routeOptions(v).avoidLinks;
         const options = (this.net.fromLane[`${link.id}#${v.seg.lane}`] ?? []).filter((x) => {
