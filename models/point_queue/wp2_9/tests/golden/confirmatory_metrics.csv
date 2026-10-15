@@ -1,0 +1,16 @@
+policy,vehicles,departure_spacing_s,demand_veh_per_min,capacity_scale_E4_E10_only,total_fleet_travel_time_vehicle_min,mean_travel_time_min,median_travel_time_min,p95_nearest_rank_min,completed,incomplete,route_A_count,route_B_count,route_A_share,route_B_share,max_30s_batch_dominant_route_share,route_switches_total,first_feasible_decision_after_incident_s,closed_link_entries,fifo_events_checked,fifo_violations,all_trips_complete,checks_pass,scenario,scenario_n,scenario_spacing_s
+static,10,10.0,6.0,1.0,93.75,9.375,9.375,9.75,10,0,10,0,1.0,0.0,1.0,0,60.0,0,50,0,True,True,manageable_primary,10,10.0
+independent_periodic,10,10.0,6.0,1.0,93.75,9.375,9.375,9.75,10,0,10,0,1.0,0.0,1.0,0,60.0,0,50,0,True,True,manageable_primary,10,10.0
+coordinated_batch,10,10.0,6.0,1.0,93.75,9.375,9.375,9.75,10,0,10,0,1.0,0.0,1.0,0,60.0,0,50,0,True,True,manageable_primary,10,10.0
+static,24,5.0,12.0,1.0,262.0,10.916667,10.916667,12.666667,24,0,24,0,1.0,0.0,1.0,0,60.0,0,120,0,True,True,near_branch_capacity,24,5.0
+independent_periodic,24,5.0,12.0,1.0,254.275,10.594792,10.916667,11.666667,24,0,18,6,0.75,0.25,1.0,0,60.0,0,126,0,True,True,near_branch_capacity,24,5.0
+coordinated_batch,24,5.0,12.0,1.0,249.95,10.414583,10.733333,11.041667,24,0,16,8,0.666667,0.333333,1.0,0,60.0,0,128,0,True,True,near_branch_capacity,24,5.0
+static,60,2.0,30.0,1.0,923.5,15.391667,15.391667,21.133333,60,0,60,0,1.0,0.0,1.0,0,60.0,0,300,0,True,True,overload_stress,60,2.0
+independent_periodic,60,2.0,30.0,1.0,719.875,11.997917,12.025,14.133333,60,0,30,30,0.5,0.5,1.0,0,60.0,0,330,0,True,True,overload_stress,60,2.0
+coordinated_batch,60,2.0,30.0,1.0,701.491667,11.691528,11.775,13.083333,60,0,25,35,0.416667,0.583333,0.666667,0,60.0,0,335,0,True,True,overload_stress,60,2.0
+static,10,10.0,6.0,0.5,105.0,10.5,10.5,12.0,10,0,10,0,1.0,0.0,1.0,0,60.0,0,50,0,True,True,primary_half_capacity,10,10.0
+independent_periodic,10,10.0,6.0,0.5,104.05,10.405,10.5,11.666667,10,0,9,1,0.9,0.1,1.0,0,60.0,0,51,0,True,True,primary_half_capacity,10,10.0
+coordinated_batch,10,10.0,6.0,0.5,102.8,10.28,10.5,11.083333,10,0,8,2,0.8,0.2,1.0,0,60.0,0,52,0,True,True,primary_half_capacity,10,10.0
+static,10,10.0,6.0,2.0,90.0,9.0,9.0,9.0,10,0,10,0,1.0,0.0,1.0,0,60.0,0,50,0,True,True,primary_double_capacity,10,10.0
+independent_periodic,10,10.0,6.0,2.0,90.0,9.0,9.0,9.0,10,0,10,0,1.0,0.0,1.0,0,60.0,0,50,0,True,True,primary_double_capacity,10,10.0
+coordinated_batch,10,10.0,6.0,2.0,90.0,9.0,9.0,9.0,10,0,10,0,1.0,0.0,1.0,0,60.0,0,50,0,True,True,primary_double_capacity,10,10.0

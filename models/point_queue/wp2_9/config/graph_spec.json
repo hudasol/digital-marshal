@@ -1,0 +1,35 @@
+{
+  "provenance": "Hand-transcribed from FAIR_BASELINE_SPEC.md sections 2 and 3 (WP2.6/WP2.7 frozen graph and scenario table). Deliberately NOT imported from src/canonical_model.py so that src/raw_audit.py is an independent check. Drift between this file and the model is caught by tests/test_raw_audit.py, never silently absorbed.",
+  "nodes": ["O", "P", "C", "A1", "A2", "B1", "B2", "B3", "M", "D"],
+  "origin": "O",
+  "destination": "D",
+  "edges": [
+    {"id": "E1",  "src": "O",  "dst": "P",  "free_min": 3, "cap_vpm": 30},
+    {"id": "E2",  "src": "P",  "dst": "C",  "free_min": 2, "cap_vpm": 4},
+    {"id": "E3",  "src": "C",  "dst": "D",  "free_min": 2, "cap_vpm": 4},
+    {"id": "E4",  "src": "P",  "dst": "A1", "free_min": 1, "cap_vpm": 4},
+    {"id": "E5",  "src": "A1", "dst": "A2", "free_min": 2, "cap_vpm": 4},
+    {"id": "E6",  "src": "A2", "dst": "M",  "free_min": 1, "cap_vpm": 4},
+    {"id": "E7",  "src": "P",  "dst": "B1", "free_min": 2, "cap_vpm": 8},
+    {"id": "E8",  "src": "B1", "dst": "B2", "free_min": 2, "cap_vpm": 8},
+    {"id": "E9",  "src": "B2", "dst": "B3", "free_min": 1, "cap_vpm": 8},
+    {"id": "E10", "src": "B3", "dst": "M",  "free_min": 1, "cap_vpm": 8},
+    {"id": "E11", "src": "M",  "dst": "D",  "free_min": 2, "cap_vpm": 20}
+  ],
+  "branch_scaled_edges": ["E4", "E5", "E6", "E7", "E8", "E9", "E10"],
+  "closed_edges": ["E2", "E3"],
+  "incident_s": 120.0,
+  "horizon_s": 7200.0,
+  "allowed_paths": [
+    ["E1", "E2", "E3"],
+    ["E1", "E4", "E5", "E6", "E11"],
+    ["E1", "E7", "E8", "E9", "E10", "E11"]
+  ],
+  "scenarios": {
+    "manageable_primary":      {"vehicles": 10, "spacing_s": 10.0, "branch_capacity_scale": 1.0},
+    "near_branch_capacity":    {"vehicles": 24, "spacing_s": 5.0,  "branch_capacity_scale": 1.0},
+    "overload_stress":         {"vehicles": 60, "spacing_s": 2.0,  "branch_capacity_scale": 1.0},
+    "primary_half_capacity":   {"vehicles": 10, "spacing_s": 10.0, "branch_capacity_scale": 0.5},
+    "primary_double_capacity": {"vehicles": 10, "spacing_s": 10.0, "branch_capacity_scale": 2.0}
+  }
+}
