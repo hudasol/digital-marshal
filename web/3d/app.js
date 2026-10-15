@@ -3,7 +3,17 @@
    for a live incident time. The tour captions are generated from those same numbers. */
 (function () {
 'use strict';
-var D = window.DM_DATA, ENG = window.DM_ENGINE, S = window.DM3D, THREE = window.THREE, POL = S.POL;
+var D0 = window.DM_DATA, ENG = window.DM_ENGINE;
+/* E1 free flow time is set to 85 s in this view. All runs are recomputed by the live engine on that graph (verified identical to the frozen results when E1 is left at 180 s). */
+var E1_FREE_S = 85;
+var D = (function () {
+  if (!ENG) return D0;
+  var c = JSON.parse(JSON.stringify(D0));
+  c.graph.edges.forEach(function (e) { if (e.id === 'E1') e.free_min = E1_FREE_S / 60; });
+  Object.keys(D0.runs).forEach(function (k) { var q = k.split('|'); c.runs[k] = ENG.compute(c, q[0], q[1], c.graph.incident_s); });
+  return c;
+})();
+var  S = window.DM3D, THREE = window.THREE, POL = S.POL;
 function $(s, r) { return (r || document).querySelector(s); }
 var BASE = D.graph.incident_s, EDGE = {}; D.graph.edges.forEach(function (e) { EDGE[e.id] = e; });
 var POLCOL = { static: '#64748B', independent_periodic: '#FFB715', coordinated_batch: '#DA291C' };
@@ -25,7 +35,7 @@ en: {
   hud: ['Queued', 'Done', 'Route A', 'Route B', 'Wait vm'],
   total: 'Fleet travel time', unit: 'vehicle min', mean: 'Mean journey', p95: 'P95 journey', split: 'Allocation A / B', qwait: 'Queue wait', closed: 'Closed link entries', audit: 'Queue audit violations',
   vsStat: 'vs static', vsInd: 'vs independent', min: 'min', vm: 'vehicle min', second: 's',
-  ft1: 'SYNTHETIC NETWORK', ft2: 'Exploratory results, no confirmatory experiment run, provisional 5 percent target not met. Simulation proposal for the hackathon; the RTA logo is shown for context only. Every number comes from the frozen model output.',
+  ft1: 'SYNTHETIC NETWORK', ft2: 'Exploratory results, no confirmatory experiment run, provisional 5 percent target not met. Simulation proposal for the hackathon; the RTA logo is shown for context only. Numbers come from the point queue model with the E1 free flow time set to 85 s in this view.',
   iEye: 'One corridor · one incident · three routing policies', iH: 'A closure at 120 seconds. <em>Three ways to respond.</em>',
   iP: 'The same autonomous fleet, the same network and the same incident. Only the routing logic differs. Watch where the queues form.',
   kpT: 'Fleet travel time, {s}', goTour: 'Watch the three policies', goFree: 'Explore freely',
@@ -60,7 +70,7 @@ ar: {
   hud: ['في الطابور', 'أتمت', 'المسار أ', 'المسار ب', 'انتظار'],
   total: 'زمن رحلات الأسطول', unit: 'مركبة دقيقة', mean: 'متوسط الرحلة', p95: 'الرحلة P95', split: 'التخصيص أ / ب', qwait: 'انتظار الطابور', closed: 'دخول الروابط المغلقة', audit: 'مخالفات تدقيق الطابور',
   vsStat: 'مقارنة بالثابت', vsInd: 'مقارنة بالمستقل', min: 'دقيقة', vm: 'مركبة دقيقة', second: 'ث',
-  ft1: 'شبكة اصطناعية', ft2: 'نتائج استكشافية ولم يُجرَ تجربة تأكيدية والهدف المبدئي 5 بالمئة لم يتحقق. مقترح محاكاة للهاكاثون، وشعار الهيئة معروض للسياق فقط. كل رقم مأخوذ من مخرجات النموذج المجمدة.',
+  ft1: 'شبكة اصطناعية', ft2: 'نتائج استكشافية ولم يُجرَ تجربة تأكيدية والهدف المبدئي 5 بالمئة لم يتحقق. مقترح محاكاة للهاكاثون، وشعار الهيئة معروض للسياق فقط. الأرقام من نموذج الطابور النقطي مع ضبط زمن التدفق الحر للمقطع E1 على 85 ثانية في هذا العرض.',
   iEye: 'ممر واحد · حادث واحد · ثلاث سياسات توجيه', iH: 'إغلاق عند 120 ثانية. <em>ثلاث طرق للاستجابة.</em>',
   iP: 'الأسطول ذاتي القيادة نفسه والشبكة نفسها والحادث نفسه. يختلف منطق التوجيه فقط. راقب أين تتشكل الطوابير.',
   kpT: 'زمن رحلات الأسطول، {s}', goTour: 'شاهد السياسات الثلاث', goFree: 'استكشف بحرية',

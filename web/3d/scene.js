@@ -266,11 +266,15 @@ Corridor.prototype.build = function () {
     I.label = new THREE.Sprite(new THREE.SpriteMaterial({ map: lab, transparent: true, depthWrite: false, fog: false })); I.label.scale.set(30, 7.5, 1); I.label.position.y = 22; I.label.visible = false; I.g.add(I.label);
   })();
 
-  // policy name painted on the slab
+  // policy name on an upright sign at the front edge of the slab, always facing the camera
   var NAMES = { static: 'STATIC ROUTING', independent_periodic: 'INDEPENDENT PERIODIC ROUTING', coordinated_batch: 'DYNAMIC COORDINATED ROUTING' }, pc = '#' + ('000000' + POLCOL[this.pol].toString(16)).slice(-6);
-  var ptx = textTex(2048, 128, function (x, W, H) { x.fillStyle = pc; x.fillRect(0, 10, 26, H - 20); x.font = font(78); x.textBaseline = 'middle'; x.textAlign = 'left'; x.fillStyle = '#242526'; x.fillText(NAMES[self.pol], 44, H / 2 + 4); });
-  var pm = new THREE.Mesh(new THREE.PlaneGeometry(128, 8), new THREE.MeshBasicMaterial({ map: ptx, transparent: true, depthWrite: false }));
-  pm.rotation.x = -Math.PI / 2; pm.position.set(SLAB.x0 + 70, 0.12, z0 - SLAB.hz + 12); G.add(pm);
+  var ptx = textTex(2048, 224, function (x, W, H) {
+    x.fillStyle = '#FFFFFF'; x.fillRect(0, 0, W, H); x.fillStyle = pc; x.fillRect(0, 0, W, 34); x.fillRect(0, H - 34, W, 34); x.fillRect(0, 0, 46, H);
+    x.fillStyle = '#242526'; x.font = font(112); x.textBaseline = 'middle'; x.textAlign = 'center'; x.fillText(NAMES[self.pol], W / 2 + 22, H / 2 + 4); });
+  var sx0 = SLAB.x0 + 110, sz0 = z0 + SLAB.hz - 6;
+  var sgn = new THREE.Sprite(new THREE.SpriteMaterial({ map: ptx, transparent: true, depthWrite: false, fog: false }));
+  sgn.scale.set(150, 16.4, 1); sgn.position.set(sx0, 20, sz0); G.add(sgn);
+  [-64, 64].forEach(function (dx) { var pst = new THREE.Mesh(new THREE.BoxGeometry(0.9, 12, 0.9), new THREE.MeshLambertMaterial({ color: 0x3A3D44 })); pst.position.set(sx0 + dx, 6, sz0); G.add(pst); });
   // advisory rings (pool filled by setPulses)
   this.rings = []; this.pulses = [];
   // marshal beacon column at P
