@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+* Track A provenance: source inventory, hash manifest, migration log, known issues register with follow up list, verified historical results table with a checking test, evaluation protocol status, project scope, model assumptions, reproduction guide, baseline regeneration check.
 * Repository bootstrap: WP2.7 baseline imported unchanged (`models/point_queue/baseline_wp2_7`).
 * WP2.9 development module with a closure gate measured from vehicle records, one horizon contract (7200 s), an independent raw record audit, value asserting tests, a mutation check, and two exploratory policies.
 * Synthetic SUMO network, runner, one command smoke test with a raw record audit and negative tests.

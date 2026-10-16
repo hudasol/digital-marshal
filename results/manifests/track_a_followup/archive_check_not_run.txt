@@ -1,0 +1,2 @@
+# command: python tools/verify_archive.py <archive>
+NOT RUN against the real archive: it is not accessible in this environment. The tool is covered by synthetic archive tests in tests/test_provenance.py.

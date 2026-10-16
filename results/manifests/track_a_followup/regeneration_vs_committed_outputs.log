@@ -1,0 +1,9 @@
+# command: python tools/check_baseline_regeneration.py   (regeneration into a temp folder; not a confirmatory run)
+MATCH    confirmatory_metrics.csv
+MATCH    decision_log.csv
+MATCH    batch_allocation_log.csv
+MATCH    vehicle_records.csv
+MATCH    edge_event_records.csv
+MATCH    metric_spec.json
+MATCH    invariant_audit.json
+exit_status: 0

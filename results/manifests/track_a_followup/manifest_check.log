@@ -1,0 +1,21 @@
+# command: sha256sum -c docs/provenance/sha256-manifest.txt
+docs/decisions/source/WP2_8_Phase1_Threshold_Decision.md: OK
+docs/decisions/source/acceptance_criteria.json: OK
+models/point_queue/baseline_wp2_7/README.md: OK
+models/point_queue/baseline_wp2_7/docs/FAIRNESS_AND_METRICS.md: OK
+models/point_queue/baseline_wp2_7/docs/PROJECT_CHECKLIST_STATUS.md: OK
+models/point_queue/baseline_wp2_7/results/batch_allocation_log.csv: OK
+models/point_queue/baseline_wp2_7/results/confirmatory_metrics.csv: OK
+models/point_queue/baseline_wp2_7/results/decision_log.csv: OK
+models/point_queue/baseline_wp2_7/results/edge_event_records.csv: OK
+models/point_queue/baseline_wp2_7/results/invariant_audit.json: OK
+models/point_queue/baseline_wp2_7/results/metric_spec.json: OK
+models/point_queue/baseline_wp2_7/results/vehicle_records.csv: OK
+models/point_queue/baseline_wp2_7/src/canonical_model.py: OK
+models/point_queue/baseline_wp2_7/src/confirmatory.py: OK
+models/point_queue/baseline_wp2_7/tests/test_confirmatory.py: OK
+results/historical/wp2_7_reported/WP2_7_Audit_Report.md: OK
+results/historical/wp2_7_reported/execution_summary.json: OK
+results/historical/wp2_7_reported/paired_comparison.json: OK
+results/historical/wp2_7_reported/test_results.txt: OK
+exit_status: 0

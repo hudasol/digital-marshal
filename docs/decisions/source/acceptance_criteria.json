@@ -1,0 +1,69 @@
+{
+  "document_id": "DM-WP2.8-P1-ADR-001",
+  "version": "1.0",
+  "prepared_date": "2026-10-15",
+  "status": "provisional_working_engineering_decision_not_team_approved",
+  "primary_endpoint": "total_fleet_travel_time_vehicle_minutes",
+  "primary_scenario": "near_capacity_demand",
+  "comparator": "independent_periodic_rerouting",
+  "treatment": "coordinated_batch_allocation",
+  "candidate_minimum_improvement_percent": 5.0,
+  "p95_guardrail": "coordinated_p95_must_not_exceed_baseline_p95",
+  "hard_model_level_gates": {
+    "closed_link_entries": 0,
+    "fifo_violations": 0,
+    "required_trip_completion_rate": 1.0,
+    "route_assignments_feasible_and_legal": true
+  },
+  "decision_rules": {
+    "PASS": "All mandatory gates pass, improvement >= 5% in primary scenario, P95 guardrail passes, and frozen protocol/reproducibility requirements pass.",
+    "FAIL": "Any mandatory gate fails, or the frozen performance rule is not met under the predeclared evaluation method.",
+    "INCONCLUSIVE": "Invalid run, missing required outputs, unresolved reproducibility issue, or predeclared uncertainty criterion is not met."
+  },
+  "existing_results": [
+    {
+      "scenario": "manageable_demand",
+      "independent_vehicle_min": 93.75,
+      "coordinated_vehicle_min": 93.75,
+      "improvement_percent": 0.0
+    },
+    {
+      "scenario": "near_capacity_demand",
+      "independent_vehicle_min": 254.275,
+      "coordinated_vehicle_min": 249.95,
+      "improvement_percent": 1.7
+    },
+    {
+      "scenario": "overload_stress_test",
+      "independent_vehicle_min": 719.875,
+      "coordinated_vehicle_min": 701.492,
+      "improvement_percent": 2.55
+    },
+    {
+      "scenario": "half_branch_capacity",
+      "independent_vehicle_min": 104.05,
+      "coordinated_vehicle_min": 102.8,
+      "improvement_percent": 1.2
+    },
+    {
+      "scenario": "double_branch_capacity",
+      "independent_vehicle_min": 90.0,
+      "coordinated_vehicle_min": 90.0,
+      "improvement_percent": 0.0
+    }
+  ],
+  "caveats": [
+    "Existing results are deterministic synthetic-model outputs, not field measurements.",
+    "5% is a candidate target, not an empirically established industry standard.",
+    "No team or RTA approval is claimed.",
+    "Independent reproduction and microscopic-simulator cross-check remain outstanding.",
+    "Passing model invariants does not establish real-world safety."
+  ],
+  "freeze_prerequisites": [
+    "Complete independent reproduction",
+    "Complete SUMO or comparable microscopic cross-check",
+    "Freeze scenario matrix, source/configuration versions, metrics, horizon, and decision rules",
+    "Predeclare stochastic run plan and uncertainty method if applicable",
+    "Archive protocol before confirmatory results are generated"
+  ]
+}

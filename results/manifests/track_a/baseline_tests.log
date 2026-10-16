@@ -1,0 +1,19 @@
+date_utc: 2026-10-15T00:58:29Z
+python: Python 3.13.16
+platform: Linux 6.18.44-fc-v114
+pip_freeze_count: 4
+command: PYTHONPATH=src python -m unittest discover -s tests -v
+cwd: models/point_queue/baseline_wp2_7
+-----
+test_all_policy_runs_have_zero_fifo_violations (test_confirmatory.ConfirmatoryTests.test_all_policy_runs_have_zero_fifo_violations) ... ok
+test_coordination_uses_same_batches_and_assigns_every_vehicle (test_confirmatory.ConfirmatoryTests.test_coordination_uses_same_batches_and_assigns_every_vehicle) ... ok
+test_metric_definitions_and_p95 (test_confirmatory.ConfirmatoryTests.test_metric_definitions_and_p95) ... ok
+test_periodic_independent_batches_are_explicit (test_confirmatory.ConfirmatoryTests.test_periodic_independent_batches_are_explicit) ... ok
+test_same_information_contract_recorded (test_confirmatory.ConfirmatoryTests.test_same_information_contract_recorded) ... ok
+test_three_demand_regimes_prepositioned (test_confirmatory.ConfirmatoryTests.test_three_demand_regimes_prepositioned) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.006s
+
+OK
+exit_status: 0
