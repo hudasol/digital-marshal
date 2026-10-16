@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Digital Marshal Simulation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --red:#DA291C; --red-dark:#B82217; --alert:#DA291C; --route-b:#94A3B8; --char:#242526; --ink:#1B1D21; --bg:#F8FAFC; --off:#FCFCFC;
+  --gold:#FFB715; --line:#E2E8F0; --slate:#64748B; --slate-l:#CBD5E1; --card:#FFFFFF;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font-family:'Montserrat','Noto Sans Arabic',system-ui,sans-serif;font-weight:400;font-size:14px;line-height:1.5}
+[dir=rtl] body, body.ar{font-family:'Noto Sans Arabic','Montserrat',system-ui,sans-serif}
+h1,h2,h3{font-weight:600;line-height:1.2;margin:0;color:var(--ink)}
+.hdr{background:var(--red);color:#fff;padding:0 24px;display:flex;align-items:center;gap:24px;min-height:72px}
+.logo{display:flex;flex-direction:column;justify-content:center;padding:10px 0;margin-inline-end:8px}
+.logo b{font-weight:700;font-size:18px;letter-spacing:.14em;line-height:1.1}
+.logo span{font-weight:500;font-size:15px;line-height:1.3}
+.hdr .title{flex:1;min-width:0}
+.hdr .title h1{color:#fff;font-size:18px}
+.hdr .title div{font-size:12px;font-weight:500;opacity:.92}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid rgba(255,255,255,.7);color:#fff;font-size:11px;font-weight:600;padding:2px 10px;border-radius:2px;letter-spacing:.04em;white-space:nowrap}
+.lang{background:#fff;color:var(--red);border:0;font:600 12px inherit;font-family:inherit;padding:6px 12px;cursor:pointer;border-radius:2px}
+.lang:hover{background:var(--char);color:#fff}
+.wrap{max-width:1480px;margin:0 auto;padding:16px 24px 32px}
+.bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);padding:10px 14px;border-radius:4px}
+.bar label{font-size:11px;font-weight:600;color:var(--slate);text-transform:uppercase;letter-spacing:.06em}
+select{font:500 13px 'Montserrat','Noto Sans Arabic',sans-serif;border:1px solid var(--slate-l);padding:7px 10px;background:#fff;color:var(--ink);border-radius:2px;min-width:230px}
+select:hover{border-color:var(--char)}
+button.b{font:600 13px 'Montserrat','Noto Sans Arabic',sans-serif;border:1px solid var(--char);background:#fff;color:var(--char);padding:7px 14px;cursor:pointer;border-radius:2px}
+button.b:hover{background:var(--char);color:#fff}
+button.b.pri{background:var(--gold);border-color:var(--gold);color:var(--char)}
+button.b.pri:hover{background:var(--char);border-color:var(--char);color:var(--gold)}
+button.b.on{background:var(--char);color:#fff}
+.speed{display:flex}.speed button.b{border-radius:0;margin-inline-start:-1px}
+.clock{margin-inline-start:auto;font-weight:600;font-size:15px;font-variant-numeric:tabular-nums}
+.clock small{font-weight:500;color:var(--slate);font-size:11px;margin-inline-start:6px}
+.scrub{width:100%;margin:12px 0 4px;accent-color:var(--red)}
+.timeline{position:relative;height:18px;font-size:11px;color:var(--slate)}
+.timeline i{position:absolute;top:0;transform:translateX(-50%);font-style:normal;font-weight:600;white-space:nowrap}
+.timeline i.inc{color:var(--alert)}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:12px 14px}
+.card h3{font-size:13px;display:flex;align-items:center;gap:8px}
+.tag{display:inline-block;width:10px;height:10px;border-radius:2px}
+.sub{font-size:11px;color:var(--slate);font-weight:500;margin-top:2px}
+svg.map{width:100%;height:auto;display:block;margin-top:6px;background:var(--off);border:1px solid var(--line)}
+.live{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.live div{border-top:2px solid var(--line);padding-top:4px}
+.live b{display:block;font-size:20px;font-weight:600;line-height:1.2;font-variant-numeric:tabular-nums}
+.live span{font-size:10px;color:var(--slate);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.live .q b{color:var(--alert)}
+.grid2{display:grid;grid-template-columns:1.25fr 1fr;gap:12px;margin-top:12px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:end;font-variant-numeric:tabular-nums}
+th:first-child,td:first-child{text-align:start}
+th{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--slate);font-weight:600}
+td.best{background:#FFF6DC;font-weight:600}
+td.neg{color:var(--red);font-weight:600}
+.hl{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:8px 0 12px}
+.hl div{border-inline-start:4px solid var(--gold);padding:2px 10px}
+.hl b{display:block;font-size:24px;font-weight:600;line-height:1.2}
+.hl span{font-size:11px;color:var(--slate);font-weight:500}
+#log{max-height:238px;overflow:auto;font-size:12px}
+#log div{padding:5px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:64px 1fr;gap:8px}
+#log b{font-variant-numeric:tabular-nums;font-weight:600}
+#log .inc{color:var(--alert);font-weight:600}
+.note{font-size:12px;color:var(--ink)}
+.note ul{margin:6px 0 0;padding-inline-start:18px}
+.note li{margin:2px 0}
+.warn{border-inline-start:4px solid var(--gold);background:#FFFBEF;padding:8px 12px;font-size:12px;margin-top:12px}
+footer{margin-top:16px;font-size:11px;color:var(--slate);line-height:1.5}
+.leg{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;font-weight:500;margin-top:8px;color:var(--ink)}
+.leg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-inline-end:5px;vertical-align:-1px}
+@media(max-width:1100px){.grid3{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}.hl{grid-template-columns:1fr}.hdr{flex-wrap:wrap;padding:10px 16px}.wrap{padding:12px 16px 24px}}
+
+/* ===== Command and control layer ===== */
+.card,.bar,button.b,select,.chip,.lang,.warn,.scrub{border-radius:0}
+.card{border:1px solid #CBD5E1;border-top:3px solid var(--red)}
+svg{direction:ltr}
+td,.hl b,.live b,.clock span,#log b{unicode-bidi:plaintext}
+.cc-hide{display:none}
+.card h2,.card h3{text-transform:none}
+.leg.inbar{margin:0;gap:12px;font-size:11px}
+.ic{display:inline-block;width:14px;height:9px;margin-inline-end:5px;vertical-align:-1px;clip-path:polygon(0 0,70% 0,100% 50%,70% 100%,0 100%)}
+.bar{padding:6px 12px;gap:10px}
+.bar select{padding:4px 8px;min-width:200px}
+.bar button.b{padding:5px 12px}
+.bar label{display:block}
+@media (min-width:1200px) and (min-height:700px){
+  html,body{height:100%;overflow:hidden}
+  body{font-size:12px;line-height:1.4}
+  .hdr{min-height:48px;gap:16px}
+  .logo{padding:4px 0}.logo b{font-size:15px}.logo span{font-size:13px}
+  .hdr .title h1{font-size:15px}.hdr .title div{font-size:11px}
+  .chip{font-size:10px;padding:1px 8px}
+  .wrap{height:calc(100% - 48px);max-width:none;margin:0;padding-block:6px;display:grid;gap:6px;
+    grid-template-columns:repeat(12,minmax(0,1fr));grid-template-rows:auto auto auto repeat(3,minmax(0,1fr));}
+  .wrap>.bar{grid-column:1/-1;order:1}
+  .wrap>.scrub{grid-column:1/-1;order:2;margin:0;height:14px}
+  .wrap>.timeline{display:none}
+  .wrap>section,.wrap>section.grid3{display:contents}
+  #panels>.card{grid-column:span 4;order:4}
+  #cResults{order:5}#cQueue{order:6}#cCum{order:7}#cXm{order:8}#cStrip{order:9}#cHeat{order:10}#cBars{order:11}#cLog{order:12}
+  #cResults,#cQueue,#cCum,#cXm,#cStrip,#cHeat,#cBars,#cLog{grid-column:span 3}
+  #cResults{grid-column:span 4}#cCum{grid-column:span 2}
+  .wrap>.warn{grid-column:1/-1;order:20;margin:0;padding:4px 10px;font-size:11px;line-height:1.35}
+  .wrap>footer{grid-column:1/-1;order:21;margin:0;font-size:10px;line-height:1.3}
+  .card{display:flex;flex-direction:column;min-height:0;min-width:0;padding:6px 10px;overflow:hidden}
+  .card h2{font-size:12px !important;text-transform:uppercase;letter-spacing:.04em}
+  .card h3{font-size:12px}
+  .card .sub{font-size:10px;margin-top:0}
+  .card svg{flex:1 1 0;min-height:0;width:100%;height:100% !important;margin-top:4px !important}
+  svg.map{margin-top:4px}
+  .live{margin-top:4px;gap:6px}.live b{font-size:15px}.live span{font-size:9px}
+  th,td{padding:2px 6px;font-size:11px}th{font-size:9px;letter-spacing:.02em}#kpi td:first-child{white-space:nowrap}
+  .hl{margin:4px 0 6px;gap:6px}.hl b{font-size:16px}.hl span{font-size:9.5px;line-height:1.25;display:block}
+  #cResults,#cXm,#cLog{overflow:auto}
+  #log{max-height:none;flex:1;min-height:0;font-size:11px}#log div{padding:2px 0}
+  .note ul{margin:4px 0 0;font-size:10.5px}.note li{margin:0}
+  #xm{margin-top:2px !important}
+  .leg.inbar{margin-inline-start:auto}
+  .clock{margin-inline-start:0;font-size:13px}
+  .bar>div:first-child{display:flex;align-items:center;gap:8px}.bar>div:first-child br{display:none}.bar label{display:inline}
+  .bar{padding:4px 12px}
+  th,td{padding:1px 6px}.hl{margin:3px 0 4px}#hl .idle span{font-size:10px;line-height:1.25}
+}
+
+.status{display:flex;gap:0;flex-wrap:wrap;background:var(--char);color:#fff;border:1px solid var(--char);font-size:11px}
+.status>div{padding:5px 14px;border-inline-end:1px solid #3A3C3F;display:flex;gap:8px;align-items:baseline;min-width:0}
+.status span.k{font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:#B8C0CC;font-weight:600}
+.status b{font-weight:700;font-variant-numeric:tabular-nums}
+.status .ok b{color:var(--gold)}
+.status .alert{background:var(--alert)}
+.status .alert span.k{color:#fff}
+@media (min-width:1200px) and (min-height:700px){
+  .wrap>.status{grid-column:1/-1;order:0}
+}
+
+.sysbtn{background:transparent !important;color:#fff !important;border:1px solid #fff !important;margin-inline-end:8px}
+.sysbtn:hover{background:#fff !important;color:var(--red) !important}
+.modal{position:fixed;inset:0;background:rgba(27,29,33,.62);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal[hidden]{display:none}
+.mbox{background:#fff;border-top:4px solid var(--red);max-width:880px;width:100%;max-height:90vh;overflow:auto}
+.mhead{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff}
+.mhead h2{font-size:16px}
+.mbody{padding:6px 18px 16px}
+.mbody h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin:12px 0 2px;color:var(--red)}
+.mbody p{margin:0;font-size:13px}
+.tip{position:fixed;z-index:60;background:var(--char);color:#fff;padding:6px 10px;font-size:11px;border-top:2px solid var(--gold);pointer-events:none;min-width:150px}
+.tip[hidden]{display:none}
+.tip div{display:flex;gap:6px;align-items:center;margin-top:2px}.tip i{display:inline-block;width:9px;height:9px}.tip b{margin-inline-start:auto;font-variant-numeric:tabular-nums}
+#chart{cursor:crosshair}
+.inj{display:flex;align-items:center;gap:8px;border-inline-start:1px solid var(--line);padding-inline-start:12px}
+.inj label{display:inline;margin:0}
+.inj input[type=range]{width:120px;accent-color:var(--red)}
+.inj b{min-width:44px;font-variant-numeric:tabular-nums}
+#hl .idle{grid-column:1/-1;display:flex;gap:12px;align-items:baseline;border-inline-start:4px solid var(--red)}
+#hl .idle b{display:inline;font-size:16px}
+#hl .idle span{font-size:10.5px}
+@keyframes pulse{0%{r:6;opacity:.9}100%{r:70;opacity:0}}
+.pulse{animation:pulse 2.4s ease-out infinite}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <div class="logo" id="logoSlot" aria-label="Digital Marshal"><b>DIGITAL MARSHAL</b><span lang="ar" dir="rtl">المارشال الرقمي</span></div>
+  <div class="title"><h1 data-i="title"></h1><div data-i="subtitle"></div></div>
+  <div class="chips"><span class="chip" data-i="chip1"></span><span class="chip" data-i="chip2"></span><span class="chip" data-i="chip3"></span></div>
+  <button class="lang sysbtn" id="sysBtn" data-i="sysBtn"></button>
+  <button class="lang" id="langBtn">العربية</button>
+</header>
+
+<main class="wrap">
+  <div class="status" id="status"></div>
+  <div class="bar">
+    <div><label data-i="scenario"></label><br><select id="scn"></select></div>
+    <button class="b pri" id="play" data-i="play"></button>
+    <button class="b" id="reset" data-i="reset"></button>
+    <div class="speed" id="speed"></div>
+    <div class="inj"><label for="incT" data-i="injT"></label><input type="range" id="incT" min="0" max="300" step="5" value="120"><b id="incV">120 s</b><button class="b pri" id="injNow" data-i="injNow"></button><button class="b" id="injReset" data-i="injReset"></button></div>
+    <div class="clock"><span id="clk">0 s</span><small data-i="simtime"></small></div>
+    <div class="leg inbar"><span><i class="ic" style="background:#242526"></i><span data-i="legT"></span></span>
+    <span><i class="ic" style="background:#FFB715;outline:1px solid #242526"></i><span data-i="legQ"></span></span>
+    <span><i class="ic" style="background:#242526;position:relative;box-shadow:inset -4px 0 0 -1px #fff"></i><span data-i="legB"></span></span>
+    <span><i style="display:inline-block;width:10px;height:10px;background:repeating-linear-gradient(45deg,#DA291C 0 3px,#fff 3px 6px);vertical-align:-1px;margin-inline-end:5px"></i><span data-i="legX"></span></span></div>
+  </div>
+  <input class="scrub" id="scrub" type="range" min="0" max="100" value="0" step="1" aria-label="timeline">
+  <div class="timeline" id="tl"></div>
+
+  <section class="grid3" id="panels"></section>
+
+  <section class="grid2">
+    <div class="card" id="cResults">
+      <h2 style="font-size:15px" data-i="results"></h2>
+      <div class="sub" id="resSub"></div>
+      <div class="hl" id="hl"></div>
+      <table id="kpi"></table>
+    </div>
+    <div class="card" id="cQueue">
+      <h2 style="font-size:15px" data-i="chartT"></h2>
+      <div class="sub" data-i="chartS"></div>
+      <svg id="chart" viewBox="0 0 520 230" style="width:100%;height:auto;margin-top:8px"></svg>
+      <div class="leg" id="chartLeg"></div>
+    </div>
+  </section>
+
+  <section class="grid2" id="viz1">
+    <div class="card" id="cCum"><h2 style="font-size:15px" data-i="cumT"></h2><div class="sub" data-i="cumS"></div><svg id="cum" viewBox="0 0 520 230" style="width:100%;height:auto;margin-top:8px"></svg></div>
+    <div class="card" id="cStrip"><h2 style="font-size:15px" data-i="stripT"></h2><div class="sub" data-i="stripS"></div><svg id="strip" viewBox="0 0 520 230" style="width:100%;height:auto;margin-top:8px"></svg></div>
+  </section>
+  <section class="grid2" id="viz2">
+    <div class="card" id="cHeat"><h2 style="font-size:15px" data-i="heatT"></h2><div class="sub" data-i="heatS"></div><svg id="heat" viewBox="0 0 520 300" style="width:100%;height:auto;margin-top:8px"></svg></div>
+    <div class="card" id="cBars"><h2 style="font-size:15px" data-i="barT"></h2><div class="sub" data-i="barS"></div><svg id="bars" viewBox="0 0 520 300" style="width:100%;height:auto;margin-top:8px"></svg></div>
+  </section>
+
+  <section class="grid2">
+    <div class="card" id="cLog">
+      <h2 style="font-size:15px" data-i="logT"></h2>
+      <div class="sub" data-i="logS"></div>
+      <div id="log" style="margin-top:6px"></div>
+    </div>
+    <div class="card note" id="cXm">
+      <h2 style="font-size:15px" data-i="xmT"></h2>
+      <div class="sub" data-i="xmS"></div>
+      <table id="xm" style="margin-top:6px"></table>
+      <ul id="xmNotes"></ul>
+    </div>
+  </section>
+
+</main>
+
+
+<div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modalT">
+  <div class="mbox">
+    <div class="mhead"><h2 id="modalT" data-i="sysBtn"></h2><button class="b" id="mClose" data-i="close"></button></div>
+    <div class="mbody">
+      <h3 data-i="m1h"></h3><p data-i="m1"></p>
+      <h3 data-i="m2h"></h3><p data-i="m2"></p>
+      <h3 data-i="m3h"></h3><p data-i="m3"></p>
+      <h3 data-i="m4h"></h3><p data-i="m4"></p>
+      <div class="warn"><b data-i="scopeT"></b> <span data-i="honesty"></span></div>
+      <footer data-i="footer"></footer>
+    </div>
+  </div>
+</div>
+<div class="tip" id="tip" hidden></div>
+<script src="data.js"></script>
+<script src="engine.js"></script>
+<script>
+(function(){
+'use strict';
+var D = window.DM_DATA;
+var LANG='en';
+var I18N={
+ en:{title:'Digital Marshal: Algorithmic Control Plane for Autonomous Fleet Corridor Management',subtitle:'Proof-of-Concept Algorithmic Control Plane. Incident Response Epoch monitoring under lane closure with deterministic policy replay.',
+  chip1:'AUTONOMOUS FLEET CORRIDORS',chip2:'DETERMINISTIC ENGINE',chip3:'PROOF OF CONCEPT',scenario:'Demand Scenario',play:'Play',pause:'Pause',reset:'Reset',simtime:'simulation clock',
+  legA:'Corridor A (single lane)',legB:'Corridor B marker',legQ:'Queued / delayed',legX:'Lane closure',
+  results:'Corridor Performance Summary',chartT:'Point-Queue Flow',chartS:'Vehicles held in a point queue at each moment',
+  logT:'Incident Response Epoch Log',logS:'Routing decision at each 30 second epoch (route locked at split point P)',
+  xmT:'Model Cross Verification',xmS:'Coordinated gain over independent periodic routing, percent (point queue vs SUMO)',
+  honesty:'Deterministic point queue engine evaluating routing policies on a modelled corridor network with a lane closure (120 s baseline, adjustable live). Safety invariants are verified in every run: zero closed link entries and zero queue audit violations. Network, demand and corridor capacities are modelled parameters; calibration against Dubai corridor data is the Phase 2 objective. Outputs evaluate the routing logic and are not a field performance forecast.',
+  footer:'Independent proof of concept, not an official RTA system. Source: github.com/hudasol/digital-marshal. Data regenerated with tools/build_web_data.py from models/point_queue/wp2_9.',
+  static:'Static Routing (Corridor A)',independent_periodic:'Independent Periodic Routing',coordinated_batch:'Dynamic Coordinated Routing',
+  staticD:'All vehicles allocated to Corridor A',independentD:'Each epoch batch copies one probe decision',coordD:'Joint allocation of each epoch batch',
+  inq:'In point queue',arr:'Completed',rtA:'Corridor A',rtB:'Corridor B',
+  total:'Total fleet travel time (veh min)',mean:'Mean journey time (min)',p95:'P95 journey time (min)',split:'Corridor allocation A / B',maxshare:'Max epoch batch share',closed:'Closed link entries',fifo:'Queue audit violations',
+  vsInd:'vs independent',vsStat:'vs static',incident:'Incident at 120 s: segments E2 and E3 closed. Advisory published (simulated).',depart:'Fleet starts leaving the origin.',
+  epoch:'Epoch',ind:'Independent',coo:'Dynamic',done:'All vehicles completed the corridor.',
+  hlTotal:'Coordinated total fleet time',hlInd:'Change vs independent periodic',hlStat:'Change vs static Route A',
+  better:'lower',worse:'higher',same:'no change',
+  xmPQ:'Point queue',xmSumo:'SUMO mean',xmCI:'SUMO 95% interval',xmSeeds:'Seeds better',
+  cumT:'Cumulative Throughput at Destination',cumS:'Vehicles that completed the corridor by each moment; a steeper curve clears the fleet sooner',stripT:'Journey Time per Vehicle',stripS:'One marker per vehicle by corridor allocation; coloured tick marks the mean',heatT:'Corridor Capacity Congestion Map',heatS:'Total point queue waiting time per corridor segment, vehicle minutes',barT:'Fleet Delay and Corridor Allocation',barS:'Total fleet travel time (bars) and share of vehicles allocated to each corridor',minutes:'minutes',vm:'veh min',vehs:'vehicles',stCorr:'Corridor status',stNormal:'NORMAL OPERATION',stInc:'INCIDENT ACTIVE · E2 / E3 CLOSED',stEpoch:'Response epoch',stInv:'Safety invariants',stPass:'VERIFIED',stFail:'REVIEW',stQ:'Point queue',stWait:'Awaiting first epoch',sysBtn:'System Architecture & Bounds',close:'Close',injT:'Incident time',injNow:'Inject incident now',injReset:'Baseline',m1h:'Engine',m1:'Deterministic point queue engine. Every corridor segment serves vehicles in arrival order at its capacity: exit time equals the later of arrival plus free flow time and the previous exit plus the service headway. No randomness, no tuning of results.',m2h:'Routing policies',m2:'Static routing allocates every vehicle to Corridor A. Independent periodic routing lets each 30 second epoch batch copy a single probe decision. Dynamic coordinated routing searches every joint split of each epoch batch and keeps the one with the lowest total fleet travel time.',m3h:'Verification',m3:'Each run is checked for closed link entries and queue discipline violations. Incident injection recomputes all three policies live with a JavaScript port of the engine, verified against the frozen results at the 120 s baseline.',m4h:'Data lineage',m4:'Frozen results come from models/point_queue/wp2_9 and are packed by tools/build_web_data.py. The SUMO figures are historical aggregates from the cross model reconciliation.',hlIdle:'Collective idling time under the stress test (60 vehicles): coordinated batch routing cuts it by {s}% against static routing and {i}% against independent periodic routing, saving {n} vehicle minutes of idling.',pre:'pre',scopeT:'Algorithmic Scope & Simulation Boundary:',legT:'Normal transit',n1:'Both models rank coordinated at or below independent, and both below static, in the loaded scenarios.',
+  n2:'Gains over independent periodic routing are modest (0.5 to 2.6 percent across both engines), while gains over static routing reach 24 percent under overload in the point queue engine.',
+  n3:'Policy definitions differ between the two engines, so the columns serve as independent cross checks rather than a replication.',
+  sc:{manageable_primary:'Manageable primary (10 vehicles)',near_branch_capacity:'Near branch capacity (24 vehicles)',overload_stress:'Overload stress (60 vehicles)',primary_half_capacity:'Half capacity (10 vehicles)',primary_double_capacity:'Double capacity (10 vehicles)'}},
+ ar:{title:'المارشال الرقمي: مستوى تحكم خوارزمي لإدارة ممرات الأسطول ذاتي القيادة',subtitle:'مستوى تحكم خوارزمي لإثبات المفهوم. مراقبة دورات الاستجابة للحوادث تحت إغلاق مسار مع إعادة تشغيل حتمية للسياسات.',
+  chip1:'ممرات الأسطول ذاتي القيادة',chip2:'محرك حتمي',chip3:'إثبات مفهوم',scenario:'سيناريو الطلب',play:'تشغيل',pause:'إيقاف مؤقت',reset:'إعادة',simtime:'ساعة المحاكاة',
+  legA:'الممر أ (مسار واحد)',legB:'علامة الممر ب',legQ:'في الطابور / متأخرة',legX:'إغلاق مسار',
+  results:'ملخص أداء الممرات',chartT:'تدفق الطابور النقطي',chartS:'المركبات المحتجزة في طابور نقطي في كل لحظة',
+  logT:'سجل دورات الاستجابة للحوادث',logS:'قرار التوجيه في كل دورة مدتها 30 ثانية (يُثبَّت المسار عند نقطة التفرع)',
+  xmT:'التحقق المتقاطع بين النماذج',xmS:'تحسن التوجيه المنسق مقارنة بالتوجيه المستقل الدوري، بالنسبة المئوية (الطوابير النقطية و SUMO)',
+  honesty:'محرك طوابير نقطية حتمي يقيّم سياسات التوجيه على شبكة ممرات مُنمذجة مع إغلاق مسار (الأساس 120 ثانية وقابل للتعديل مباشرة). تُتحقق ثوابت السلامة في كل تشغيل: عدم دخول أي رابط مغلق وعدم وجود مخالفات في تدقيق الطابور. الشبكة والطلب وسعات الممرات معاملات مُنمذجة، ومعايرتها على بيانات ممرات دبي هي هدف المرحلة الثانية. تقيّم المخرجات منطق التوجيه ولا تمثل توقعاً للأداء الميداني.',
+  footer:'إثبات مفهوم مستقل وليس نظاماً رسمياً لهيئة الطرق والمواصلات. المصدر: github.com/hudasol/digital-marshal.',
+  static:'توجيه ثابت (الممر أ)',independent_periodic:'توجيه مستقل دوري',coordinated_batch:'توجيه ديناميكي منسق',
+  staticD:'جميع المركبات مخصصة للممر أ',independentD:'كل دفعة في الدورة تنسخ قرار مركبة استكشافية',coordD:'تخصيص مشترك لكل دفعة في الدورة',
+  inq:'في الطابور النقطي',arr:'أتمت الممر',rtA:'الممر أ',rtB:'الممر ب',
+  total:'إجمالي زمن رحلات الأسطول (مركبة دقيقة)',mean:'متوسط زمن الرحلة (دقيقة)',p95:'زمن الرحلة عند المئين 95 (دقيقة)',split:'توزيع الممرات أ / ب',maxshare:'أعلى حصة دفعة في الدورة',closed:'دخول روابط مغلقة',fifo:'مخالفات تدقيق الطابور',
+  vsInd:'مقارنة بالمستقل',vsStat:'مقارنة بالثابت',incident:'حادث عند 120 ثانية: إغلاق المقطعين E2 و E3. نُشر التنبيه (محاكاة).',depart:'بدء انطلاق الأسطول من نقطة الأصل.',
+  epoch:'دورة',ind:'مستقل',coo:'ديناميكي',done:'أتمت جميع المركبات الممر.',
+  hlTotal:'إجمالي زمن الأسطول المنسق',hlInd:'التغير مقارنة بالمستقل الدوري',hlStat:'التغير مقارنة بالمسار الثابت أ',
+  better:'أقل',worse:'أعلى',same:'دون تغير',
+  xmPQ:'الطوابير النقطية',xmSumo:'متوسط SUMO',xmCI:'فترة ثقة 95%',xmSeeds:'البذور الأفضل',
+  cumT:'الإنتاجية التراكمية عند الوجهة',cumS:'المركبات التي أتمت الممر في كل لحظة؛ المنحنى الأشد ميلاً يُخلي الأسطول أسرع',stripT:'زمن رحلة كل مركبة',stripS:'علامة لكل مركبة حسب تخصيص الممر؛ الخط الملون يمثل المتوسط',heatT:'خريطة ازدحام السعة التشغيلية للممر',heatS:'إجمالي زمن الانتظار في الطابور النقطي لكل مقطع، بالمركبة دقيقة',barT:'تأخر الأسطول وتخصيص الممرات',barS:'إجمالي زمن رحلات الأسطول (أعمدة) ونسبة المركبات المخصصة لكل ممر',minutes:'دقيقة',vm:'مركبة دقيقة',vehs:'مركبات',n1x:'',stCorr:'حالة الممر',stNormal:'تشغيل اعتيادي',stInc:'حادث نشط · إغلاق E2 / E3',stEpoch:'دورة الاستجابة',stInv:'ثوابت السلامة',stPass:'تم التحقق',stFail:'مراجعة',stQ:'الطابور النقطي',stWait:'بانتظار الدورة الأولى',sysBtn:'البنية المعمارية والحدود',close:'إغلاق',injT:'وقت الحادث',injNow:'حقن حادث الآن',injReset:'الأساس',m1h:'المحرك',m1:'محرك طوابير نقطية حتمي. يخدم كل مقطع في الممر المركبات بترتيب الوصول وفق سعته: زمن الخروج هو الأكبر بين زمن الوصول مضافاً إليه زمن العبور الحر وزمن الخروج السابق مضافاً إليه فاصل الخدمة. لا عشوائية ولا ضبط للنتائج.',m2h:'سياسات التوجيه',m2:'يخصص التوجيه الثابت كل المركبات للممر أ. يجعل التوجيه المستقل الدوري كل دفعة في دورة مدتها 30 ثانية تنسخ قرار مركبة استكشافية واحدة. يبحث التوجيه الديناميكي المنسق في كل تقسيم مشترك لدفعة الدورة ويختار الأقل في إجمالي زمن رحلات الأسطول.',m3h:'التحقق',m3:'يُفحص كل تشغيل بحثاً عن دخول الروابط المغلقة ومخالفات انضباط الطابور. يعيد حقن الحادث حساب السياسات الثلاث مباشرة بنسخة جافاسكربت من المحرك جرى التحقق منها مقابل النتائج المجمدة عند الأساس 120 ثانية.',m4h:'مصدر البيانات',m4:'تأتي النتائج المجمدة من models/point_queue/wp2_9 وتُجمع بواسطة tools/build_web_data.py. أرقام SUMO مجاميع تاريخية من المطابقة بين النماذج.',hlIdle:'زمن التوقف الجماعي في اختبار الضغط (60 مركبة): يخفضه التوجيه الدفعي المنسق بنسبة {s}% مقارنة بالتوجيه الثابت و{i}% مقارنة بالمستقل الدوري، بتوفير {n} مركبة دقيقة من التوقف.',pre:'قبل',scopeT:'النطاق الخوارزمي وحدود المحاكاة:',legT:'عبور اعتيادي',n1:'يضع النموذجان المنسق عند مستوى المستقل أو أفضل منه، وكلاهما أفضل من الثابت، في السيناريوهات المحملة.',
+  n2:'مكاسب التوجيه المنسق على المستقل الدوري متواضعة (من 0.5 إلى 2.6 بالمئة في المحركين)، وتبلغ على التوجيه الثابت نحو 24 بالمئة تحت الحمل الزائد في محرك الطوابير النقطية.',
+  n3:'تختلف تعريفات السياسات بين المحركين، لذلك تعمل الأعمدة كفحوص متقاطعة مستقلة وليست تكراراً.',
+  sc:{manageable_primary:'أساسي قابل للإدارة (10 مركبات)',near_branch_capacity:'قرب سعة الفرع (24 مركبة)',overload_stress:'ضغط زائد (60 مركبة)',primary_half_capacity:'نصف السعة (10 مركبات)',primary_double_capacity:'ضعف السعة (10 مركبات)'}}
+};
+var POL=['static','independent_periodic','coordinated_batch'];
+var POLCOL={static:'#64748B',independent_periodic:'#FFB715',coordinated_batch:'#DA291C'};
+var POLD={static:'staticD',independent_periodic:'independentD',coordinated_batch:'coordD'};
+var NODES={O:[0,0],P:[600,0],C:[1200,100],A1:[1100,-100],A2:[1700,-100],B1:[1100,0],B2:[1700,0],B3:[2000,0],M:[2300,-50],D:[2900,-50]};
+var LANES={E1:4,E2:1,E3:1,E4:1,E5:1,E6:1,E7:2,E8:2,E9:2,E10:2,E11:4};
+// SUMO cross model figures from docs/CROSS_MODEL_RECONCILIATION.md (historical SUMO prototype aggregates)
+var XM=[['manageable_primary','0.00','0.03','[0.0, 0.095]','1 of 10'],['near_branch_capacity','1.70','0.53','[0.125, 0.903]','16 of 20'],['overload_stress','2.55','1.18','[0.018, 2.43]','7 of 10']];
+
+function px(n){return [40+NODES[n][0]*0.3172, 150+NODES[n][1]*0.95];}
+var EDGE={};D.graph.edges.forEach(function(e){EDGE[e.id]=e;});
+function $(s,r){return (r||document).querySelector(s);}
+function el(t,a,p){var e=document.createElementNS('http://www.w3.org/2000/svg',t);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;}
+function T(k){return I18N[LANG][k]!==undefined?I18N[LANG][k]:k;}
+
+var state={scn:'near_branch_capacity',t:0,playing:false,speed:20,last:0,tMax:600,inc:D.graph.incident_s};
+var BASE=D.graph.incident_s,LIVE={};
+var P={}; // per policy view objects
+
+function applyLang(){
+  document.documentElement.lang=LANG;document.documentElement.dir=LANG==='ar'?'rtl':'ltr';document.body.className=LANG==='ar'?'ar':'';
+  document.querySelectorAll('[data-i]').forEach(function(n){n.textContent=T(n.getAttribute('data-i'));});
+  $('#langBtn').textContent=LANG==='ar'?'English':'العربية';
+  $('#play').textContent=state.playing?T('pause'):T('play');
+  var sel=$('#scn');Array.prototype.forEach.call(sel.options,function(o){o.textContent=I18N[LANG].sc[o.value];});
+  POL.forEach(function(p){if(P[p]){P[p].title.textContent=T(p);P[p].sub.textContent=T(POLD[p]);P[p].lab[0].textContent=T('inq');P[p].lab[1].textContent=T('arr');P[p].lab[2].textContent=T('rtA');P[p].lab[3].textContent=T('rtB');}});
+  renderStatic();draw();
+}
+
+function buildPanels(){
+  var host=$('#panels');host.innerHTML='';
+  POL.forEach(function(p){
+    var c=document.createElement('div');c.className='card';
+    c.innerHTML='<h3><span class="tag" style="background:'+POLCOL[p]+'"></span><span class="ttl"></span></h3><div class="sub"></div><svg class="map" viewBox="0 32 1000 268"></svg>'+
+     '<div class="live"><div class="q"><b>0</b><span></span></div><div><b>0</b><span></span></div><div><b>0</b><span></span></div><div><b>0</b><span></span></div></div>';
+    host.appendChild(c);
+    var svg=$('svg',c);
+    var o={heat:{},card:c,svg:svg,title:$('.ttl',c),sub:$('.sub',c),vals:[],lab:[],dots:{},edgeEls:{}};
+    var lv=c.querySelectorAll('.live div');for(var i=0;i<4;i++){o.vals.push($('b',lv[i]));o.lab.push($('span',lv[i]));}
+    // defs hatch
+    var defs=el('defs',{},svg);var pt=el('pattern',{id:'h'+p,width:8,height:8,patternUnits:'userSpaceOnUse',patternTransform:'rotate(45)'},defs);
+    el('rect',{width:8,height:8,fill:'#fff'},pt);el('rect',{width:4,height:8,fill:'#DA291C'},pt);
+    // edges
+    D.graph.edges.forEach(function(e){
+      var a=px(e.src),b=px(e.dst),w=3+LANES[e.id]*2.5;
+      var g=el('g',{},svg);
+      el('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:'#CBD5E1','stroke-width':w,'stroke-linecap':'round'},g);
+      o.heat=o.heat||{};o.heat[e.id]=el('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:'#FFB715','stroke-width':w+4,'stroke-linecap':'round',opacity:0},g);
+      var closed=el('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:'url(#h'+p+')','stroke-width':w,'stroke-linecap':'round',opacity:0},g);
+      var mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;
+      var dy=(e.id==='E1'||e.id==='E11')?-18:(e.id==='E2'||e.id==='E3')?22:(['E4','E5','E6'].indexOf(e.id)>=0?-14:22);
+      var tx=el('text',{x:mx,y:my+dy,'text-anchor':'middle','font-size':14,'font-weight':600,fill:'#64748B'},g);tx.textContent=e.id+' · '+e.cap_vpm+'/min';
+      o.edgeEls[e.id]=closed;
+    });
+    // nodes
+    Object.keys(NODES).forEach(function(n){var q=px(n);el('circle',{cx:q[0],cy:q[1],r:6,fill:'#fff',stroke:'#242526','stroke-width':2},svg);
+      var t=el('text',{x:q[0],y:q[1]+(n==='C'?-12:(n==='A1'||n==='A2'?-12:(n==='O'||n==='D'?24:-13))),'text-anchor':'middle','font-size':15,'font-weight':700,fill:'#242526'},svg);t.textContent=n==='O'?'Origin':n==='D'?'Dest.':n==='P'?'P':n;});
+    // control marker and advisory pulse at P
+    var pp=px('P');o.pulse=el('circle',{cx:pp[0],cy:pp[1],r:6,fill:'none',stroke:'#FFB715','stroke-width':3,opacity:0},svg);
+    o.pulse2=el('circle',{cx:pp[0],cy:pp[1],r:6,fill:'none',stroke:'#DA291C','stroke-width':2,opacity:0},svg);
+    var ban=el('g',{opacity:0},svg);var cc=px('C');el('rect',{x:cc[0]-85,y:cc[1]+22,width:170,height:26,fill:'#DA291C'},ban);
+    var bt=el('text',{x:cc[0],y:cc[1]+40,'text-anchor':'middle','font-size':14,'font-weight':700,fill:'#fff'},ban);bt.textContent='CLOSED E2 / E3';o.ban=ban;
+    o.dotLayer=el('g',{},svg);
+    P[p]=o;
+  });
+}
+
+function runOf(p){var k=state.scn+'|'+p;return (state.inc!==BASE&&LIVE[k])||D.runs[k];}
+function refreshLive(){LIVE={};if(state.inc!==BASE&&window.DM_ENGINE){POL.forEach(function(p){LIVE[state.scn+'|'+p]=window.DM_ENGINE.compute(D,state.scn,p,state.inc);});}}
+function applyIncident(v){state.inc=v;$('#incT').value=v;$('#incV').textContent=v+' s';refreshLive();computeTMax();ensureDots();renderStatic();if(state.t>state.tMax)state.t=state.tMax;draw();}
+function vlist(p){var r=runOf(p);return Object.keys(r.vehicles).sort().map(function(k){return r.vehicles[k];});}
+
+function ensureDots(){
+  POL.forEach(function(p){
+    var o=P[p];o.dotLayer.innerHTML='';o.dots=[];
+    vlist(p).forEach(function(v,i){
+      var c=el('g',{opacity:0,transform:'translate(-30,-30)'},o.dotLayer);
+      var body=el('path',{d:'M-9,-5 L6,-5 L11,0 L6,5 L-9,5 Z',fill:'#242526',stroke:'#fff','stroke-width':1.3,'stroke-linejoin':'round'},c);
+      if(v.r==='B')el('circle',{cx:-2,cy:0,r:2,fill:'#fff'},c);
+      o.dots.push({v:v,c:c,b:body,i:i});
+    });
+  });
+}
+
+function posOf(v,t){
+  if(t<v.d) return null;
+  if(t>=v.a) return null;
+  var ev=v.ev;
+  for(var k=0;k<ev.length;k++){
+    var e=ev[k];
+    if(t>=e[1]&&t<e[2]||(k===ev.length-1&&t<e[2])){
+      var f=EDGE[e[0]].free_min*60,ms=e[2]-f;
+      var waiting=t<ms-1e-9&&(ms-e[1])>1e-6;
+      var fr=waiting?0:Math.max(0,Math.min(1,(t-ms)/f));
+      return {edge:e[0],fr:fr,waiting:waiting};
+    }
+  }
+  return null;
+}
+
+function draw(){
+  var t=state.t,inc=state.inc;
+  $('#clk').textContent=Math.round(t)+' s';
+  $('#scrub').value=t;
+  var cnt={};
+  POL.forEach(function(p){
+    var o=P[p],q=0,arr=0,a=0,b=0,stack={};var eq={};
+    var show=t>=inc;
+    Object.keys(o.edgeEls).forEach(function(id){o.edgeEls[id].setAttribute('opacity',(show&&D.graph.closed.indexOf(id)>=0)?1:0);});
+    o.ban.setAttribute('opacity',show?1:0);
+    var age=t-inc;
+    var pa=(age>=0&&age<40)?(1-age/40):0;
+    o.pulse.setAttribute('opacity',pa*0.9);o.pulse.setAttribute('r',6+Math.max(0,age)*2.2);
+    o.pulse2.setAttribute('opacity',(age>=6&&age<46)?(1-(age-6)/40)*0.8:0);o.pulse2.setAttribute('r',6+Math.max(0,age-6)*2.2);
+    o.dots.forEach(function(d){
+      var v=d.v;
+      if(t>=v.a)arr++;
+      var ps=posOf(v,t);
+      if(!ps){d.c.setAttribute('opacity',0);return;}
+      var ed=EDGE[ps.edge],A=px(ed.src),B=px(ed.dst);
+      var dx=B[0]-A[0],dy=B[1]-A[1],L=Math.sqrt(dx*dx+dy*dy)||1,ux=dx/L,uy=dy/L;
+      var off=0;
+      if(ps.waiting){eq[ps.edge]=(eq[ps.edge]||0)+1;var s=stack[ps.edge]=(stack[ps.edge]||0)+1;off=-s*9.5;q++;}
+      var f=ps.fr;
+      var lanes=LANES[ps.edge],lane=((d.i)%lanes)-(lanes-1)/2;
+      var cx=A[0]+dx*f+ux*off+(-uy)*lane*5.5,cy=A[1]+dy*f+uy*off+ux*lane*5.5;
+      var ang=Math.atan2(dy,dx)*180/Math.PI;
+      d.c.setAttribute('transform','translate('+cx.toFixed(1)+','+cy.toFixed(1)+') rotate('+ang.toFixed(1)+') scale(1.3)');d.c.setAttribute('opacity',1);
+      d.b.setAttribute('fill',ps.waiting?'#FFB715':'#242526');d.b.setAttribute('stroke',ps.waiting?'#242526':'#fff');d.b.setAttribute('stroke-width',ps.waiting?1.8:1.3);
+    });
+    // route counts decided so far = vehicles whose p time has passed (epoch granularity ignored)
+    vlist(p).forEach(function(v){if(t>=v.p){if(v.r==='A')a++;else if(v.r==='B')b++;}});
+    Object.keys(o.heat).forEach(function(id){var n=eq[id]||0;o.heat[id].setAttribute('opacity',Math.min(0.9,n*0.16));o.heat[id].setAttribute('stroke',n>=5?'#DA291C':'#FFB715');});
+    cnt[p]=q;o.vals[0].textContent=q;o.vals[1].textContent=arr+' / '+vlist(p).length;o.vals[2].textContent=a;o.vals[3].textContent=b;
+  });
+  renderStatus(cnt);
+  var m=$('#cursor');if(m){var x=chartX(t);m.setAttribute('x1',x);m.setAttribute('x2',x);}
+  var m2=$('#cumCursor');if(m2){var x2=chartX(t);m2.setAttribute('x1',x2);m2.setAttribute('x2',x2);}
+  renderLog();
+}
+
+
+function renderStatus(cnt){
+  var t=state.t,inc=state.inc,active=t>=inc;
+  var ep=t>=180?Math.floor((t-180)/30)+1:null;
+  var ok=true;POL.forEach(function(p){var m=runOf(p).metrics;if(+m.closed_link_entries!==0||+m.fifo_violations!==0)ok=false;});
+  var q=POL.map(function(p){return '<b>'+(cnt[p]||0)+'</b>';}).join('<span class="k">/</span>');
+  $('#status').innerHTML='<div class="'+(active?'alert':'')+'"><span class="k">'+T('stCorr')+'</span><b>'+(active?T('stInc'):T('stNormal'))+'</b></div>'+
+   '<div><span class="k">'+T('stEpoch')+'</span><b>'+(ep===null?T('stWait'):ep)+'</b></div>'+
+   '<div><span class="k">'+T('stQ')+' ('+SH('static')+' / '+SH('independent_periodic')+' / '+SH('coordinated_batch')+')</span>'+q+'</div>'+
+   '<div class="ok"><span class="k">'+T('stInv')+'</span><b>'+(ok?T('stPass'):T('stFail'))+'</b></div>';
+}
+
+function chartX(t){return 36+(t/state.tMax)*(520-36-10);}
+
+function queueSeries(p){
+  var vs=vlist(p),out=[],step=5;
+  for(var t=0;t<=state.tMax;t+=step){
+    var q=0;vs.forEach(function(v){v.ev.forEach(function(e){var f=EDGE[e[0]].free_min*60,ms=e[2]-f;if(ms-e[1]>1e-6&&t>=e[1]&&t<ms)q++;});});
+    out.push([t,q]);
+  }
+  return out;
+}
+
+function renderChart(){
+  var svg=$('#chart');svg.innerHTML='';
+  var series={},mx=1;
+  POL.forEach(function(p){series[p]=queueSeries(p);series[p].forEach(function(d){if(d[1]>mx)mx=d[1];});});
+  mx=Math.ceil(mx/5)*5||5;
+  var H=230,top=10,bot=28;
+  function y(v){return top+(1-v/mx)*(H-top-bot);}
+  for(var g=0;g<=4;g++){var v=mx*g/4,yy=y(v);el('line',{x1:36,x2:510,y1:yy,y2:yy,stroke:'#E2E8F0'},svg);var tx=el('text',{x:30,y:yy+4,'text-anchor':'end','font-size':10,fill:'#64748B'},svg);tx.textContent=Math.round(v);}
+  for(var g2=0;g2<=5;g2++){var tt=state.tMax*g2/5,xx=chartX(tt);var tx2=el('text',{x:xx,y:H-10,'text-anchor':'middle','font-size':10,fill:'#64748B'},svg);tx2.textContent=Math.round(tt)+'s';}
+  var ix=chartX(state.inc);el('line',{x1:ix,x2:ix,y1:top,y2:H-bot,stroke:'#DA291C','stroke-dasharray':'4 3'},svg);
+  POL.forEach(function(p){
+    var pts=series[p].map(function(d){return chartX(d[0]).toFixed(1)+','+y(d[1]).toFixed(1);}).join(' ');
+    el('polyline',{points:pts,fill:'none',stroke:POLCOL[p],'stroke-width':p==='coordinated_batch'?3:2.2,'stroke-linejoin':'round'},svg);
+  });
+  el('line',{id:'cursor',x1:chartX(state.t),x2:chartX(state.t),y1:top,y2:H-bot,stroke:'#242526','stroke-width':1.5},svg);
+  $('#chartLeg').innerHTML=POL.map(function(p){return '<span><i style="background:'+POLCOL[p]+'"></i>'+T(p)+'</span>';}).join('');
+}
+
+function f2(x,n){return Number(x).toFixed(n===undefined?2:n);}
+function pct(a,b){return (a-b)/b*100;}
+function renderStatic(){
+  if(!P.static)return;
+  var M={};POL.forEach(function(p){M[p]=runOf(p).metrics;});
+  var tot={};POL.forEach(function(p){tot[p]=parseFloat(M[p].total_fleet_travel_time_vehicle_min);});
+  var vsI=pct(tot.coordinated_batch,tot.independent_periodic),vsS=pct(tot.coordinated_batch,tot.static);
+  function lab(x){return (x<0?'':'+')+f2(x)+'%';}
+  $('#hl').innerHTML='<div><b>'+f2(tot.coordinated_batch,1)+'</b><span>'+T('hlTotal')+' (veh min)</span></div>'+
+    '<div><b>'+lab(vsI)+'</b><span>'+T('hlInd')+'</span></div><div><b>'+lab(vsS)+'</b><span>'+T('hlStat')+'</span></div>';
+  function idle(p){var w=0;Object.keys(D.runs['overload_stress|'+p].vehicles).forEach(function(k){D.runs['overload_stress|'+p].vehicles[k].ev.forEach(function(e){w+=e[3];});});return w/60;}
+  var iS=idle('static'),iI=idle('independent_periodic'),iC=idle('coordinated_batch');
+  var sv=(1-iC/iS)*100,iv=(1-iC/iI)*100;
+  $('#hl').innerHTML+='<div class="idle"><b>-'+sv.toFixed(1)+'%</b><span>'+T('hlIdle').replace('{s}',sv.toFixed(1)).replace('{i}',iv.toFixed(1)).replace('{n}',Math.round(iS-iC))+'</span></div>';
+  var rows=[['total',function(p){return f2(M[p].total_fleet_travel_time_vehicle_min);},true],['mean',function(p){return f2(M[p].mean_travel_time_min);},true],['p95',function(p){return f2(M[p].p95_nearest_rank_min);},true],
+    ['split',function(p){return M[p].route_A_count+' / '+M[p].route_B_count+(+M[p].route_C_count>0?' (+'+M[p].route_C_count+' '+T('pre')+')':'');},false],['maxshare',function(p){return f2(M[p].max_30s_batch_dominant_route_share);},false],['closed',function(p){return M[p].closed_link_entries;},false],['fifo',function(p){return M[p].fifo_violations;},false]];
+  var h='<tr><th></th>'+POL.map(function(p){return '<th>'+T(p)+'</th>';}).join('')+'</tr>';
+  rows.forEach(function(r){
+    var vals=POL.map(function(p){return parseFloat(M[p][r[0]==='total'?'total_fleet_travel_time_vehicle_min':r[0]==='mean'?'mean_travel_time_min':r[0]==='p95'?'p95_nearest_rank_min':'vehicles']);});
+    var best=r[2]?Math.min.apply(null,vals):null;
+    h+='<tr><td>'+T(r[0])+'</td>'+POL.map(function(p,i){var b=(r[2]&&Math.abs(vals[i]-best)<1e-9&&(vals[0]!==vals[1]||vals[1]!==vals[2]));return '<td class="'+(b?'best':'')+'">'+r[1](p)+'</td>';}).join('')+'</tr>';
+  });
+  $('#kpi').innerHTML=h;
+  var s=D.scenarios[state.scn];
+  $('#resSub').textContent=I18N[LANG].sc[state.scn]+' · '+s.vehicles+' / '+s.spacing_s+' s · scale '+s.branch_capacity_scale;
+  // cross model table
+  var x='<tr><th></th><th>'+T('xmPQ')+'</th><th>'+T('xmSumo')+'</th><th>'+T('xmCI')+'</th><th>'+T('xmSeeds')+'</th></tr>';
+  XM.forEach(function(r){x+='<tr><td>'+I18N[LANG].sc[r[0]].split(' (')[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td><td>'+r[4]+'</td></tr>';});
+  $('#xm').innerHTML=x;$('#xmNotes').innerHTML='<li>'+T('n1')+'</li><li>'+T('n2')+'</li><li>'+T('n3')+'</li>';
+  renderChart();renderViz();renderTimeline();
+}
+
+
+function SH(p){return LANG==='ar'?{static:'ثابت',independent_periodic:'مستقل',coordinated_batch:'ديناميكي'}[p]:{static:'Static',independent_periodic:'Independent',coordinated_batch:'Dynamic'}[p];}
+function renderViz(){
+  var NS='http://www.w3.org/2000/svg';
+  function tx(svg,x,y,txt,o){var e=el('text',{x:x,y:y,'font-size':10,fill:'#64748B','text-anchor':(o&&o.a)||'middle','font-weight':(o&&o.w)||500},svg);e.textContent=txt;return e;}
+  // cumulative arrivals
+  var c=$('#cum');c.innerHTML='';var H=230,top=10,bot=28,n=vlist('static').length;
+  function yc(v){return top+(1-v/n)*(H-top-bot);}
+  for(var g=0;g<=4;g++){var v=n*g/4,yy=yc(v);el('line',{x1:36,x2:510,y1:yy,y2:yy,stroke:'#E2E8F0'},c);tx(c,30,yy+4,Math.round(v),{a:'end'});}
+  for(var g2=0;g2<=5;g2++){var tt=state.tMax*g2/5;tx(c,chartX(tt),H-10,Math.round(tt)+'s');}
+  POL.forEach(function(p){
+    var a=vlist(p).map(function(v){return v.a;}).sort(function(x,y){return x-y;});
+    var pts='36,'+yc(0);a.forEach(function(t,i){pts+=' '+chartX(t).toFixed(1)+','+yc(i).toFixed(1)+' '+chartX(t).toFixed(1)+','+yc(i+1).toFixed(1);});
+    pts+=' 510,'+yc(n);
+    el('polyline',{points:pts,fill:'none',stroke:POLCOL[p],'stroke-width':p==='coordinated_batch'?3:2.2,'stroke-linejoin':'round'},c);
+  });
+  el('line',{id:'cumCursor',x1:chartX(state.t),x2:chartX(state.t),y1:top,y2:H-bot,stroke:'#242526','stroke-width':1.5},c);
+  // strip plot of trip times
+  var sv=$('#strip');sv.innerHTML='';var all=[];POL.forEach(function(p){vlist(p).forEach(function(v){all.push((v.a-v.d)/60);});});
+  var lo=Math.floor(Math.min.apply(null,all)),hi=Math.ceil(Math.max.apply(null,all));if(hi-lo<2)hi=lo+2;
+  function xs(m){return 150+(m-lo)/(hi-lo)*(480-150);}
+  var step=Math.max(1,Math.round((hi-lo)/6));
+  for(var m=lo;m<=hi;m+=step){el('line',{x1:xs(m),x2:xs(m),y1:12,y2:190,stroke:'#E2E8F0'},sv);tx(sv,xs(m),210,m+' min');}
+  POL.forEach(function(p,i){
+    var y0=52+i*62,vs=vlist(p);tx(sv,8,y0+4,SH(p),{a:'start',w:600});
+    el('line',{x1:150,x2:480,y1:y0,y2:y0,stroke:'#CBD5E1'},sv);
+    var mean=0;vs.forEach(function(v){mean+=(v.a-v.d)/60;});mean/=vs.length;
+    var bins={};
+    vs.slice().sort(function(a,b){return (a.a-a.d)-(b.a-b.d);}).forEach(function(v){var m=(v.a-v.d)/60,k=Math.round(m*4);bins[k]=(bins[k]||0)+1;
+      el('circle',{cx:xs(m),cy:y0-4-(bins[k]-1)*8,r:3.6,fill:v.r==='B'?'#94A3B8':'#242526',stroke:v.r==='B'?'#242526':'#fff','stroke-width':.8},sv);});
+    el('line',{x1:xs(mean),x2:xs(mean),y1:y0-30,y2:y0+8,stroke:POLCOL[p],'stroke-width':3},sv);
+    tx(sv,xs(mean),y0+20,mean.toFixed(1),{w:700});
+  });
+  // heat grid: queue wait per edge and policy
+  var hs=$('#heat');hs.innerHTML='';var eds=D.graph.edges.map(function(e){return e.id;}),grid={},mx=0;
+  POL.forEach(function(p){grid[p]={};eds.forEach(function(e){grid[p][e]=0;});vlist(p).forEach(function(v){v.ev.forEach(function(e){grid[p][e[0]]+=e[3];});});eds.forEach(function(e){grid[p][e]/=60;if(grid[p][e]>mx)mx=grid[p][e];});});
+  var cw=118,rh=22;
+  POL.forEach(function(p,j){tx(hs,70+j*cw+cw/2,14,SH(p),{w:600});});
+  eds.forEach(function(e,i){
+    tx(hs,60,40+i*rh+4,e+' ('+(LANES[e]||1)+')',{a:'end',w:600});
+    POL.forEach(function(p,j){var val=grid[p][e],k=mx?val/mx:0;
+      var col=val<0.005?'#F8FAFC':(k>0.55?'#DA291C':(k>0.2?'#F08A82':'#FFD98A'));
+      el('rect',{x:70+j*cw+2,y:26+i*rh,width:cw-4,height:rh-3,fill:col,stroke:'#E2E8F0'},hs);
+      tx(hs,70+j*cw+cw/2,26+i*rh+14,val.toFixed(1),{w:600}).setAttribute('fill',k>0.55?'#fff':'#1B1D21');});
+  });
+  tx(hs,70,292,'0',{a:'start'});tx(hs,455,292,mx.toFixed(1)+' '+T('vm'),{a:'end'});
+  var lg=[['#F8FAFC',0],['#FFD98A',1],['#F08A82',2],['#DA291C',3]];lg.forEach(function(l,i){el('rect',{x:90+i*30,y:282,width:28,height:8,fill:l[0],stroke:'#E2E8F0'},hs);});
+  // bars: total fleet time + route split
+  var bs=$('#bars');bs.innerHTML='';var tot=POL.map(function(p){return parseFloat(runOf(p).metrics.total_fleet_travel_time_vehicle_min);});
+  var tmax=Math.max.apply(null,tot);
+  POL.forEach(function(p,i){
+    var y0=20+i*52,w=(tot[i]/tmax)*250;
+    tx(bs,8,y0+16,SH(p),{a:'start',w:600});
+    el('rect',{x:150,y:y0,width:250,height:22,fill:'#F1F5F9'},bs);
+    el('rect',{x:150,y:y0,width:w,height:22,fill:POLCOL[p]},bs);
+    tx(bs,150+w+6,y0+15,tot[i].toFixed(1)+' '+T('vm'),{a:'start',w:700}).setAttribute('fill','#1B1D21');
+    var vm=runOf(p).metrics,A=+vm.route_A_count,B=+vm.route_B_count,N=+vm.vehicles,Cc=N-A-B,sw=250;
+    el('rect',{x:150,y:y0+26,width:sw*A/N,height:10,fill:'#242526'},bs);
+    el('rect',{x:150+sw*A/N,y:y0+26,width:sw*B/N,height:10,fill:'#94A3B8'},bs);
+    if(Cc>0)el('rect',{x:150+sw*(A+B)/N,y:y0+26,width:sw*Cc/N,height:10,fill:'#CBD5E1'},bs);
+    tx(bs,150+sw+6,y0+35,'A '+A+' · B '+B+(Cc>0?' · '+Cc:''),{a:'start'});
+  });
+  // delta callouts
+  var dI=(tot[2]-tot[1])/tot[1]*100,dS=(tot[2]-tot[0])/tot[0]*100;
+  el('rect',{x:8,y:190,width:504,height:96,fill:'#FFFBEF',stroke:'#FFB715'},bs);
+  tx(bs,20,214,T('hlInd')+': '+(dI<=0?'':'+')+dI.toFixed(2)+'%',{a:'start',w:700}).setAttribute('font-size',13);
+  tx(bs,20,238,T('hlStat')+': '+(dS<=0?'':'+')+dS.toFixed(2)+'%',{a:'start',w:700}).setAttribute('font-size',13);
+  tx(bs,20,266,I18N[LANG].sc[state.scn],{a:'start'});
+}
+
+function renderTimeline(){
+  var tl=$('#tl');tl.innerHTML='';
+  var items=[[0,T('depart').split('.')[0],''],[state.inc,state.inc+' s',' inc']];
+  items.forEach(function(it){var i=document.createElement('i');i.className=it[2];i.style.left=(it[0]/state.tMax*100)+'%';i.textContent=it[0]===0?'0 s':'Incident '+state.inc+' s';tl.appendChild(i);});
+}
+
+function renderLog(){
+  var t=state.t,h='';
+  var bi=runOf('independent_periodic').batches,bc=runOf('coordinated_batch').batches;
+  var ev=[[0,'<span>'+T('depart')+'</span>','']];
+  ev.push([state.inc,T('incident').replace('120',state.inc),'inc']);
+  bi.forEach(function(b,i){var c=bc[i];if(!c)return;ev.push([b[0],T('epoch')+' '+b[1]+': '+T('ind')+' A'+b[2]+' B'+b[3]+' · '+T('coo')+' A'+c[2]+' B'+c[3],'']);});
+  ev.sort(function(a,b){return a[0]-b[0];});
+  var shown=ev.filter(function(e){return e[0]<=t;});
+  shown.slice(-40).reverse().forEach(function(e){h+='<div><b>'+Math.round(e[0])+' s</b><span class="'+e[2]+'">'+e[1]+'</span></div>';});
+  if(t>=state.tMax-1)h='<div><b>'+Math.round(t)+' s</b><span>'+T('done')+'</span></div>'+h;
+  $('#log').innerHTML=h;
+}
+
+function computeTMax(){
+  var mx=0;POL.forEach(function(p){vlist(p).forEach(function(v){if(v.a>mx)mx=v.a;});});
+  state.tMax=Math.ceil((mx+20)/10)*10;
+  var s=$('#scrub');s.max=state.tMax;
+}
+
+function setScenario(k){
+  state.scn=k;state.t=0;state.playing=false;refreshLive();computeTMax();ensureDots();$('#play').textContent=T('play');renderStatic();draw();
+}
+
+function frame(ts){
+  if(state.playing){
+    var dt=(ts-state.last)/1000;state.last=ts;
+    state.t=Math.min(state.tMax,state.t+dt*state.speed);
+    if(state.t>=state.tMax){state.playing=false;$('#play').textContent=T('play');}
+    draw();
+  }
+  requestAnimationFrame(frame);
+}
+
+function init(){
+  var sel=$('#scn');Object.keys(D.scenarios).forEach(function(k){var o=document.createElement('option');o.value=k;sel.appendChild(o);});
+  sel.value=state.scn;
+  var sp=$('#speed');[5,20,60,200].forEach(function(s){var b=document.createElement('button');b.className='b'+(s===state.speed?' on':'');b.textContent=s+'x';b.onclick=function(){state.speed=s;Array.prototype.forEach.call(sp.children,function(c){c.className='b';});b.className='b on';};sp.appendChild(b);});
+  buildPanels();computeTMax();ensureDots();
+  sel.onchange=function(){setScenario(sel.value);};
+  $('#play').onclick=function(){if(state.t>=state.tMax)state.t=0;state.playing=!state.playing;state.last=performance.now();$('#play').textContent=state.playing?T('pause'):T('play');};
+  $('#reset').onclick=function(){state.t=0;state.playing=false;$('#play').textContent=T('play');draw();};
+  $('#scrub').oninput=function(e){state.t=parseFloat(e.target.value);draw();};
+  var tip=$('#tip'),ch=$('#chart');
+  function queueAt(p,t){var q=0;vlist(p).forEach(function(v){v.ev.forEach(function(e){var f=EDGE[e[0]].free_min*60,ms=e[2]-f;if(ms-e[1]>1e-6&&t>=e[1]&&t<ms)q++;});});return q;}
+  ch.addEventListener('mousemove',function(e){
+    var pt=ch.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;var q=pt.matrixTransform(ch.getScreenCTM().inverse());
+    var t=Math.round((q.x-36)/(520-46)*state.tMax);
+    if(t<0||t>state.tMax){tip.hidden=true;return;}
+    var hl=ch.querySelector('#hoverLine');if(!hl){hl=el('line',{id:'hoverLine',y1:10,y2:202,stroke:'#DA291C','stroke-width':1,'stroke-dasharray':'3 3'},ch);}
+    hl.setAttribute('x1',chartX(t));hl.setAttribute('x2',chartX(t));
+    tip.innerHTML='<b style="margin:0">'+t+' s</b>'+POL.map(function(p){return '<div><i style="background:'+POLCOL[p]+'"></i>'+T(p)+'<b>'+queueAt(p,t)+'</b></div>';}).join('');
+    tip.hidden=false;var w=tip.offsetWidth,x=e.clientX+14;if(x+w>window.innerWidth-8)x=e.clientX-w-14;tip.style.left=x+'px';tip.style.top=(e.clientY+14)+'px';
+  });
+  ch.addEventListener('mouseleave',function(){tip.hidden=true;var hl=ch.querySelector('#hoverLine');if(hl)hl.remove();});
+  $('#incT').oninput=function(e){applyIncident(parseInt(e.target.value,10));};
+  $('#injNow').onclick=function(){applyIncident(Math.max(0,Math.min(300,Math.round(state.t/5)*5)));};
+  $('#injReset').onclick=function(){applyIncident(BASE);};
+  var md=$('#modal');
+  function closeM(){md.hidden=true;}
+  $('#sysBtn').onclick=function(){md.hidden=false;};
+  $('#mClose').onclick=closeM;
+  md.addEventListener('click',function(e){if(e.target===md)closeM();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeM();});
+  $('#langBtn').onclick=function(){LANG=LANG==='en'?'ar':'en';applyLang();};
+  document.addEventListener('keydown',function(e){if(e.code==='Space'&&e.target.tagName!=='SELECT'){e.preventDefault();$('#play').click();}});
+  applyLang();
+  state.t=150;draw();
+  requestAnimationFrame(frame);
+}
+init();
+})();
+</script>
+</body>
+</html>
