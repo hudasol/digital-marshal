@@ -30,3 +30,8 @@ jobs:
         run: pip install -r environment/requirements.txt
       - name: SUMO smoke test
         run: python simulation/sumo/scripts/smoke.py
+      - name: SUMO scenario tests with SUMO installed (Track C; the closure and approach tests skip without SUMO)
+        run: python -m unittest discover -s tests -v
+        working-directory: simulation/sumo
+        env:
+          PYTHONPATH: scripts

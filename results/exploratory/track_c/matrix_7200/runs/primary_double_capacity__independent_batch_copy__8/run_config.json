@@ -1,0 +1,64 @@
+{
+  "scenario": "primary_double_capacity",
+  "scenario_params": {
+    "n_abstract": 10,
+    "spacing_abstract_s": 10.0,
+    "branch_capacity_scale": 2.0
+  },
+  "policy": "independent_batch_copy",
+  "seed": 8,
+  "sumo_vehicles": 75,
+  "k_sumo_per_abstract": 7.5,
+  "horizon_s": 7200.0,
+  "incident_s": 120.0,
+  "closed_edges": [
+    "E2",
+    "E3"
+  ],
+  "update_s": 30.0,
+  "lead_s": 60.0,
+  "branch_capacity_scale": 2.0,
+  "network": "network\\branch_x2\\dm.net.xml",
+  "network_sha256": "34e48a6e586b2436685abb845836a5288cb0027c1ec5c7a36355638e5192e291",
+  "approach_lanes": {
+    "A": [
+      "E1_0",
+      "E1_1"
+    ],
+    "B": [
+      "E1_2",
+      "E1_3",
+      "E1_4",
+      "E1_5"
+    ]
+  },
+  "branch_tau": null,
+  "base_tau": 1.0,
+  "calibration_source": "network\\calibration_branch_x2.json",
+  "mu_A": 1.0189549874135013,
+  "mu_B": 2.06635349383441,
+  "demand_sha256": "748ce84980d3c873c8ccfa620c98523f7272bce31896b3ae02498924ab68c246",
+  "sumo_version": "SUMO 1.28.0",
+  "sumo_command": [
+    "sumo",
+    "-n",
+    "dm.net.xml",
+    "-r",
+    "demand.rou.xml",
+    "--seed",
+    "8",
+    "--time-to-teleport",
+    "-1",
+    "--no-step-log",
+    "true",
+    "--no-warnings",
+    "true",
+    "--collision.action",
+    "warn",
+    "--tripinfo-output",
+    "tripinfo.xml",
+    "--step-length",
+    "1.0"
+  ],
+  "python": "3.12.10"
+}

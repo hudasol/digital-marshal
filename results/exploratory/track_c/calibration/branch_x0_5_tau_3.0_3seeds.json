@@ -1,0 +1,34 @@
+{
+  "mu_A": 0.2493876965425838,
+  "mu_A_runs": [
+    0.25069637883008355,
+    0.2488479262672811,
+    0.24861878453038674
+  ],
+  "mu_B": 0.49876885090477524,
+  "mu_B_runs": [
+    0.4981549815498155,
+    0.49907578558225507,
+    0.49907578558225507
+  ],
+  "branch_capacity_scale": 0.5,
+  "branch_tau": 3.0,
+  "seeds": [
+    1,
+    2,
+    3
+  ],
+  "network": "network\\dm.net.xml",
+  "network_sha256": "ad80abbd34c3ef81ff526155f087a8b2e545c3c0316dcec793cf3fc3a22ae54a",
+  "realised_scale_A": 0.4990828994927417,
+  "realised_scale_B": 0.4895138012475914,
+  "fastest_P_to_D_s": {
+    "A": 378.0,
+    "B": 505.0
+  },
+  "point_queue_free_P_to_D_s": {
+    "A": 360.0,
+    "B": 480.0
+  },
+  "note": "mu in veh/s measured at the P diverge under a standing queue (overload demand, middle 60% of crossings). realised_scale = mu / base calibration.json mu. fastest_P_to_D_s = fastest observed P crossing to arrival, a free-flow check."
+}

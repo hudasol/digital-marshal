@@ -1,0 +1,31 @@
+{
+  "status_counts": {
+    "ok": 25
+  },
+  "fairness_checks": 5,
+  "fairness_pass": 5,
+  "fairness_failures": [],
+  "shared_fields_checked": [
+    "demand_sha256",
+    "network_sha256",
+    "horizon_s",
+    "incident_s",
+    "closed_edges",
+    "update_s",
+    "lead_s",
+    "branch_capacity_scale",
+    "branch_tau",
+    "mu_A",
+    "mu_B",
+    "sumo_version",
+    "k_sumo_per_abstract"
+  ],
+  "horizon": {
+    "runs_ok": 25,
+    "horizons_used": [
+      7200.0
+    ],
+    "runs_with_arrival_after_3600_s": 0,
+    "latest_arrival_s": 1544.0
+  }
+}
